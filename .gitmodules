@@ -1,0 +1,18 @@
+[submodule "external/zlib"]
+	path = external/zlib
+	url = https://github.com/madler/zlib.git
+[submodule "external/eigen"]
+	path = external/eigen
+	url = https://gitlab.com/libeigen/eigen.git
+[submodule "external/geogram"]
+	path = external/geogram
+	url = https://github.com/BrunoLevy/geogram.git
+[submodule "external/libigl"]
+	path = external/libigl
+	url = https://github.com/libigl/libigl.git
+[submodule "external/proxsuite"]
+	path = external/proxsuite
+	url = https://github.com/Simple-Robotics/proxsuite.git
+[submodule "external/simde"]
+	path = external/simde
+	url = https://github.com/simd-everywhere/simde.git

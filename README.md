@@ -41,7 +41,7 @@ nibrary natively supports Linux, Windows and Mac. nibrary depends on several ext
         *   [Eigen](https://eigen.tuxfamily.org)
         *   [Geogram](https://github.com/BrunoLevy/geogram)
         *   [libigl](https://libigl.github.io/)
-        *   [Proxsuite](https://github.com/Simple-Robotics/proxsuite)
+        *   [ProxSuite](https://github.com/Simple-Robotics/proxsuite)
         *   [SIMDe](https://github.com/simd-everywhere/simde)
         *   [zlib](http://zlib.net/)
 

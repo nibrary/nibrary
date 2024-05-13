@@ -1,0 +1,289 @@
+#pragma once
+
+#include <stdio.h>
+#include <fstream>
+#include <iostream>
+#include <string>
+#include <cstring>
+#include <iomanip>
+#include <assert.h>
+
+#include "image/image.h"
+#include "math/core.h"
+
+extern "C" {
+#include "gifticlib/gifti_io.h"
+}
+
+#undef DT_UNKNOWN
+#undef PI
+
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpedantic"
+#pragma GCC diagnostic ignored "-Wall"
+#pragma GCC diagnostic ignored "-Wextra"
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#pragma GCC diagnostic ignored "-Wunused-local-typedefs"
+#pragma GCC diagnostic ignored "-Wsign-compare"
+#pragma GCC diagnostic ignored "-Wstringop-overread"
+#pragma GCC diagnostic ignored "-Warray-bounds="
+#pragma GCC diagnostic ignored "-Wclass-memaccess"
+#pragma GCC diagnostic ignored "-Wtype-limits"
+#pragma GCC diagnostic ignored "-Wunused-variable"
+#pragma GCC diagnostic ignored "-Wreorder"
+#pragma GCC diagnostic ignored "-Wunknown-pragmas"
+#pragma GCC diagnostic ignored "-Wstringop-overflow="
+#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+#pragma GCC diagnostic ignored "-Wunused-result"
+#pragma GCC diagnostic ignored "-Wcomment"
+#pragma GCC diagnostic ignored "-Wfree-nonheap-object"
+#include <igl/AABB.h>
+#include <igl/fast_winding_number.h>
+#pragma GCC diagnostic pop
+
+#else
+
+#include <igl/AABB.h>
+#include <igl/fast_winding_number.h>
+
+#endif
+
+#include <Eigen/Core>
+#include <Eigen/Dense>
+
+namespace NIBR
+{
+
+    // This is not nice but NIBR::PI has to be redefined because compiler does not like it together with igl::PI
+    #define PI 		   3.14159265358979323846264338327950288419716939937510582
+
+    // The following are the voxel values when surfaces are mapped to images
+    #define OUTSIDE          0  // voxel center is outside
+    #define INSIDE           1  // voxel center is inside
+    #define BOUNDARY         2  // voxel contains triangle(s)
+
+    // The following are the voxel values when white matter is mapped to image
+    #define WM_DEEP          1  // deep white matter
+    #define WM_SUPERFICIAL   2  // superficial white matter
+    #define WM_SULCAL_FUNDUS 3
+    #define WM_SULCAL_WALL   4
+    #define WM_GYRAL_CROWN   5
+    #define WM_BOUNDARY      6
+    
+    typedef enum
+    {
+        FACE,
+        VERTEX,
+        NOTSET
+    } SurfaceFieldOwnerType;
+
+    typedef enum
+    {
+        CLOSED,
+        OPEN,
+        OPENORCLOSED
+    } OpenOrClosed;
+
+    typedef enum
+    {
+        MANIFOLD,
+        NOTMANIFOLD,
+        MANIFOLDORNOT
+    } ManifoldOrNot;
+
+    struct SurfaceField
+    {
+        SurfaceFieldOwnerType owner{NOTSET};
+        std::string name{""};
+        std::string datatype{""};
+        int dimension{0};
+        float **fdata{NULL}; // For FACE data, data is nf x DataDimensions. For vertex data, it is nv x DataDimensions
+        int **idata{NULL};
+    };
+
+    class Surface
+    {
+
+    public:
+        Surface();
+        Surface(std::string _filePath);
+        Surface(const Surface &obj);
+        Surface(const Surface &obj,bool copyMeshOnly);
+        Surface(std::vector<std::vector<float>>& vertexList, std::vector<std::vector<int>>& faceList);
+        ~Surface();
+        void printInfo();
+
+        bool readHeader(std::string _filePath);        
+        bool readMesh();
+        void init();
+        void clear();
+        void reset();
+        bool write(std::string _filename);
+        
+        // TODO: These are only supported for VTK files at the moment. Gifti data fields are not currently processed.
+        bool readFields();
+        SurfaceField readField(std::string fieldName);
+        void deleteField(std::string fieldName);
+        SurfaceField copyField(std::string fieldName);
+        SurfaceField copyField(SurfaceField& field);
+        void clearField(SurfaceField& field);
+        void convert2FaceField(SurfaceField& field);
+        void convert2VertField(SurfaceField& field);
+        void convert2IntField(SurfaceField& field);
+        void convert2FloatField(SurfaceField& field);
+        std::vector<float> readFloatFieldData(SurfaceField& field,int d);
+        std::vector<int>   readIntFieldData  (SurfaceField& field,int d);
+        SurfaceField makeVertField(const std::string& name, const std::vector<std::vector<int>>&   idata);
+        SurfaceField makeFaceField(const std::string& name, const std::vector<std::vector<int>>&   idata);
+        SurfaceField makeVertField(const std::string& name, const std::vector<std::vector<float>>& fdata);
+        SurfaceField makeFaceField(const std::string& name, const std::vector<std::vector<float>>& fdata);
+        SurfaceField makeVertField(const std::string& name, const std::vector<int>&   idata);
+        SurfaceField makeFaceField(const std::string& name, const std::vector<int>&   idata);
+        SurfaceField makeVertField(const std::string& name, const std::vector<float>& fdata);
+        SurfaceField makeFaceField(const std::string& name, const std::vector<float>& fdata);
+
+        void calcCentersOfFaces();
+        void calcNormalsOfFaces();
+        void flipNormalsOfFaces();
+        void calcAreasOfFaces();
+        void calcArea();
+        void calcVolume();
+        void getNeighboringVertices();
+        void getNeighboringFaces();
+        void getConnectedComponents();
+        void getClosedAndOpenComponents();
+        void calcNormalsOfVertices();
+        void calcTriangleVectors();
+        void calcGaussianCurvature();
+        void calcMeanCurvature();
+        bool isManifold();
+        bool isClosed();
+        std::vector<double> calcAreasOfConnectedComponents();
+        std::vector<double> calcVolumesOfConnectedComponents();
+        std::vector<double> calcAreasOfHoles();
+
+        void toEigen();
+        void prepIglAABBTree();
+
+        float squaredDistToPoint(float *p);
+        float squaredDistToPoint(float *p, int& faceInd);
+        float squaredDistToPoint(float *p, int& faceInd, float* closestPoint);
+        float distToPoint(float *p);
+        float distToPoint(float *p, int& faceInd);
+        float distToPoint(float *p, int& faceInd, float* closestPoint);
+
+        // Enables the use to isPointInside based on a voxelized grid.
+        void  enablePointCheck(float gridRes);
+
+        bool  isPointInside(float* p);
+        bool  isPointInside_basedOnWindingNumber(float* p); // This function might return true, also for open surfaces, if the winding_number > 0.5
+        std::tuple<bool,bool,int,float> intersect(LineSegment* seg); // checks if segment crosses the surface or not. Returns NAN if segment is outside. If output is not NAN, that value shows the distance from the seg.beg.
+
+        // TODO: The following should be moved to surface_operators and they should generate new surfaces.
+        // Because they modify vertices and/or faces of the surface
+        void applyAffineTransform(float **affT);
+        void convertFSLsurface2RASmm(std::string inp_template);
+        void convertFreesurferSurface2RASmm(std::string inp_template);
+        //--------------------
+
+        int nv;          // Number of vertices
+        int nf;          // Number of faces
+        int ne;          // Number of unique edges
+        OpenOrClosed  openOrClosed;
+        ManifoldOrNot manifoldOrNot;
+
+        std::string extension;
+        float **vertices;
+        int **faces;
+
+        // Eigen variables
+        Eigen::MatrixXf V;
+        Eigen::MatrixXi F;
+
+        // Igl variables
+        igl::FastWindingNumberBVH fwn_bvh;
+        igl::AABB<Eigen::MatrixXf,3> AABB_tree;        
+
+        std::vector<SurfaceField> fields;
+
+        float **centersOfFaces;
+        float **normalsOfFaces;
+        float *areasOfFaces;
+        float **normalsOfVertices;
+        float **triangleNormal;
+        float **triangleEdge0;
+        float **triangleEdge1;
+        float **triangleEdge2;
+        float  *gaussianCurvature;
+        float  *meanCurvature;
+
+        std::set<int> *neighboringVertices;
+        std::set<int> *neighboringFaces;
+        float area;
+        float volume;
+
+        std::vector<SurfaceField> findFields();
+        static std::tuple<SurfaceField, std::vector<std::tuple<std::string, int, int, int, int>>> readFreesurferAnnot(std::string filePath, std::string LUTfname);
+
+        SurfaceField readFreesurferLabel(std::string filePath);
+        SurfaceField makeFieldFromFile(std::string filePath, std::string name, std::string owner, std::string dataType, int dimension, std::string LUTfname, bool isASCII);
+
+        Surface& operator=(const Surface &surf);
+        void copyMeshFrom(const Surface& obj);
+
+        // Connected components
+        std::vector<Surface>        comp;
+        std::vector<OpenOrClosed>   compOpenOrClosed;
+        std::vector<Surface>        compClosedAndOpen;
+        std::vector<double>         compArea;
+        std::vector<double>         compVolume;
+
+        // Ordered boundaries
+        void computeBoundaries();
+        std::vector<std::vector<int>> boundaries; // For each boundary, there is a list of vertices
+        std::vector<double>           boundaryLengths;
+        std::vector<double>           boundaryAreas;
+
+        // Vertex categorization
+        void categorizeVertices();
+        bool verticesCategorized;
+        std::vector<int> singularVertices;
+        std::vector<int> boundaryVertices;
+        std::vector<int> overconnectedVertices;
+        // std::vector<int> manifoldVertices;
+
+        // Edge categorization
+        void categorizeEdges();
+        bool edgesCategorized;
+        std::vector<std::pair<int, int>> boundaryEdges;
+        std::vector<std::pair<int, int>> overconnectedEdges;
+        // std::vector<std::pair<int, int>> manifoldEdges;
+
+        // The following are used in isPointInside
+        bool  enabledPointCheck;
+        float pointCheckGridRes;
+        std::vector<std::vector<std::vector<std::vector<int>>>> grid;
+        NIBR::Image<int8_t> maskAndBoundary;
+
+    private:
+        std::string filePath;
+        void copyFrom(const Surface& obj);
+
+        bool readVTKMeshHeader();
+        bool readGIIMeshHeader();
+        bool readFreesurferMeshHeader();
+
+        bool readVTKMesh();
+        bool readGIIMesh();
+        bool readFreesurferMesh();
+
+        bool writeVTK(std::string _filePath);
+        bool writeGII(std::string _filename);
+
+        bool isClosedComp();       
+        
+    };
+
+}

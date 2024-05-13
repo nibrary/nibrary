@@ -1,0 +1,184 @@
+# GEOGRAM
+
+SET(GEOGRAM_MIN_VERSION "1.8.6") 
+
+# Try to use the system library if exists
+if (USE_SYSTEM_GEOGRAM)
+
+    # mesh_fill_holes function actually uses a geogram .cpp file, which is not ideal but
+    # for now, this was found to be good solution. Until we have a better solution,
+    # we will download the source and compile geogram. So system package is not used for now.
+    #
+    # find_package(Geogram ${GEOGRAM_MIN_VERSION} QUIET)
+
+    if (GEOGRAM_FOUND)
+        set(BUILDING_GEOGRAM_FROM_SOURCE FALSE CACHE INTERNAL "Using system geogram")
+        set(GEOGRAM_INCLUDE_DIR ${GEOGRAM_INCLUDE_DIR} CACHE INTERNAL "")
+        set(GEOGRAM_LIBRARY ${GEOGRAM_LIBRARY} CACHE INTERNAL "")
+        message(STATUS "Using system geogram")
+    endif()
+
+endif()
+
+# If library does not exist in the system then compile from source
+if(NOT GEOGRAM_FOUND)
+
+    if (EXISTS "${CMAKE_SOURCE_DIR}/external/geogram/CMakeLists.txt")
+
+        set(GEOGRAM_SOURCE_DIR "${CMAKE_SOURCE_DIR}/external/geogram")
+
+        set(BUILDING_GEOGRAM_FROM_SOURCE TRUE CACHE INTERNAL "Geogram will be built from local source")
+
+    elseif (EXISTS "${CMAKE_SOURCE_DIR}/external/geogram_${GEOGRAM_MIN_VERSION}/CMakeLists.txt")
+
+        set(GEOGRAM_SOURCE_DIR "${CMAKE_SOURCE_DIR}/external/geogram_${GEOGRAM_MIN_VERSION}")
+
+        set(BUILDING_GEOGRAM_FROM_SOURCE TRUE CACHE INTERNAL "Geogram will be built from local source")
+
+    else()    
+
+        set(BUILDING_GEOGRAM_FROM_SOURCE TRUE CACHE INTERNAL "Geogram will be downloaded and built from source")
+
+        set(GEOGRAM_SOURCE_DIR "${CMAKE_BINARY_DIR}/external/geogram_${GEOGRAM_MIN_VERSION}")
+
+        set(DOWNLOAD_FNAME "geogram_${GEOGRAM_MIN_VERSION}.zip")
+        set(DOWNLOAD_URL   "https://github.com/BrunoLevy/geogram/releases/download/v${GEOGRAM_MIN_VERSION}/${DOWNLOAD_FNAME}")
+        set(DOWNLOAD_PATH  "${CMAKE_BINARY_DIR}/external/download/${DOWNLOAD_FNAME}")
+        
+        if (NOT EXISTS ${DOWNLOAD_PATH})
+            file(DOWNLOAD ${DOWNLOAD_URL} ${DOWNLOAD_PATH}
+                SHOW_PROGRESS
+                STATUS download_status
+                LOG download_log)
+            list(GET download_status 0 status_code)
+            if(NOT status_code EQUAL 0)
+                message(FATAL_ERROR "Error downloading ${DOWNLOAD_URL}: ${download_log}")
+            endif()
+
+            execute_process(
+                COMMAND ${CMAKE_COMMAND} -E tar xzf ${DOWNLOAD_PATH}
+                WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/external"
+                RESULT_VARIABLE extract_result
+            )
+            if(NOT extract_result EQUAL 0)
+                message(FATAL_ERROR "Error extracting ${DOWNLOAD_FNAME}: ${extract_result}")
+            endif()
+        endif()
+
+    endif()
+
+endif()
+
+
+if(BUILDING_GEOGRAM_FROM_SOURCE)
+
+    # Check the system architecture and operating system
+    if (BUILD_SHARED_LIBS)
+
+        if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
+            set(GEO_PLATFORM "Linux64-gcc-dynamic")
+        elseif (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+            if(${CMAKE_SYSTEM_PROCESSOR} MATCHES "arm64" OR ${CMAKE_SYSTEM_PROCESSOR} MATCHES "aarch64")
+                set(GEO_PLATFORM "Darwin-aarch64-clang-dynamic")
+            elseif(${CMAKE_SYSTEM_PROCESSOR} MATCHES "x86_64")
+                set(GEO_PLATFORM "Darwin-clang-dynamic")
+            else()
+                message(FATAL_ERROR "Unsupported processor architecture")
+            endif()
+        elseif (CMAKE_SYSTEM_NAME STREQUAL "Windows")
+            set(GEO_PLATFORM "Win-vs-dynamic-generic")
+        else()
+            message(FATAL_ERROR "Unsupported operating system")
+        endif()
+
+    else()
+
+        if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
+            set(GEO_PLATFORM "Linux64-gcc")
+        elseif (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+            if(${CMAKE_SYSTEM_PROCESSOR} MATCHES "arm64" OR ${CMAKE_SYSTEM_PROCESSOR} MATCHES "aarch64")
+                set(GEO_PLATFORM "Darwin-aarch64-clang")
+            elseif(${CMAKE_SYSTEM_PROCESSOR} MATCHES "x86_64")
+                set(GEO_PLATFORM "Darwin-clang")
+            else()
+                message(FATAL_ERROR "Unsupported processor architecture")
+            endif()
+        elseif (CMAKE_SYSTEM_NAME STREQUAL "Windows")
+            set(GEO_PLATFORM "Win-vs-generic")
+        else()
+            message(FATAL_ERROR "Unsupported operating system")
+        endif()
+
+    endif()
+
+    include(ExternalProject)
+    ExternalProject_Add(build_geogram
+
+        SOURCE_DIR "${GEOGRAM_SOURCE_DIR}"
+
+        PREFIX ${CMAKE_BINARY_DIR}/external/geogram
+
+        CMAKE_ARGS  -DBUILD_SHARED_LIBS=${BUILD_SHARED_LIBS}
+                    -DCMAKE_INSTALL_LIBDIR=${CMAKE_INSTALL_PREFIX}/lib/${nibrary}
+                    -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
+                    -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
+                    -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}
+                    -DGEOGRAM_LIB_ONLY=ON
+                    -DGEOGRAM_WITH_TETGEN=OFF
+                    -DGEOGRAM_WITH_EXPLORAGRAM=OFF
+                    -DGEOGRAM_WITH_GRAPHICS=OFF
+                    -DGEOGRAM_WITH_LEGACY_NUMERICS=OFF
+                    -DGEOGRAM_WITH_HLBFGS=ON
+                    -DGEOGRAM_WITH_TRIANGLE=OFF
+                    -DGEOGRAM_WITH_LUA=OFF
+                    -DGEOGRAM_WITH_FPG=OFF
+                    -DGEOGRAM_WITH_GARGANTUA=OFF
+                    -DGEOGRAM_WITH_GEOGRAMPLUS=OFF
+                    -DGEOGRAM_WITH_VORPALINE=OFF
+                    -DVORPALINE_PLATFORM=${GEO_PLATFORM}
+                    -DVORPALINE_BUILD_DYNAMIC=${BUILD_SHARED_LIBS}
+    )
+
+    ExternalProject_Add_Step(build_geogram move_geogram_headers
+        COMMENT "Moving Geogram headers from /include/geogram1/geogram to /include/${nibrary}/geogram"
+        DEPENDEES install # Assuming 'install' is the last step of building geogram, adjust as needed
+        COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_BINARY_DIR}/install/include/${nibrary}/geogram"
+        COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_BINARY_DIR}/install/include/geogram1/geogram"
+        COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_BINARY_DIR}/install/include/geogram1/geogram" "${CMAKE_BINARY_DIR}/install/include/${nibrary}/geogram"
+        COMMAND ${CMAKE_COMMAND} -E remove_directory "${CMAKE_BINARY_DIR}/install/include/geogram1"
+        ALWAYS 0 # This ensures the step is only run when the DEPENDEES are updated, not every build
+    )
+
+    # We will for now set this as follows, not as ${CMAKE_INSTALL_PREFIX}/include/geogram
+    # This is because mesh_fill_holes function actually uses a geogram .cpp file, which is not ideal but
+    # for now, this was found to be working solution. Until we have a better solution, let's keep the line below.
+    set(GEOGRAM_INCLUDE_DIR ${GEOGRAM_SOURCE_DIR}/src/lib CACHE INTERNAL "Geogram include directory")
+    
+    if(BUILD_SHARED_LIBS)
+
+        if(UNIX)
+            if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
+                set(GEOGRAM_LIBRARY_TO_USE "${CMAKE_INSTALL_PREFIX}/lib/${nibrary}/libgeogram.so")
+            elseif (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+                set(GEOGRAM_LIBRARY_TO_USE "${CMAKE_INSTALL_PREFIX}/lib/${nibrary}/libgeogram.dylib")
+            endif()
+        else()
+            set(GEOGRAM_LIBRARY_TO_USE "${CMAKE_INSTALL_PREFIX}/lib/${nibrary}/geogram.lib")
+        endif()
+
+
+    else()
+
+        if(UNIX)
+            set(GEOGRAM_LIBRARY_TO_USE "${CMAKE_INSTALL_PREFIX}/lib/${nibrary}/libgeogram.a")
+        else()
+            set(GEOGRAM_LIBRARY_TO_USE "${CMAKE_INSTALL_PREFIX}/lib/${nibrary}/geogram.lib")
+        endif()
+    
+    endif()
+
+    set(GEOGRAM_LIBRARY "${GEOGRAM_LIBRARY_TO_USE}" CACHE INTERNAL "Geogram libraries to link against")
+
+   
+endif()
+

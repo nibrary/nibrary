@@ -1,0 +1,8 @@
+.vscode/
+.vs/
+.cache/
+external/proxsuite/include/proxsuite/config.hpp
+build/
+build_*/
+build-*/
+

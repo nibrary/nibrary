@@ -18,7 +18,7 @@ nibrary natively supports Linux, Windows and Mac. nibrary depends on several ext
     1. **Clone the repository with submodules:**
 
         ```bash
-        git clone --recurse-submodules https://github.com/baranaydogan/nibrary
+        git clone --recurse-submodules https://github.com/nibrary/nibrary
         ```
 
     2. **Build the project**
@@ -33,7 +33,7 @@ nibrary natively supports Linux, Windows and Mac. nibrary depends on several ext
     1. **Clone the repository:**
 
         ```bash
-        git clone https://github.com/baranaydogan/nibrary
+        git clone https://github.com/nibrary/nibrary
         ```
 
     2. **Install dependencies manually:**

@@ -227,7 +227,7 @@ void TranShi2015::recon()
             fod[n] = static_cast<float>(d(n));
         }
 
-        float yPosSum = y.array().max(0).sum();
+        float yPosSum = y.array().max(0.0).sum();
 
         tm[0]  = static_cast<float>(4.0 * M_PI * yPosSum / double(y.size()));           // signal fraction of intra axonal compartment
         tm[1]  = static_cast<float>(d(d.size() - 2));                                   // alpha: signal fraction of extra axonal compartment

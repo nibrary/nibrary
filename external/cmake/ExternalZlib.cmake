@@ -91,10 +91,10 @@ if(BUILDING_ZLIB_FROM_SOURCE)
                 set(ZLIB_LIBRARY_TO_USE "${CMAKE_INSTALL_PREFIX}/lib/${nibrary}/libz.so")
                 add_custom_command(
                     TARGET build_zlib POST_BUILD
-                    COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_INSTALL_PREFIX}/include/${nibrary}"
+                    COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_INSTALL_PREFIX}/include/${nibrary}/zlib"
                     COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_INSTALL_PREFIX}/lib/${nibrary}"
-                    COMMAND ${CMAKE_COMMAND} -E rename "${CMAKE_INSTALL_PREFIX}/include/zconf.h" "${CMAKE_INSTALL_PREFIX}/include/${nibrary}/zconf.h"
-                    COMMAND ${CMAKE_COMMAND} -E rename "${CMAKE_INSTALL_PREFIX}/include/zlib.h" "${CMAKE_INSTALL_PREFIX}/include/${nibrary}/zlib.h"
+                    COMMAND ${CMAKE_COMMAND} -E rename "${CMAKE_INSTALL_PREFIX}/include/zconf.h" "${CMAKE_INSTALL_PREFIX}/include/${nibrary}/zlib/zconf.h"
+                    COMMAND ${CMAKE_COMMAND} -E rename "${CMAKE_INSTALL_PREFIX}/include/zlib.h" "${CMAKE_INSTALL_PREFIX}/include/${nibrary}/zlib/zlib.h"
                     COMMAND ${CMAKE_COMMAND} -E rename "${CMAKE_INSTALL_PREFIX}/lib/libz.so" "${CMAKE_INSTALL_PREFIX}/lib/${nibrary}/libz.so"
                     COMMAND ${CMAKE_COMMAND} -E rename "${CMAKE_INSTALL_PREFIX}/lib/libz.so.1" "${CMAKE_INSTALL_PREFIX}/lib/${nibrary}/libz.so.1"
                     COMMAND ${CMAKE_COMMAND} -E rename "${CMAKE_INSTALL_PREFIX}/lib/libz.so.${ZLIB_MIN_VERSION}" "${CMAKE_INSTALL_PREFIX}/lib/${nibrary}/libz.so.${ZLIB_MIN_VERSION}"
@@ -106,10 +106,10 @@ if(BUILDING_ZLIB_FROM_SOURCE)
                 set(ZLIB_LIBRARY_TO_USE "${CMAKE_INSTALL_PREFIX}/lib/${nibrary}/libz.dylib")
                 add_custom_command(
                     TARGET build_zlib POST_BUILD
-                    COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_INSTALL_PREFIX}/include/${nibrary}"
+                    COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_INSTALL_PREFIX}/include/${nibrary}/zlib"
                     COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_INSTALL_PREFIX}/lib/${nibrary}"
-                    COMMAND ${CMAKE_COMMAND} -E rename "${CMAKE_INSTALL_PREFIX}/include/zconf.h" "${CMAKE_INSTALL_PREFIX}/include/${nibrary}/zconf.h"
-                    COMMAND ${CMAKE_COMMAND} -E rename "${CMAKE_INSTALL_PREFIX}/include/zlib.h" "${CMAKE_INSTALL_PREFIX}/include/${nibrary}/zlib.h"
+                    COMMAND ${CMAKE_COMMAND} -E rename "${CMAKE_INSTALL_PREFIX}/include/zconf.h" "${CMAKE_INSTALL_PREFIX}/include/${nibrary}/zlib/zconf.h"
+                    COMMAND ${CMAKE_COMMAND} -E rename "${CMAKE_INSTALL_PREFIX}/include/zlib.h" "${CMAKE_INSTALL_PREFIX}/include/${nibrary}/zlib/zlib.h"
                     COMMAND ${CMAKE_COMMAND} -E rename "${CMAKE_INSTALL_PREFIX}/lib/libz.dylib" "${CMAKE_INSTALL_PREFIX}/lib/${nibrary}/libz.dylib"
                     COMMAND ${CMAKE_COMMAND} -E rename "${CMAKE_INSTALL_PREFIX}/lib/libz.1.dylib" "${CMAKE_INSTALL_PREFIX}/lib/${nibrary}/libz.1.dylib"
                     COMMAND ${CMAKE_COMMAND} -E rename "${CMAKE_INSTALL_PREFIX}/lib/libz.${ZLIB_MIN_VERSION}.dylib" "${CMAKE_INSTALL_PREFIX}/lib/${nibrary}/libz.${ZLIB_MIN_VERSION}.dylib"
@@ -126,10 +126,10 @@ if(BUILDING_ZLIB_FROM_SOURCE)
             set(ZLIB_LIBRARY_TO_USE "${CMAKE_INSTALL_PREFIX}/lib/${nibrary}/zlib.lib")
             add_custom_command(
                 TARGET build_zlib POST_BUILD
-                COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_INSTALL_PREFIX}/include/${nibrary}"
+                COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_INSTALL_PREFIX}/include/${nibrary}/zlib"
                 COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_INSTALL_PREFIX}/lib/${nibrary}"
-                COMMAND ${CMAKE_COMMAND} -E rename "${CMAKE_INSTALL_PREFIX}/include/zconf.h" "${CMAKE_INSTALL_PREFIX}/include/${nibrary}/zconf.h"
-                COMMAND ${CMAKE_COMMAND} -E rename "${CMAKE_INSTALL_PREFIX}/include/zlib.h" "${CMAKE_INSTALL_PREFIX}/include/${nibrary}/zlib.h"
+                COMMAND ${CMAKE_COMMAND} -E rename "${CMAKE_INSTALL_PREFIX}/include/zconf.h" "${CMAKE_INSTALL_PREFIX}/include/${nibrary}/zlib/zconf.h"
+                COMMAND ${CMAKE_COMMAND} -E rename "${CMAKE_INSTALL_PREFIX}/include/zlib.h" "${CMAKE_INSTALL_PREFIX}/include/${nibrary}/zlib/zlib.h"
                 # COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_INSTALL_PREFIX}/lib/zlib.lib" "${CMAKE_INSTALL_PREFIX}/lib/${nibrary}/zlib.lib"
                 # COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_INSTALL_PREFIX}/lib/zlib1.dll" "${CMAKE_INSTALL_PREFIX}/lib/${nibrary}/zlib1.dll"
                 # COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_INSTALL_PREFIX}/lib/zlibstatic.lib" "${CMAKE_INSTALL_PREFIX}/lib/${nibrary}/zlibstatic.lib"
@@ -146,13 +146,13 @@ if(BUILDING_ZLIB_FROM_SOURCE)
                 set(ZLIB_LIBRARY_TO_USE "${CMAKE_INSTALL_PREFIX}/lib/${nibrary}/libz.a")
                 add_custom_command(
                     TARGET build_zlib POST_BUILD
-                    COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_INSTALL_PREFIX}/include/${nibrary}"
+                    COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_INSTALL_PREFIX}/include/${nibrary}/zlib"
                     COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_INSTALL_PREFIX}/lib/${nibrary}"
-                    COMMAND ${CMAKE_COMMAND} -E rename "${CMAKE_INSTALL_PREFIX}/include/zconf.h" "${CMAKE_INSTALL_PREFIX}/include/${nibrary}/zconf.h"
-                    COMMAND ${CMAKE_COMMAND} -E rename "${CMAKE_INSTALL_PREFIX}/include/zlib.h" "${CMAKE_INSTALL_PREFIX}/include/${nibrary}/zlib.h"
-                    COMMAND ${CMAKE_COMMAND} -E remove "${CMAKE_INSTALL_PREFIX}/lib/libz.dylib"
-                    COMMAND ${CMAKE_COMMAND} -E remove "${CMAKE_INSTALL_PREFIX}/lib/libz.1.dylib"
-                    COMMAND ${CMAKE_COMMAND} -E remove "${CMAKE_INSTALL_PREFIX}/lib/libz.${ZLIB_MIN_VERSION}.dylib"
+                    COMMAND ${CMAKE_COMMAND} -E rename "${CMAKE_INSTALL_PREFIX}/include/zconf.h" "${CMAKE_INSTALL_PREFIX}/include/${nibrary}/zlib/zconf.h"
+                    COMMAND ${CMAKE_COMMAND} -E rename "${CMAKE_INSTALL_PREFIX}/include/zlib.h" "${CMAKE_INSTALL_PREFIX}/include/${nibrary}/zlib/zlib.h"
+                    COMMAND ${CMAKE_COMMAND} -E remove "${CMAKE_INSTALL_PREFIX}/lib/libz.so"
+                    COMMAND ${CMAKE_COMMAND} -E remove "${CMAKE_INSTALL_PREFIX}/lib/libz.so.1"
+                    COMMAND ${CMAKE_COMMAND} -E remove "${CMAKE_INSTALL_PREFIX}/lib/libz.so.${ZLIB_MIN_VERSION}"
                     COMMAND ${CMAKE_COMMAND} -E rename "${CMAKE_INSTALL_PREFIX}/lib/libz.a" "${CMAKE_INSTALL_PREFIX}/lib/${nibrary}/libz.a"
                 )
 
@@ -161,10 +161,10 @@ if(BUILDING_ZLIB_FROM_SOURCE)
                 set(ZLIB_LIBRARY_TO_USE "${CMAKE_INSTALL_PREFIX}/lib/${nibrary}/libz.a")
                 add_custom_command(
                     TARGET build_zlib POST_BUILD
-                    COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_INSTALL_PREFIX}/include/${nibrary}"
+                    COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_INSTALL_PREFIX}/include/${nibrary}/zlib"
                     COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_INSTALL_PREFIX}/lib/${nibrary}"
-                    COMMAND ${CMAKE_COMMAND} -E rename "${CMAKE_INSTALL_PREFIX}/include/zconf.h" "${CMAKE_INSTALL_PREFIX}/include/${nibrary}/zconf.h"
-                    COMMAND ${CMAKE_COMMAND} -E rename "${CMAKE_INSTALL_PREFIX}/include/zlib.h" "${CMAKE_INSTALL_PREFIX}/include/${nibrary}/zlib.h"
+                    COMMAND ${CMAKE_COMMAND} -E rename "${CMAKE_INSTALL_PREFIX}/include/zconf.h" "${CMAKE_INSTALL_PREFIX}/include/${nibrary}/zlib/zconf.h"
+                    COMMAND ${CMAKE_COMMAND} -E rename "${CMAKE_INSTALL_PREFIX}/include/zlib.h" "${CMAKE_INSTALL_PREFIX}/include/${nibrary}/zlib/zlib.h"
                     COMMAND ${CMAKE_COMMAND} -E remove "${CMAKE_INSTALL_PREFIX}/lib/libz.dylib"
                     COMMAND ${CMAKE_COMMAND} -E remove "${CMAKE_INSTALL_PREFIX}/lib/libz.1.dylib"
                     COMMAND ${CMAKE_COMMAND} -E remove "${CMAKE_INSTALL_PREFIX}/lib/libz.${ZLIB_MIN_VERSION}.dylib"
@@ -181,10 +181,10 @@ if(BUILDING_ZLIB_FROM_SOURCE)
             set(ZLIB_LIBRARY_TO_USE "${CMAKE_INSTALL_PREFIX}/lib/${nibrary}/zlibstatic.lib")
             add_custom_command(
                 TARGET build_zlib POST_BUILD
-                COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_INSTALL_PREFIX}/include/${nibrary}"
+                COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_INSTALL_PREFIX}/include/${nibrary}/zlib"
                 COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_INSTALL_PREFIX}/lib/${nibrary}"
-                COMMAND ${CMAKE_COMMAND} -E rename "${CMAKE_INSTALL_PREFIX}/include/zconf.h" "${CMAKE_INSTALL_PREFIX}/include/${nibrary}/zconf.h"
-                COMMAND ${CMAKE_COMMAND} -E rename "${CMAKE_INSTALL_PREFIX}/include/zlib.h" "${CMAKE_INSTALL_PREFIX}/include/${nibrary}/zlib.h"
+                COMMAND ${CMAKE_COMMAND} -E rename "${CMAKE_INSTALL_PREFIX}/include/zconf.h" "${CMAKE_INSTALL_PREFIX}/include/${nibrary}/zlib/zconf.h"
+                COMMAND ${CMAKE_COMMAND} -E rename "${CMAKE_INSTALL_PREFIX}/include/zlib.h" "${CMAKE_INSTALL_PREFIX}/include/${nibrary}/zlib/zlib.h"
                 # COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_INSTALL_PREFIX}/lib/zlib.lib" "${CMAKE_INSTALL_PREFIX}/lib/${nibrary}/zlib.lib"
                 # COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_INSTALL_PREFIX}/lib/zlib1.dll" "${CMAKE_INSTALL_PREFIX}/lib/${nibrary}/zlib1.dll"
                 # COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_INSTALL_PREFIX}/lib/zlibstatic.lib" "${CMAKE_INSTALL_PREFIX}/lib/${nibrary}/zlibstatic.lib"
@@ -196,7 +196,7 @@ if(BUILDING_ZLIB_FROM_SOURCE)
     endif()
 
 
-    set(ZLIB_INCLUDE_DIRS ${CMAKE_INSTALL_PREFIX}/include/${nibrary} CACHE INTERNAL "")
+    set(ZLIB_INCLUDE_DIRS ${CMAKE_INSTALL_PREFIX}/include/${nibrary}/zlib CACHE INTERNAL "")
     set(ZLIB_LIBRARIES "${ZLIB_LIBRARY_TO_USE}" CACHE INTERNAL "ZLIB libraries to link against")
 
 

@@ -49,8 +49,8 @@ float TranShi2015::checkConstraints(const Eigen::VectorXd &d) {
 
     Eigen::VectorXd y = Y * d.head(d.size() - 2);
 
-    float positiveSum = y.array().max(0).sum();
-    float negativeSum = y.array().min(0).sum();
+    float positiveSum = y.array().max(0.0).sum();
+    float negativeSum = y.array().min(0.0).sum();
     if (std::fabs(negativeSum) < EPS8) negativeSum = EPS8; // to prevent division by 0
 
     float ratio = std::fabs(positiveSum / negativeSum);

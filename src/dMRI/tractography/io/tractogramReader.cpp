@@ -84,7 +84,7 @@ bool NIBR::TractogramReader::initReader(std::string _fileName) {
 
 
 	// std::string message  = "Preparing tractogram";
-	// std::string preamble = "\033[1;32mNIBR::INFO: \033[0;32m";
+	// std::string preamble = "\033[1;32mNIBRARY::INFO: \033[0;32m";
 
     // if (NIBR::VERBOSE()==VERBOSE_DETAIL) {
     //     preamble = "\033[1;35mNIBR::MSG_DETAIL: \033[0;35m";

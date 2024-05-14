@@ -1,6 +1,7 @@
 #pragma once
 
 #include "math/core.h"
+#include "math/gaussian.h"
 #include "dMRI/tractography/mappers/tractogram2imageMapper.h"
 #include "dMRI/tractography/utility/segmentOperators.h"
 

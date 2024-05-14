@@ -465,7 +465,7 @@ void Trekker::run() {
 
     if (NIBR::VERBOSE()==VERBOSE_INFO) {
 
-        std::string preamble = "\033[1;32mNIBR::INFO: \033[0;32m";
+        std::string preamble = "\033[1;32mNIBRARY::INFO: \033[0;32m";
 
         size_t success = 0;
         size_t discard = 0;

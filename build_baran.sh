@@ -6,8 +6,8 @@ export PATH=/usr/bin:${PATH}
 
 cmakeExe=cmake
 buildType=Release #Release or Debug
-buildShared=ON
-buildDir=build-shared
+buildShared=OFF
+buildDir=build-static
 
 c_compiler=/bin/gcc
 cxx_compiler=/bin/g++

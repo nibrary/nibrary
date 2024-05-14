@@ -159,7 +159,7 @@ void NIBR::MT::MTRUN(size_t range, int numberOfThreads, std::string message, std
     // Hide message below VERBOSE_INFO
     if (NIBR::VERBOSE()>=VERBOSE_INFO) {
 
-        std::string preamble = "\033[1;32mNIBR::INFO: \033[0;32m";
+        std::string preamble = "\033[1;32mNIBRARY::INFO: \033[0;32m";
 
         // Display initial message and progress
         std::cout << preamble << message << ": 0%" << "\033[0m" << '\r' << std::flush;
@@ -195,7 +195,7 @@ void NIBR::MT::MTRUN(size_t range, int numberOfThreads, std::string message, std
     // Hide message below VERBOSE_INFO
     if (NIBR::VERBOSE()>=VERBOSE_INFO) {
 
-        std::string preamble = "\033[1;32mNIBR::INFO: \033[0;32m";
+        std::string preamble = "\033[1;32mNIBRARY::INFO: \033[0;32m";
 
         // Display initial message and progress
         std::cout << preamble << message << " (success) : 0%" << "\033[0m" << std::endl;

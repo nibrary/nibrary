@@ -29,8 +29,4 @@ namespace NIBR {
 std::vector<PathwayRule> parsePathwayInput(std::vector<std::string> inp);
 PathwayRule              parseSeedInput   (std::vector<std::string> inp);
 
-
-// [success,seed,rules]
-std::tuple<bool,PathwayRule,std::vector<PathwayRule>> parseXactInput(std::string xact_fname, bool xact_stop_after_entry);
-
 }

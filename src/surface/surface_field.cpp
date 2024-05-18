@@ -386,7 +386,7 @@ NIBR::SurfaceField NIBR::Surface::readField(std::string fieldName) {
 	}
 
 	fclose(input);
-    
+
     return field;
 }
 

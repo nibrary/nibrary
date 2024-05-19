@@ -387,6 +387,10 @@ NIBR::SurfaceField NIBR::Surface::readField(std::string fieldName) {
 
 	fclose(input);
 
+    if ((fdata == NULL) && (idata == NULL)) {
+        disp(MSG_WARN, "Field not found: %s", fieldName.c_str());
+    }
+
     return field;
 }
 

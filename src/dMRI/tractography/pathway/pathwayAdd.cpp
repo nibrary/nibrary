@@ -720,6 +720,10 @@ bool NIBR::Pathway::add(PathwayRule prule) {
                 if (prule.surfaceFieldName4Mask!="")        maskField = tmpSurf->readField(prule.surfaceFieldName4Mask);
                 if (prule.surfaceUseDisc)                   maskField = makeDiscMask(tmpSurf, prule.surfaceDiscCenter[0], prule.surfaceDiscCenter[1], prule.surfaceDiscCenter[2], prule.surfaceDiscRadius);
                 maskField.name = "mask";
+
+                if ((maskField.fdata == NULL) && (maskField.idata == NULL)) {
+                    disp(MSG_WARN, "Surface mask empty");
+                }
             }
 
             // Preparing mask - Masking is done by marking vertices to select
@@ -757,6 +761,7 @@ bool NIBR::Pathway::add(PathwayRule prule) {
             } else {
                 surfSrc = new Surface(*tmpSurf);
             }
+
 
             if (!srcDone) {
                 // Prepare for surface indexing

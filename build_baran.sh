@@ -16,7 +16,7 @@ cxx_compiler=/bin/g++
 # cxx_compiler=clang++
 
 
-rm -rf ${buildDir}
+# rm -rf ${buildDir}
 mkdir -p ${buildDir}
 cd ${buildDir}
 

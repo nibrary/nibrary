@@ -41,7 +41,9 @@ namespace NIBR
         void                            fodIsSym()    {iseven = false;}
         bool                            isFodAsym()   {return !iseven;}
         bool                            isFodsym()    {return  iseven;}
-        
+
+        std::vector<std::vector<float>> getCoordinates() { return isspheresliced ? sphereCoords : discVolSphCoords;}
+
 
     private:
         bool                                iseven;

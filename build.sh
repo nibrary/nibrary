@@ -5,8 +5,8 @@ buildType=Release
 buildShared=OFF
 buildDir=build-static
 
-c_compiler=/bin/gcc
-cxx_compiler=/bin/g++
+c_compiler=/bin/gcc-12
+cxx_compiler=/bin/g++-12
 
 mkdir -p ${buildDir}
 cd ${buildDir}

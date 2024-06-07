@@ -12,12 +12,12 @@ std::tuple<bool,bool,int,float> NIBR::Surface::intersect(LineSegment* seg)
     float p0[3];
     maskAndBoundary.to_ijk(seg->beg,p0);
     int A[3] = {int(std::round(p0[0])), int(std::round(p0[1])), int(std::round(p0[2]))};
-    disp(MSG_DEBUG,"A: [%d,%d,%d]",A[0],A[1],A[2]);
+    // disp(MSG_DEBUG,"A: [%d,%d,%d]",A[0],A[1],A[2]);
 
     float p1[3];
     maskAndBoundary.to_ijk(seg->end,p1);
     int B[3] = {int(std::round(p1[0])), int(std::round(p1[1])), int(std::round(p1[2]))};
-    disp(MSG_DEBUG,"B: [%d,%d,%d]",B[0],B[1],B[2]);
+    // disp(MSG_DEBUG,"B: [%d,%d,%d]",B[0],B[1],B[2]);
 
     float dist        = NAN;
     float minDist     = FLT_MAX;
@@ -35,11 +35,11 @@ std::tuple<bool,bool,int,float> NIBR::Surface::intersect(LineSegment* seg)
         // disp(MSG_DEBUG,"Checking faces");
         for (auto faceInd : grid[i][j][k]) {
             
-            disp(MSG_DEBUG,"faceInd: %d", faceInd);
+            // disp(MSG_DEBUG,"faceInd: %d", faceInd);
 
             findSegmentTriangleIntersection(this, faceInd, seg->beg, seg->dir, seg->len, NULL, &dist);
 
-            disp(MSG_DEBUG,"findSegmentTriangleIntersection: %f", dist);
+            // disp(MSG_DEBUG,"faceInd: %d, dist: %f", faceInd, dist);
 
             if ( (!isnan(dist)) && (dist>=0) && (dist<minDist) ) { // equality is at the mesh surface
 
@@ -54,7 +54,7 @@ std::tuple<bool,bool,int,float> NIBR::Surface::intersect(LineSegment* seg)
             }
 
         }
-        disp(MSG_DEBUG,"Face check done");
+        // disp(MSG_DEBUG,"Face check done");
 
         dist = (minDist==FLT_MAX) ? NAN : minDist;
 

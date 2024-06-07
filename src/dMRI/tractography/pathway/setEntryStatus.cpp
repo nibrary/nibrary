@@ -28,6 +28,15 @@ bool NIBR::Pathway::setEntryStatus(NIBR::Walker* w, int ruleNo) {
     //     }
     // }
 
+    if (VERBOSE()==VERBOSE_DEBUG) {
+        switch (w->entry_status[ruleNo]) {
+        case notEnteredYet: disp(MSG_DEBUG,"   notEnteredYet");   break;
+        case entered:       disp(MSG_DEBUG,"   entered");         break;
+        case exited:        disp(MSG_DEBUG,"   exited");          break;
+        case notExitedYet:  disp(MSG_DEBUG,"   notExitedYet");    break;
+        }
+    }
+
     // Slightly move back before the stop rule
     if ( ((w->entry_status[ruleNo] == exited ) && (prules[ruleNo].type==stop_before_exit)) ||
          ((w->entry_status[ruleNo] == entered) && (prules[ruleNo].type==stop_before_entry)) ) {

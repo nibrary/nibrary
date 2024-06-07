@@ -49,6 +49,7 @@ NIBR::WalkerAction NIBR::Pathway::checkWalker(NIBR::Walker *w, int b, int e)
 		if(!setEntryStatus(w, n)) {
 			w->action 			= DISCARD;
             w->discardingReason = CANT_MEET_STOP_CONDITION;
+			disp(MSG_DEBUG,"Rule %d. Segment %d - %d. DISCARD - CANT_MEET_STOP_CONDITION", ruleCnt, b, e);
 			return DISCARD;
 		}
 
@@ -58,7 +59,10 @@ NIBR::WalkerAction NIBR::Pathway::checkWalker(NIBR::Walker *w, int b, int e)
 		if ( (w->entry_status[n] == notEnteredYet) || (w->entry_status[n] == notExitedYet))
 			continue;
 
-		disp(MSG_DEBUG,"   Entered or exited: %d - %d", b,e);
+		// disp(MSG_DEBUG,"   Entered or exited: %d - %d", b,e);
+		disp(MSG_DEBUG,"Rule %d. Segment %d - %d. Entered or exited", ruleCnt, b, e);
+
+		
 
 		// First handle the two discard cases:
 		//    1. discard_if_enters 
@@ -71,6 +75,7 @@ NIBR::WalkerAction NIBR::Pathway::checkWalker(NIBR::Walker *w, int b, int e)
 
 				w->action 			= DISCARD;
 				w->discardingReason = DISCARD_REGION_REACHED;
+				disp(MSG_DEBUG,"Rule %d. Segment %d - %d. DISCARD - DISCARD_REGION_REACHED", ruleCnt, b, e);
 				return DISCARD;
 
 		}
@@ -114,6 +119,7 @@ NIBR::WalkerAction NIBR::Pathway::checkWalker(NIBR::Walker *w, int b, int e)
 							if (order_of_side_A_prules[w->sideAorder] != n) {
 								w->action           = DISCARD;
 								w->discardingReason = REQUIRED_ORDER_NOT_MET;
+								disp(MSG_DEBUG,"Rule %d. Segment %d - %d. DISCARD - REQUIRED_ORDER_NOT_MET", ruleCnt, b, e);
 								return DISCARD;
 							} else
 								w->sideAorder++;	
@@ -128,6 +134,7 @@ NIBR::WalkerAction NIBR::Pathway::checkWalker(NIBR::Walker *w, int b, int e)
 							if (order_of_side_B_prules[w->sideBorder] != n) {
 								w->action           = DISCARD;
 								w->discardingReason = REQUIRED_ORDER_NOT_MET;
+								disp(MSG_DEBUG,"Rule %d. Segment %d - %d. DISCARD - REQUIRED_ORDER_NOT_MET", ruleCnt, b, e);
 								return DISCARD;
 							} else
 								w->sideBorder++;	
@@ -192,6 +199,7 @@ NIBR::WalkerAction NIBR::Pathway::checkWalker(NIBR::Walker *w, int b, int e)
 		if (atMaxLength == ATMAXLENGTH_DISCARD) {
 			w->action 			= DISCARD;
 			w->discardingReason = TOO_LONG;
+			disp(MSG_DEBUG,"Rule %d. Segment %d - %d. DISCARD - TOO_LONG", ruleCnt, b, e);
 			return DISCARD;
 		}
 
@@ -215,6 +223,7 @@ NIBR::WalkerAction NIBR::Pathway::checkWalker(NIBR::Walker *w, int b, int e)
 			if (shorten > w->segment.len) { // This could happen but it is not possible to shorten more than the segment length.
 				w->action 			= DISCARD;
 				w->discardingReason = CANT_MEET_STOP_CONDITION;
+				disp(MSG_DEBUG,"Rule %d. Segment %d - %d. DISCARD - CANT_MEET_STOP_CONDITION (Segment too short)", ruleCnt, b, e);
 				return DISCARD;
 			}
 
@@ -234,9 +243,12 @@ NIBR::WalkerAction NIBR::Pathway::checkWalker(NIBR::Walker *w, int b, int e)
 	}
 
 
-	if (w->action == STOP)
+	if (w->action == STOP) {
+		disp(MSG_DEBUG,"Rule %d. Segment %d - %d. STOP", ruleCnt, b, e);
 		return STOP;
+	}
 	
 	w->action = CONTINUE;
+	disp(MSG_DEBUG,"Rule %d. Segment %d - %d. CONTINUE", ruleCnt, b, e);
 	return CONTINUE;
 }

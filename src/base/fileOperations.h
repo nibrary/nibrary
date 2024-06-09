@@ -11,6 +11,7 @@ namespace NIBR
     bool existsFolder(const std::string& name);
     
     bool deleteFile(const std::string& fileName);
+    bool copyFile(const std::string& sourceFileName, const std::string& destinationFileName); // Overwrites existing files
 
     std::string getFileExtension(std::string filePath);
     std::string removeFileExtension(std::string filePath);

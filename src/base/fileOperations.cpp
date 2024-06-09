@@ -46,6 +46,37 @@ bool NIBR::deleteFile(const std::string& fileName)
 
 }
 
+bool NIBR::copyFile(const std::string& sourceFileName, const std::string& destinationFileName) 
+{
+    std::filesystem::path sourceFilePath(sourceFileName);
+    std::filesystem::path destinationFilePath(destinationFileName);
+
+    disp(MSG_DEBUG, ("Source file path: " + sourceFilePath.string()).c_str());
+    disp(MSG_DEBUG, ("Destination file path: " + destinationFilePath.string()).c_str());
+
+    // Checks if the source path exists and is a regular file (not a directory)
+    if (std::filesystem::exists(sourceFilePath) && std::filesystem::is_regular_file(sourceFilePath)) {
+        try {
+            // Create directories in the destination path if they do not exist
+            disp(MSG_DEBUG, ("Creating directories for destination path: " + destinationFilePath.parent_path().string()).c_str());
+            std::filesystem::create_directories(destinationFilePath.parent_path());
+            
+            disp(MSG_DEBUG, "Copying file...");
+            std::filesystem::copy(sourceFilePath, destinationFilePath, std::filesystem::copy_options::overwrite_existing);
+            disp(MSG_DEBUG, "File copied successfully.");
+            return true;
+        } catch (const std::filesystem::filesystem_error& e) {
+            disp(MSG_ERROR, ("Error copying the file: " + std::string(e.what())).c_str() );
+            return false;
+        }
+    } else {
+        disp(MSG_WARN, ("Source file does not exist: " + sourceFileName).c_str() );
+    }
+
+    return false;
+}
+
+
 std::string NIBR::getFileExtension(std::string filePath) 
 {
 

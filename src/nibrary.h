@@ -67,6 +67,7 @@
 #include "math/triangle.h"
 #include "math/randomThings.h"
 #include "math/gaussian.h"
+#include "math/reorient.h"
 
 // surface
 #include "surface/findSegmentTriangleIntersection.h"

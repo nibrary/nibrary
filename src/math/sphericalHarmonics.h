@@ -1,21 +1,10 @@
 #pragma once
 
 #include "core.h"
+#include "math/reorient.h"
 
 namespace NIBR 
 {
-
-    typedef enum {
-        ORDEROFDIRECTIONS_NOTSET = -1,
-        XYZ,XYz,XyZ,Xyz,xYZ,xYz,xyZ,xyz,
-        XZY,XZy,XzY,Xzy,xZY,xZy,xzY,xzy,
-        YXZ,YXz,YxZ,Yxz,yXZ,yXz,yxZ,yxz,
-        YZX,YZx,YzX,Yzx,yZX,yZx,yzX,yzx,
-        ZYX,ZYx,ZyX,Zyx,zYX,zYx,zyX,zyx,
-        ZXY,ZXy,ZxY,Zxy,zXY,zXy,zxY,zxy
-    } OrderOfDirections;
-
-    OrderOfDirections convertOrderOfDirections(std::string ood);
 
     int getNumberOfSHCoeffs(int order);
     int getSHOrderFromNumberOfCoeffs(int numberOfCoefficients);

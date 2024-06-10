@@ -295,10 +295,6 @@ void NIBR::reorientSH(NIBR::Image<float>* img, OrderOfDirections ood)
     int coeffCount = img->imgDims[3];
     int valueCount = out_coords.size();
 
-    disp(MSG_DETAIL,"Spherical harmonic order: %d", shOrder);
-    disp(MSG_DETAIL,"Number of coefficients:   %d", coeffCount);
-    disp(MSG_DETAIL,"Number of directions:     %d", valueCount);
-
     // We will find and only process those voxels which have non-zero values
     std::vector<std::vector<int64_t>> nnzVoxelSubs;
     auto findNonZeroVoxels = [&](NIBR::MT::TASK task)->void {
@@ -341,8 +337,8 @@ void NIBR::reorientSH(NIBR::Image<float>* img, OrderOfDirections ood)
         
         for (int n=0; n<coeffCount; n++) {
             img->data[img->sub2ind(sub[0],sub[1],sub[2],int64_t(n))] = 0;
-            // for (int t=0; t<valueCount; t++)
-                // img->data[img->sub2ind(sub[0],sub[1],sub[2],int64_t(n))] += Ylm[t][n]*values[t];
+            for (int t=0; t<valueCount; t++)
+                img->data[img->sub2ind(sub[0],sub[1],sub[2],int64_t(n))] += Ylm[t][n]*values[t];
         }
 
         delete[] coeffs;

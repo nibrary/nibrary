@@ -253,7 +253,7 @@ void NIBR::reorientSF(NIBR::Image<float>* img, std::vector<std::vector<float>>& 
         for (int t=0; t<valueCount; t++) {
             img->data[img->sub2ind(sub[0],sub[1],sub[2],int64_t(t))] = 0;
             for (int n=0; n<coeffCount; n++)
-                img->data[img->sub2ind(sub[0],sub[1],sub[2],int64_t(t))] += scale * out_Ylm[n][t]*coeffs[n];
+                img->data[img->sub2ind(sub[0],sub[1],sub[2],int64_t(t))] += scale * out_Ylm[t][n]*coeffs[n];
         }
 
         delete[] coeffs;
@@ -335,7 +335,7 @@ void NIBR::reorientSH(NIBR::Image<float>* img, OrderOfDirections ood)
         for (int t=0; t<valueCount; t++) {
             values[t] = 0;
             for (int n=0; n<coeffCount; n++)
-                values[t] += scale * inp_Ylm[n][t]*img->data[img->sub2ind(sub[0],sub[1],sub[2],int64_t(n))];
+                values[t] += scale * inp_Ylm[t][n]*img->data[img->sub2ind(sub[0],sub[1],sub[2],int64_t(n))];
         }
         
         for (int n=0; n<coeffCount; n++) {

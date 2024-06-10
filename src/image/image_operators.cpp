@@ -324,7 +324,7 @@ void NIBR::reorientSH(NIBR::Image<float>* img, OrderOfDirections ood)
     
 
     // Apply spherical harmonics synthesis and then expansion
-    float scale = 4.0 * PI / float(inp_coords.size());
+    float scale = 4.0 * PI / float(valueCount);
 
     auto reorient = [&](NIBR::MT::TASK task)->void {
         
@@ -335,13 +335,13 @@ void NIBR::reorientSH(NIBR::Image<float>* img, OrderOfDirections ood)
         for (int t=0; t<valueCount; t++) {
             values[t] = 0;
             for (int n=0; n<coeffCount; n++)
-                values[t] += scale * inp_Ylm[t][n]*img->data[img->sub2ind(sub[0],sub[1],sub[2],int64_t(n))];
+                values[t] += scale * out_Ylm[t][n]*img->data[img->sub2ind(sub[0],sub[1],sub[2],int64_t(n))];
         }
         
         for (int n=0; n<coeffCount; n++) {
             img->data[img->sub2ind(sub[0],sub[1],sub[2],int64_t(n))] = 0;
             for (int t=0; t<valueCount; t++)
-                img->data[img->sub2ind(sub[0],sub[1],sub[2],int64_t(n))] += out_Ylm[t][n]*values[t];
+                img->data[img->sub2ind(sub[0],sub[1],sub[2],int64_t(n))] += inp_Ylm[t][n]*values[t];
         }
 
         delete[] values;

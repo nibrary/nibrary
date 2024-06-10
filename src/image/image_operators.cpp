@@ -289,11 +289,11 @@ void NIBR::reorientSH(NIBR::Image<float>* img, OrderOfDirections ood)
     int shOrder = getSHOrderFromNumberOfCoeffs(img->imgDims[3]);
     SH::precompute(shOrder, ood, 1024);
 
-    std::vector<std::vector<float>> inp_Ylm;
-    SH_basis(inp_Ylm, inp_coords, shOrder);
+    std::vector<std::vector<float>> Ylm;
+    SH_basis(Ylm, out_coords, shOrder);
 
-    int coeffCount = inp_Ylm[0].size();
-    int valueCount = inp_Ylm[1].size();
+    int coeffCount = Ylm[0].size();
+    int valueCount = Ylm[1].size();
 
 
     // We will find and only process those voxels which have non-zero values
@@ -335,7 +335,7 @@ void NIBR::reorientSH(NIBR::Image<float>* img, OrderOfDirections ood)
         for (int n=0; n<coeffCount; n++) {
             data[n] = 0;
             for (int t=0; t<valueCount; t++)
-                data[n] += inp_Ylm[t][n]*values[t];
+                data[n] += Ylm[t][n]*values[t];
         }
 
         delete[] values;

@@ -4,6 +4,7 @@
 #include "image_math.h"
 #include "math/sphericalFunctions.h"
 #include "math/sphericalHarmonics.h"
+#include "math/reorient.h"
 #include <cstdint>
 #include <tuple>
 
@@ -14,6 +15,9 @@ namespace NIBR
 
     void sf2sh(NIBR::Image<float>* out, NIBR::Image<float>* inp, std::vector<std::vector<float>>& coords, int shOrder);
     void sh2sf(NIBR::Image<float>* out, NIBR::Image<float>* inp, std::vector<std::vector<float>>& coords);
+
+    void reorientSF(NIBR::Image<float>* img, std::vector<std::vector<float>>& coords, OrderOfDirections ood);
+    void reorientSH(NIBR::Image<float>* img, OrderOfDirections ood);
 
     DATATYPE getImageDataType(std::string imgFname);
 

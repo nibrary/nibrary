@@ -290,10 +290,10 @@ void NIBR::reorientSH(NIBR::Image<float>* img, OrderOfDirections ood)
     SH::precompute(shOrder, ood, 1024);
 
     std::vector<std::vector<float>> Ylm;
-    SH_basis(Ylm, inp_coords, shOrder);
+    SH_basis(Ylm, out_coords, shOrder);
 
     int coeffCount = img->imgDims[3];
-    int valueCount = inp_coords.size();
+    int valueCount = out_coords.size();
 
     // We will find and only process those voxels which have non-zero values
     std::vector<std::vector<int64_t>> nnzVoxelSubs;
@@ -318,7 +318,7 @@ void NIBR::reorientSH(NIBR::Image<float>* img, OrderOfDirections ood)
     };
     NIBR::MT::MTRUN(img->imgDims[0],"Finding non-zero voxels",findNonZeroVoxels);
 
-    float scale = float(inp_coords.size())/(4.0 * PI);
+    float scale = (4.0 * PI) / float(inp_coords.size());
 
     // Apply spherical harmonics synthesis and then expansion
     auto reorient = [&](NIBR::MT::TASK task)->void {

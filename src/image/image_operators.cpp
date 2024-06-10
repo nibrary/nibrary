@@ -186,21 +186,12 @@ DATATYPE NIBR::getImageDataType(std::string imgFname) {
 void NIBR::reorientSH(NIBR::Image<float>* img, OrderOfDirections ood)
 {
     // Compute directions
-    std::vector<std::vector<float>> inp_coords;
-    std::vector<std::vector<float>> out_coords;
-
-    std::function<void(float *)> reorienter = NIBR::reorientFun(ood);
+    std::vector<std::vector<float>> coords;
 
     for (size_t i = 0; i < 2562; i++) {
         float tmp[3] = {DENSESPHEREVERT[i][0],DENSESPHEREVERT[i][1],DENSESPHEREVERT[i][2]};
-        
         std::vector<float> inp_dir = { tmp[0] , tmp[1] , tmp[2] };
-        inp_coords.push_back(inp_dir);
-
-        reorienter(&tmp[0]);
-
-        std::vector<float> out_dir = { tmp[0] , tmp[1] , tmp[2] };
-        out_coords.push_back(out_dir);
+        coords.push_back(inp_dir);
     }
 
 
@@ -209,10 +200,10 @@ void NIBR::reorientSH(NIBR::Image<float>* img, OrderOfDirections ood)
     SH::precompute(shOrder, ood, 1024);
 
     std::vector<std::vector<float>> Ylm;
-    SH_basis(Ylm, out_coords, shOrder);
+    SH_basis(Ylm, coords, shOrder);
 
     int coeffCount = img->imgDims[3];
-    int valueCount = out_coords.size();
+    int valueCount = coords.size();
 
     // We will find and only process those voxels which have non-zero values
     std::vector<std::vector<int64_t>> nnzVoxelSubs;
@@ -237,7 +228,7 @@ void NIBR::reorientSH(NIBR::Image<float>* img, OrderOfDirections ood)
     };
     NIBR::MT::MTRUN(img->imgDims[0],"Finding non-zero voxels",findNonZeroVoxels);
 
-    float scale = (4.0 * PI) / float(inp_coords.size());
+    float scale = (4.0 * PI) / float(coords.size());
 
     // Apply spherical harmonics synthesis and then expansion
     auto reorient = [&](NIBR::MT::TASK task)->void {
@@ -252,7 +243,7 @@ void NIBR::reorientSH(NIBR::Image<float>* img, OrderOfDirections ood)
         }
 
         for (int t=0; t<valueCount; t++) {
-            float dir[3] = {out_coords[t][0],out_coords[t][1],out_coords[t][2]};
+            float dir[3] = {coords[t][0],coords[t][1],coords[t][2]};
             values[t]    = SH::toSF(coeffs,&dir[0]);
         }
         
@@ -273,6 +264,11 @@ void NIBR::reorientSH(NIBR::Image<float>* img, OrderOfDirections ood)
 void NIBR::rotateSH(NIBR::Image<float>* img, float R[][4])
 {
 
+    disp(MSG_DETAIL, "Read rotation matrix:");
+    for (int i=0; i<4; i++) {
+        disp(MSG_DETAIL, "[%.2f %.2f %.2f %.2f]", R[i][0],R[i][1],R[i][2],R[i][3]);
+    }
+
     // Compute directions
     std::vector<std::vector<float>> inp_coords;
     std::vector<std::vector<float>> out_coords;
@@ -292,10 +288,12 @@ void NIBR::rotateSH(NIBR::Image<float>* img, float R[][4])
 
     // Compute input and output basis functions
     int shOrder = getSHOrderFromNumberOfCoeffs(img->imgDims[3]);
-    SH::precompute(shOrder, XYZ, 1024);
 
-    std::vector<std::vector<float>> Ylm;
-    SH_basis(Ylm, out_coords, shOrder);
+    std::vector<std::vector<float>> inp_Ylm;
+    std::vector<std::vector<float>> out_Ylm;
+
+    SH_basis(inp_Ylm, inp_coords, shOrder);
+    SH_basis(out_Ylm, out_coords, shOrder);
 
     int coeffCount = img->imgDims[3];
     int valueCount = out_coords.size();
@@ -338,14 +336,15 @@ void NIBR::rotateSH(NIBR::Image<float>* img, float R[][4])
         }
 
         for (int t=0; t<valueCount; t++) {
-            float dir[3] = {out_coords[t][0],out_coords[t][1],out_coords[t][2]};
-            values[t]    = SH::toSF(coeffs,&dir[0]);
+            values[t] = 0;
+            for (int n=0; n<coeffCount; n++)
+                values[t] += scale * inp_Ylm[t][n]*coeffs[n];
         }
         
         for (int n=0; n<coeffCount; n++) {
             img->data[img->sub2ind(sub[0],sub[1],sub[2],int64_t(n))] = 0;
             for (int t=0; t<valueCount; t++)
-                img->data[img->sub2ind(sub[0],sub[1],sub[2],int64_t(n))] += scale * Ylm[t][n] * values[t];
+                img->data[img->sub2ind(sub[0],sub[1],sub[2],int64_t(n))] += out_Ylm[t][n] * values[t];
         }
 
         delete[] coeffs;

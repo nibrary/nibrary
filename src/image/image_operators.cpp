@@ -292,7 +292,7 @@ void NIBR::rotateSH(NIBR::Image<float>* img, float R[][4])
 
     // Compute input and output basis functions
     int shOrder = getSHOrderFromNumberOfCoeffs(img->imgDims[3]);
-    SH::precompute(shOrder, ood, 1024);
+    SH::precompute(shOrder, XYZ, 1024);
 
     std::vector<std::vector<float>> Ylm;
     SH_basis(Ylm, out_coords, shOrder);

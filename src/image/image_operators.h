@@ -16,8 +16,8 @@ namespace NIBR
     void sf2sh(NIBR::Image<float>* out, NIBR::Image<float>* inp, std::vector<std::vector<float>>& coords, int shOrder);
     void sh2sf(NIBR::Image<float>* out, NIBR::Image<float>* inp, std::vector<std::vector<float>>& coords);
 
-    void reorientSF(NIBR::Image<float>* img, std::vector<std::vector<float>>& coords, OrderOfDirections ood);
     void reorientSH(NIBR::Image<float>* img, OrderOfDirections ood);
+    void rotateSH(NIBR::Image<float>* img, float R[][4]);
 
     DATATYPE getImageDataType(std::string imgFname);
 

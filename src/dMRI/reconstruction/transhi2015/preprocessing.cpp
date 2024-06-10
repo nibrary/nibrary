@@ -43,7 +43,7 @@ std::vector<int> MakeImageMask(int i, int j, int k, int kernel_size, Image<bool>
     for(int i_ind = i_ker - kernel_size; i_ind <= i_ker + kernel_size; i_ind++) {
         for(int j_ind = j_ker - kernel_size; j_ind <= j_ker + kernel_size; j_ind++) {
             for(int k_ind = k_ker - kernel_size; k_ind <= k_ker + kernel_size; k_ind++) {
-                int vox_ind = mask.sub2ind_mrview(i_ind, j_ind, k_ind);
+                int vox_ind = mask.sub2ind(i_ind, j_ind, k_ind);
                 newMask.push_back(vox_ind);
             }
         }

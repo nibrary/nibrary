@@ -293,37 +293,23 @@ void NIBR::reorientSH(NIBR::Image<float>* img, OrderOfDirections ood)
     SH_basis(Ylm, out_coords, shOrder);
 
     int coeffCount = Ylm[0].size();
-    int valueCount = Ylm[1].size();
-
-
-    // We will find and only process those voxels which have non-zero values
-    std::vector<int64_t> nzVoxel;
-    auto findNonZeroVoxels = [&](NIBR::MT::TASK task)->void {
-        
-        int64_t i   = task.no * coeffCount;
-
-        float* data = img->data;
-
-        for (int64_t t = i; t < (i+coeffCount); t++) {
-            if (data[t] != 0) {
-                NIBR::MT::PROC_MX().lock();
-                nzVoxel.push_back(i);
-                NIBR::MT::PROC_MX().unlock();
-                break;
-            }
-        }
-        
-    };
-    NIBR::MT::MTRUN(img->voxCnt,findNonZeroVoxels);
-    
+    int valueCount = Ylm[1].size();    
 
     // Apply spherical harmonics synthesis and then expansion
-    float scale = 4.0 * PI / float(valueCount);
-
     auto reorient = [&](NIBR::MT::TASK task)->void {
         
         float* data    = img->data;
-        int64_t voxInd = nzVoxel[task.no];
+        int64_t voxInd = task.no * coeffCount;
+
+        bool skip = true;
+        for (int64_t t = voxInd; t < (voxInd+coeffCount); t++) {
+            if (data[t] != 0) {
+                skip = false;
+                break;
+            }
+        }
+
+        if (skip) return;
 
         float* values  = new float[valueCount];
 
@@ -334,13 +320,13 @@ void NIBR::reorientSH(NIBR::Image<float>* img, OrderOfDirections ood)
         
         for (int n=0; n<coeffCount; n++) {
             data[n] = 0;
-            for (int t=0; t<valueCount; t++)
-                data[n] += Ylm[t][n]*values[t];
+            // for (int t=0; t<valueCount; t++)
+                // data[n] += Ylm[t][n]*values[t];
         }
 
         delete[] values;
 
     };
-    NIBR::MT::MTRUN(nzVoxel.size(),"Reorienting spherical harmonics",reorient);
+    NIBR::MT::MTRUN(img->voxCnt,"Reorienting spherical harmonics",reorient);
 
 }

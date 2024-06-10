@@ -120,11 +120,10 @@ namespace NIBR
         
         void          indexData(int* _indexOrder);
 
-        int64_t       sub2ind_mrview(int64_t i, int64_t j, int64_t k);
         int64_t       sub2ind(int64_t i, int64_t j, int64_t k);
         int64_t       sub2ind(int64_t i, int64_t j, int64_t k, int64_t t);
-        
         int64_t       sub2ind(int64_t* sub);
+
         void          ind2sub(int64_t ind, int64_t* sub);
         void          ind2sub(int64_t ind, int64_t& i, int64_t& j, int64_t& k);
         
@@ -198,12 +197,6 @@ namespace NIBR
         nifti_1_header* getNiftiHeader();
         
     };
-
-    // iFix version corresponds to the indexing seen in mrview. With the regular version i begins from the opposite direction.
-    template<typename T>
-    int64_t Image<T>::sub2ind_mrview(int64_t i, int64_t j, int64_t k) {
-        return s2i[0]-i + j*s2i[1] + k*s2i[2];
-    }
 
     template<typename T>
     int64_t Image<T>::sub2ind(int64_t i, int64_t j, int64_t k) {

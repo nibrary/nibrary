@@ -284,49 +284,71 @@ void NIBR::reorientSH(NIBR::Image<float>* img, OrderOfDirections ood)
         out_coords.push_back(out_dir);
     }
 
-    // Compute input and output basis functions
 
+    // Compute input and output basis functions
     int shOrder = getSHOrderFromNumberOfCoeffs(img->imgDims[3]);
     SH::precompute(shOrder, ood, 1024);
 
     std::vector<std::vector<float>> Ylm;
     SH_basis(Ylm, out_coords, shOrder);
 
-    int coeffCount = Ylm[0].size();
-    int valueCount = Ylm[1].size();    
+    int coeffCount = img->imgDims[3];
+    int valueCount = out_coords.size();
+
+    disp(MSG_DETAIL,"Spherical harmonic order: %d", shOrder);
+    disp(MSG_DETAIL,"Number of coefficients:   %d", coeffCount);
+    disp(MSG_DETAIL,"Number of directions:     %d", valueCount);
+
+    // We will find and only process those voxels which have non-zero values
+    std::vector<std::vector<int64_t>> nnzVoxelSubs;
+    auto findNonZeroVoxels = [&](NIBR::MT::TASK task)->void {
+        
+        int64_t i   = task.no;
+        
+        for (int64_t j=0; j<img->imgDims[1]; j++)
+            for (int64_t k=0; k<img->imgDims[2]; k++)
+                for (int64_t t=0; t<img->imgDims[3]; t++) {
+
+                    if (img->data[img->sub2ind(i,j,k,t)]!=0){
+                        std::vector<int64_t> tmp{i,j,k};
+                        NIBR::MT::PROC_MX().lock();
+                        nnzVoxelSubs.push_back(tmp);
+                        NIBR::MT::PROC_MX().unlock();
+                        break;
+                    }
+                    
+                }
+        
+    };
+    NIBR::MT::MTRUN(img->imgDims[0],"Finding non-zero voxels",findNonZeroVoxels);
 
     // Apply spherical harmonics synthesis and then expansion
     auto reorient = [&](NIBR::MT::TASK task)->void {
         
-        float* data    = img->data;
-        int64_t voxInd = task.no * coeffCount;
+        std::vector<int64_t> sub = nnzVoxelSubs[task.no];
 
-        bool skip = true;
-        for (int64_t t = voxInd; t < (voxInd+coeffCount); t++) {
-            if (data[t] != 0) {
-                skip = false;
-                break;
-            }
-        }
-
-        if (skip) return;
-
+        float* coeffs  = new float[coeffCount];
         float* values  = new float[valueCount];
+
+        for (int n=0; n<coeffCount; n++) {
+            coeffs[n] = img->data[img->sub2ind(sub[0],sub[1],sub[2],int64_t(n))];
+        }
 
         for (int t=0; t<valueCount; t++) {
             float dir[3] = {out_coords[t][0],out_coords[t][1],out_coords[t][2]};
-            values[t]    = SH::toSF(&data[voxInd],&dir[0]);
+            values[t]    = SH::toSF(coeffs,&dir[0]);
         }
         
         for (int n=0; n<coeffCount; n++) {
-            data[n] = 0;
+            img->data[img->sub2ind(sub[0],sub[1],sub[2],int64_t(n))] = 0;
             // for (int t=0; t<valueCount; t++)
-                // data[n] += Ylm[t][n]*values[t];
+                // img->data[img->sub2ind(sub[0],sub[1],sub[2],int64_t(n))] += Ylm[t][n]*values[t];
         }
 
+        delete[] coeffs;
         delete[] values;
 
     };
-    NIBR::MT::MTRUN(img->voxCnt,"Reorienting spherical harmonics",reorient);
+    NIBR::MT::MTRUN(nnzVoxelSubs.size(),"Reorienting spherical harmonics",reorient);
 
 }

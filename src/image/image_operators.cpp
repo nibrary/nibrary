@@ -277,8 +277,6 @@ void NIBR::rotateSH(NIBR::Image<float>* img, float R[][4])
     std::vector<std::vector<float>> inp_coords;
     std::vector<std::vector<float>> out_coords;
 
-    std::function<void(float *)> reorienter = NIBR::reorientFun(ood);
-
     for (size_t i = 0; i < 2562; i++) {
         float tmp[3] = {DENSESPHEREVERT[i][0],DENSESPHEREVERT[i][1],DENSESPHEREVERT[i][2]};
         

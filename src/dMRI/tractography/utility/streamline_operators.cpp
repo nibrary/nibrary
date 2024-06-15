@@ -187,3 +187,53 @@ float** NIBR::colorStreamline(std::vector<std::vector<float>>& inp)
     return colors;
 
 }
+
+
+
+// Function to calculate the one-sided Hausdorff distance from trk1 to trk2
+float oneSidedHausdorffDistance(const std::vector<std::vector<float>>& trk1, const std::vector<std::vector<float>>& trk2) {
+    float maxDist = 0;
+
+    for (const auto& point1 : trk1) {
+        float minDist = std::numeric_limits<float>::infinity();
+        for (const auto& point2 : trk2) {
+            float currentDist = dist(point1, point2);
+            if (currentDist < minDist) {
+                minDist = currentDist;
+            }
+        }
+        if (minDist > maxDist) {
+            maxDist = minDist;
+        }
+    }
+
+    return maxDist;
+}
+
+// Two-sided Hausdorff distance
+float NIBR::getHausdorffDistance(std::vector<std::vector<float>>& trk1, std::vector<std::vector<float>>& trk2) {
+    float hd1 = oneSidedHausdorffDistance(trk1, trk2);
+    float hd2 = oneSidedHausdorffDistance(trk2, trk1);
+    return std::max(hd1, hd2);
+}
+
+// Minimum average direct-flip (MDF) distance
+float NIBR::getMDFDistance(std::vector<std::vector<float>>& trk1, std::vector<std::vector<float>>& trk2) {
+
+    if (trk1.size() != trk2.size()) {
+        disp(MSG_ERROR, "Number of points along streamlines must be equal.");
+        return NAN;
+    }
+
+    float directDist  = 0;
+    float flippedDist = 0;
+    size_t n = trk1.size();
+
+    for (size_t i = 0; i < n; ++i) {
+        directDist  += dist(trk1[i], trk2[i]);
+        flippedDist += dist(trk1[i], trk2[n - i - 1]);
+    }
+
+    return std::min(directDist, flippedDist) / float(n);
+
+}

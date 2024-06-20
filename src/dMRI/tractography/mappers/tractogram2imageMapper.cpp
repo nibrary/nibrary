@@ -185,6 +185,21 @@ void NIBR::Tractogram2ImageMapper<T>::setWeights(std::string _weightFile, WEIGHT
 
 }
 
+template<typename T>
+void NIBR::Tractogram2ImageMapper<T>::setWeights(std::vector<float> _weights, WEIGHTTYPE _weightType) {
+
+    weightType = _weightType;
+    weights    = _weights;
+
+    cumLen    = new int[tractogram[0].numberOfStreamlines];
+    cumLen[0] = 0;
+    for (size_t n=1; n<tractogram[0].numberOfStreamlines; n++)
+        cumLen[n] = cumLen[n-1] + tractogram[0].len[n-1];
+
+    disp(MSG_DEBUG,"Read cumLen");
+
+}
+
 
 template<typename T>
 void NIBR::Tractogram2ImageMapper<T>::run(
@@ -329,13 +344,19 @@ bool NIBR::Tractogram2ImageMapper<T1>::processStreamline(int streamlineId, uint1
             disp(MSG_DEBUG,"Making segment data.");
             seg.data = new float;
 
-            if (weightType==STREAMLINE_WEIGHT) {
-                fseek(weightFile[threadNo], sizeof(float)*streamlineId, SEEK_SET);
-                disp(MSG_DEBUG,"Reading weight.");
-                std::fread((float*)seg.data, sizeof(float), 1, weightFile[threadNo]);
-                disp(MSG_DEBUG,"Weight: %.2f", *(float*)seg.data);
+            if (weights.empty()) {
+                if (weightType==STREAMLINE_WEIGHT) {
+                    fseek(weightFile[threadNo], sizeof(float)*streamlineId, SEEK_SET);
+                    disp(MSG_DEBUG,"Reading weight.");
+                    std::fread((float*)seg.data, sizeof(float), 1, weightFile[threadNo]);
+                    disp(MSG_DEBUG,"Weight: %.2f", *(float*)seg.data);
+                } else {
+                    fseek(weightFile[threadNo], sizeof(float)*cumLen[streamlineId], SEEK_SET);
+                }
             } else {
-                fseek(weightFile[threadNo], sizeof(float)*cumLen[streamlineId], SEEK_SET);
+                if (weightType==STREAMLINE_WEIGHT) {
+                    *((float*)(seg.data)) = weights[streamlineId];
+                }
             }
 
         }
@@ -396,8 +417,13 @@ bool NIBR::Tractogram2ImageMapper<T1>::processStreamline(int streamlineId, uint1
         for (int i=0; i<len-1; i++) {
 
             // Read if the segment weight is given
-            if (weightType==SEGMENT_WEIGHT)
-                std::fread((float*)seg.data, sizeof(float), 1, weightFile[threadNo]);
+            if (weightType==SEGMENT_WEIGHT) {
+                if (weights.empty()) {
+                    std::fread((float*)seg.data, sizeof(float), 1, weightFile[threadNo]);
+                } else {
+                    *((float*)(seg.data)) = weights[cumLen[streamlineId]+i];
+                }
+            }
 
             // End of segment in real and its corner in image space
             img->to_ijk(streamline[i+1],p1);
@@ -498,7 +524,7 @@ bool NIBR::Tractogram2ImageMapper<T1>::processStreamline(int streamlineId, uint1
 
         }
         
-        if (weightType==STREAMLINE_WEIGHT) {
+        if (weightType!=NO_WEIGHT) {
             delete (float*)(seg.data);
         }
 

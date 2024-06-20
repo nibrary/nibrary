@@ -5,6 +5,7 @@
 #include "math/sphericalFunctions.h"
 #include "math/sphericalHarmonics.h"
 #include "math/reorient.h"
+#include "math/conn3D.h"
 #include <cstdint>
 #include <tuple>
 
@@ -431,6 +432,76 @@ namespace NIBR
     }
 
 
+    template<typename T_OUT, typename T>
+    void imgMedFilt(NIBR::Image<T_OUT>& imgOut,NIBR::Image<T>& img, CONN3D conn) {
+
+        if (imgOut.data == NULL) {
+            imgOut.createFromTemplate(img, true);
+        }
+
+        auto N = get3DNeighbors(conn);
+        std::vector<int> inds = getNonZeroIndices(&img);
+
+        auto f = [&](NIBR::MT::TASK task)->void {
+            int64_t i, j, k;
+            img.ind2sub(inds[task.no], i, j, k);
+
+            std::vector<T> neighbors;
+            neighbors.push_back(img(i, j, k)); // Include the pixel itself
+
+            for (auto n : N) {
+                int64_t ii = i + n[0];
+                int64_t jj = j + n[1];
+                int64_t kk = k + n[2];
+
+                if (img.isInside(ii, jj, kk)) {
+                    neighbors.push_back(img(ii, jj, kk));
+                }
+            }
+
+            std::sort(neighbors.begin(), neighbors.end());
+            imgOut.data[inds[task.no]] = neighbors[neighbors.size() / 2];
+        };
+
+        NIBR::MT::MTRUN(inds.size(), f);
+
+    }
+
+
+    template<typename T_OUT, typename T>
+    void imgAveFilt(NIBR::Image<T_OUT>& imgOut,NIBR::Image<T>& img, CONN3D conn) {
+
+        if (imgOut.data == NULL) {
+            imgOut.createFromTemplate(img, true);
+        }
+
+        auto N = get3DNeighbors(conn);
+        std::vector<int> inds = getNonZeroIndices(&img);
+
+        auto f = [&](NIBR::MT::TASK task)->void {
+            int64_t i, j, k;
+            img.ind2sub(inds[task.no], i, j, k);
+
+            double totSum = img.data[inds[task.no]];
+            double totEl  = 1;
+
+            for (auto n : N) {
+                int64_t ii = i + n[0];
+                int64_t jj = j + n[1];
+                int64_t kk = k + n[2];
+
+                if (img.isInside(ii, jj, kk)) {
+                   totSum += img(ii, jj, kk);
+                   totEl++;
+                }
+            }
+
+            imgOut.data[inds[task.no]] = totSum / totEl;
+        };
+
+        NIBR::MT::MTRUN(inds.size(), f);
+
+    }
 
 
 }

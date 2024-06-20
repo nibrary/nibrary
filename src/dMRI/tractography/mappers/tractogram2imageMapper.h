@@ -45,6 +45,7 @@ namespace NIBR
         void setMask(bool*** _mask) {mask = _mask;}
         void anisotropicSmoothing(std::tuple<float,int> _smoothing) {smoothing = _smoothing;}
         void setWeights(std::string _weightFile, WEIGHTTYPE _weightType);
+        void setWeights(std::vector<float> _weights, WEIGHTTYPE _weightType);
         void setData(void* _data) {data = _data;}
 
         bool***                 mask;
@@ -68,6 +69,7 @@ namespace NIBR
         bool                    mapOnce;
         std::tuple<float,int>   smoothing;
 
+        std::vector<float>      weights;
         FILE**                  weightFile;
         WEIGHTTYPE              weightType;
 

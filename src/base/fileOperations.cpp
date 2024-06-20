@@ -91,6 +91,8 @@ std::string NIBR::getFileExtension(std::string filePath)
     {
         // Extract extension after '.'
         std::string extension = str.substr(pos+1);
+
+        std::transform(extension.begin(), extension.end(), extension.begin(), ::tolower);
         
         // Check if extension is "gz"
         if (extension == "gz")

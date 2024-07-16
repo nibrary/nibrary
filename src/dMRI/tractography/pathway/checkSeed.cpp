@@ -27,11 +27,10 @@ NIBR::WalkerAction NIBR::Pathway::checkSeed(NIBR::Walker *w, NIBR::Tracking_Side
 		// disp(MSG_DEBUG,"checkSeed for prule: %d, side: %d",n,prules[n].side);
 
 		// If there is seed, that is not allowed on edges, and if this is for the seed rule
-		// unless the seed is surf_src or surf_ins_src (with surface seeding)
+		// unless the seed is surf_src when surf_useDim_2D
 		// then discard
-		if (   hasOneSeed() && noEdgeSeeds && (n == theOneSeed)									&& 
-			!( prules[n].src == surf_src) 														&& 
-		    !((prules[n].src == surf_ins_src) && (prules[n].surface4SeedUseInside == false))    &&
+		if (   hasOneSeed() && noEdgeSeeds && (n == theOneSeed)					    &&
+		    !((prules[n].src == surf_src) && prules[n].surfaceUseAs2D)    &&
 			   isPointAtEdgeOfRule(&(w->streamline->at(w->seedInd).x),n,EPS3)) {
 
 			w->action = DISCARD;
@@ -46,11 +45,10 @@ NIBR::WalkerAction NIBR::Pathway::checkSeed(NIBR::Walker *w, NIBR::Tracking_Side
 		bool inside = isPointInsideRule(&(w->streamline->at(w->seedInd).x),n);
 
 		// If the seed is not already inside, if there is seed, that is not allowed on edges, and if this is not for the seed rule
-		// if the seed point is close to the surf_src or surf_ins_src (with surface seeding)
+		// if the seed point is close to the surf_src when surf_useDim_2D
 		// then consider inside
-		if ( !inside && hasOneSeed() && noEdgeSeeds && (n != theOneSeed)					    && 
-			( (prules[n].src == surf_src) 														|| 
-		     ((prules[n].src == surf_ins_src) && (prules[n].surface4SeedUseInside == false)))   &&
+		if ( !inside && hasOneSeed() && noEdgeSeeds && (n != theOneSeed)			&&
+		     ((prules[n].src == surf_src) && prules[n].surfaceUseAs2D)   	&&
 			   isPointAtEdgeOfRule(&(w->streamline->at(w->seedInd).x),n,EPS8)) {
 			inside = true;
 		}
@@ -187,23 +185,22 @@ NIBR::WalkerAction NIBR::Pathway::checkSeed(NIBR::Walker *w)
 	w->segment.dir[2] = 0;
 	w->segCrosLength  = 1;
 
-	// disp(MSG_DEBUG,"Walker side: %d", w->side);
+	disp(MSG_DEBUG,"Walker side: %d", w->side);
 
 	for (int n = 0; n < ruleCnt; n++) {
 
-		// disp(MSG_DEBUG,"checkSeed for prule: %d, side: %d",n,prules[n].side);
+		disp(MSG_DEBUG,"checkSeed for prule: %d, side: %d",n,prules[n].side);
 
 		// If there is seed, that is not allowed on edges, and if this is for the seed rule
-		// unless the seed is surf_src or surf_ins_src (with surface seeding)
+		// unless the seed is surf_src when surf_useDim_2D
 		// then discard
-		if (   hasOneSeed() && noEdgeSeeds && (n == theOneSeed)									&& 
-			!( prules[n].src == surf_src) 														&& 
-		    !((prules[n].src == surf_ins_src) && (prules[n].surface4SeedUseInside == false))   &&
+		if (   hasOneSeed() && noEdgeSeeds && (n == theOneSeed)						&&
+		    !((prules[n].src == surf_src) && prules[n].surfaceUseAs2D)   	&&
 			   isPointAtEdgeOfRule(&(w->streamline->at(w->seedInd).x),n,EPS3)) {
 
 			w->action = DISCARD;
 			w->discardingReason = IMPROPER_SEED;
-			// disp(MSG_DEBUG,"Found edge seed");
+			disp(MSG_DEBUG,"Found edge seed");
 			return DISCARD;
 
 		}
@@ -213,18 +210,17 @@ NIBR::WalkerAction NIBR::Pathway::checkSeed(NIBR::Walker *w)
 		bool inside = isPointInsideRule(&(w->streamline->at(w->seedInd).x),n);
 
 		// If the seed is not already inside, if there is seed, that is not allowed on edges, and if this is not for the seed rule
-		// if the seed point is close to the surf_src or surf_ins_src (with surface seeding)
+		// if the seed point is close to the surf_src when surf_useDim_2D
 		// then consider inside
-		if ( !inside && hasOneSeed() && noEdgeSeeds && (n != theOneSeed)					    && 
-			(( prules[n].src == surf_src) 														|| 
-		     ((prules[n].src == surf_ins_src) && (prules[n].surface4SeedUseInside == false)))  &&
+		if ( !inside && hasOneSeed() && noEdgeSeeds && (n != theOneSeed)			&&
+		     ((prules[n].src == surf_src) && prules[n].surfaceUseAs2D)  	&&
 			   isPointAtEdgeOfRule(&(w->streamline->at(w->seedInd).x),n,EPS8)) {
 			inside = true;
 		}
 
 		if (!inside) continue;
 
-		// disp(MSG_DEBUG,"INSIDE");
+		disp(MSG_DEBUG,"INSIDE");
 
 		switch (prules[n].type) {
 
@@ -241,7 +237,7 @@ NIBR::WalkerAction NIBR::Pathway::checkSeed(NIBR::Walker *w)
 				if (prules[n].side == either) {
 					w->entry_status[n] = entered;
 					w->isDone[n]       = true;
-					// disp(MSG_DEBUG,"Entered side: %d", w->side);
+					disp(MSG_DEBUG,"Entered side: %d", w->side);
 					break;
 				}
 				
@@ -252,7 +248,7 @@ NIBR::WalkerAction NIBR::Pathway::checkSeed(NIBR::Walker *w)
 				if (prules[n].side == w->side) {
 
 					w->entry_status[n] = entered;
-					// disp(MSG_DEBUG,"Entered side: %d", w->side);
+					disp(MSG_DEBUG,"Entered side: %d", w->side);
 
 					if (satisfy_requirements_in_order == IN_ORDER) {
 						
@@ -293,7 +289,7 @@ NIBR::WalkerAction NIBR::Pathway::checkSeed(NIBR::Walker *w)
 
 				if (prules[n].side == either) {
 					w->entry_status[n] = entered;
-					// disp(MSG_DEBUG,"Entered side: %d", w->side);
+					disp(MSG_DEBUG,"Entered side: %d", w->side);
 					break;
 				}
 				
@@ -303,7 +299,7 @@ NIBR::WalkerAction NIBR::Pathway::checkSeed(NIBR::Walker *w)
 				
 				if (prules[n].side == w->side) {
 					w->entry_status[n] = entered;
-					// disp(MSG_DEBUG,"Entered side: %d", w->side);
+					disp(MSG_DEBUG,"Entered side: %d", w->side);
 					break;
 				}
 
@@ -318,7 +314,7 @@ NIBR::WalkerAction NIBR::Pathway::checkSeed(NIBR::Walker *w)
 			{
 				w->action = DISCARD;
 				w->discardingReason = IMPROPER_SEED;
-				// disp(MSG_DEBUG,"Stopped at seed. Discarding with IMPROPER_SEED.");
+				disp(MSG_DEBUG,"Stopped at seed. Discarding with IMPROPER_SEED.");
 				return DISCARD;
 			}
 

@@ -2,6 +2,8 @@
 
 SET(PROXSUITE_MIN_VERSION "0.6.3") 
 
+include("${CMAKE_CURRENT_LIST_DIR}/utils.cmake")
+
 # Try to use the system library if exists
 if (USE_SYSTEM_PROXSUITE)
 
@@ -21,13 +23,13 @@ if(NOT PROXSUITE_FOUND)
     if (EXISTS "${CMAKE_SOURCE_DIR}/external/proxsuite/CMakeLists.txt")
 
         set(PROXSUITE_SOURCE_DIR "${CMAKE_SOURCE_DIR}/external/proxsuite/include")
-        file(COPY "${CMAKE_SOURCE_DIR}/external/proxsuite_config/config.hpp" DESTINATION "${PROXSUITE_SOURCE_DIR}/proxsuite")
+        conditional_copy_file("${CMAKE_SOURCE_DIR}/external/proxsuite_config/config.hpp" "${PROXSUITE_SOURCE_DIR}/proxsuite/config.hpp")
         set(BUILDING_PROXSUITE_FROM_SOURCE TRUE CACHE INTERNAL "Proxsuite will be built from local source")
 
     elseif (EXISTS "${CMAKE_SOURCE_DIR}/external/proxsuite-${PROXSUITE_MIN_VERSION}/CMakeLists.txt")
 
         set(PROXSUITE_SOURCE_DIR "${CMAKE_SOURCE_DIR}/external/proxsuite-${PROXSUITE_MIN_VERSION}/include")
-        file(COPY "${CMAKE_SOURCE_DIR}/external/proxsuite_config/config.hpp" DESTINATION "${PROXSUITE_SOURCE_DIR}/proxsuite")
+        conditional_copy_file("${CMAKE_SOURCE_DIR}/external/proxsuite_config/config.hpp" "${PROXSUITE_SOURCE_DIR}/proxsuite/config.hpp")
         set(BUILDING_PROXSUITE_FROM_SOURCE TRUE CACHE INTERNAL "Proxsuite will be built from local source")
 
     else()    
@@ -58,8 +60,8 @@ if(NOT PROXSUITE_FOUND)
                 message(FATAL_ERROR "Error extracting ${DOWNLOAD_FNAME}: ${extract_result}")
             endif()
         endif()
-
-        file(COPY "${CMAKE_SOURCE_DIR}/external/proxsuite_config/config.hpp" DESTINATION "${PROXSUITE_SOURCE_DIR}/proxsuite")
+        
+        conditional_copy_file("${CMAKE_SOURCE_DIR}/external/proxsuite_config/config.hpp" "${PROXSUITE_SOURCE_DIR}/proxsuite/config.hpp")
 
     endif()
 

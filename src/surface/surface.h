@@ -81,9 +81,10 @@ namespace NIBR
 
     typedef enum
     {
+        OPENORCLOSEDUNSET,
         CLOSED,
         OPEN,
-        OPENORCLOSED
+        OPENANDCLOSED
     } OpenOrClosed;
 
     typedef enum
@@ -175,7 +176,7 @@ namespace NIBR
         float distToPoint(float *p, int& faceInd, float* closestPoint);
 
         // Enables the use to isPointInside based on a voxelized grid.
-        void  enablePointCheck(float gridRes);
+        void  enablePointCheck(float gridRes, bool interpretAs2D);
 
         bool  isPointInside(float* p);
         bool  isPointInside_basedOnWindingNumber(float* p); // This function might return true, also for open surfaces, if the winding_number > 0.5

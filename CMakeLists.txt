@@ -70,6 +70,12 @@ include_directories(${SIMDE_INCLUDE_DIR})
 include_directories(${PROXSUITE_INCLUDE_DIR})
 include_directories(${CUDA_INCLUDE_DIR})
 
+find_package(OpenMP REQUIRED) # Needed for geogram
+if(OPENMP_FOUND)
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
+endif()
 
 # Compile the sources
 add_library(OBJS OBJECT ${SRCS})
@@ -80,13 +86,6 @@ endif()
 
 if(BUILDING_GEOGRAM_FROM_SOURCE)
     add_dependencies(OBJS build_geogram)
-endif()
-
-find_package(OpenMP REQUIRED) # Needed for geogram
-if(OPENMP_FOUND)
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
-    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
 endif()
 
 # Set the library
@@ -102,6 +101,7 @@ ELSE()
 ENDIF()
 
 target_link_libraries(${libNibrary} PUBLIC ${ZLIB_LIBRARIES} ${GEOGRAM_LIBRARY})
+
 
 IF(ENABLE_CUDA)
     add_library(CUDA_OBJS OBJECT ${CUDA_SRCS})
@@ -153,7 +153,6 @@ else()
     message(FATAL_ERROR ">> Nibrary::This operating system is not supported")
 endif()
 
-
 install(TARGETS ${libNibrary} LIBRARY DESTINATION lib/${nibrary} ARCHIVE DESTINATION lib/${nibrary})
 
 install(DIRECTORY ${CMAKE_SOURCE_DIR}/src/ DESTINATION include/${nibrary} FILES_MATCHING PATTERN "*.h" PATTERN "*.cuh")
@@ -162,7 +161,6 @@ install(DIRECTORY ${CMAKE_SOURCE_DIR}/external/fast-marching-method DESTINATION 
 install(DIRECTORY ${CMAKE_SOURCE_DIR}/external/gifticlib DESTINATION include/${nibrary} FILES_MATCHING PATTERN "*.h")
 install(DIRECTORY ${CMAKE_SOURCE_DIR}/external/marchingCubes DESTINATION include/${nibrary} FILES_MATCHING PATTERN "*.h")
 install(DIRECTORY ${CMAKE_SOURCE_DIR}/external/niftilib DESTINATION include/${nibrary} FILES_MATCHING PATTERN "*.h")
-
 
 if(BUILDING_EIGEN_FROM_SOURCE)
     install(DIRECTORY ${EIGEN_INCLUDE_DIR}/Eigen DESTINATION include/${nibrary})

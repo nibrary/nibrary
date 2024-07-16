@@ -17,7 +17,7 @@ bool Seed::setSeed(PathwayRule rule) {
     rule.surfaceFieldName4Dens      = surf_density_fieldname;
 
     rule.surface4SeedUseNormForDir  = useSurfNorm;
-    rule.surface4SeedUseInside      = useInsideSurf;
+    rule.surfaceUseDim                 = useInsideSurf ? surf_useDim_3D : surf_useDim_2D;
 
     disp(MSG_DETAIL, "Adding seed");
     if(!TRACKER::pw.add(rule)) {

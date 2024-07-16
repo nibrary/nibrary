@@ -183,9 +183,8 @@ namespace NIBR
         if (surf->vertices==NULL)  surf->readMesh();
         if (surf->nv == 0)         {disp(MSG_DEBUG,"Done prepVoxelization()"); return true;}
 
-        if ((mode==PARTIAL_VOLUME) && (!surf->isClosed())) {
-            disp(MSG_ERROR,"Partial volumes for open surfaces are always 0.");
-            return false;
+        if ((mode==PARTIAL_VOLUME) && (surf->openOrClosed == OPEN )) {
+            disp(MSG_WARN,"Partial volumes for open surfaces are always 0.");
         }
 
         if (img->numberOfDimensions==0) {

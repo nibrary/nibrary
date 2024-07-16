@@ -70,23 +70,17 @@ void NIBR::Surface::getClosedAndOpenComponents()
     Surface closedPart;
     Surface openPart;
 
-    bool allClosed = true;
-    bool allOpen   = true;
+    compClosedAndOpen.resize(2);
 
-    for (int n = 0; n < int(comp.size()); n++) {
-        allClosed = allClosed &&   comp[n].isClosed();
-        allOpen   = allOpen   && (!comp[n].isClosed());
-    }
+    if (openOrClosed == OPEN) {
 
-    if (allClosed) {
+        compClosedAndOpen[0] = *this;
+        compClosedAndOpen[1] = openPart;
 
-        compClosedAndOpen.push_back(*this);
-        compClosedAndOpen.push_back(openPart);
+    } else if (openOrClosed == CLOSED) {
 
-    } else if (allOpen) {
-
-        compClosedAndOpen.push_back(closedPart);
-        compClosedAndOpen.push_back(*this);
+        compClosedAndOpen[0] = closedPart;
+        compClosedAndOpen[1] = *this;
 
     } else {
 
@@ -136,13 +130,16 @@ void NIBR::Surface::getClosedAndOpenComponents()
 
         };
         
-        compClosedAndOpen.push_back(mergeComps(closedInds));
-        compClosedAndOpen.push_back(mergeComps(openInds));
+        compClosedAndOpen[0] = mergeComps(closedInds);
+        compClosedAndOpen[1] = mergeComps(openInds);
 
     }
 
     // compClosedAndOpen[0].write("closedPart.vtk");
     // compClosedAndOpen[1].write("openPart.vtk");
+
+    compClosedAndOpen[0].openOrClosed = CLOSED;
+    compClosedAndOpen[1].openOrClosed = OPEN;
 
     disp(MSG_DEBUG,"Done getClosedAndOpenComponents");
 

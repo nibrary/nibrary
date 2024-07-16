@@ -22,9 +22,27 @@ std::vector<std::string> NIBR::splitString (const std::string &s, char delim)
 
 
 
-bool NIBR::isNumber(const std::string &s)
+double NIBR::isNumber(const std::string &s)
 {
-    return std::regex_match( s, std::regex( ( "((\\+|-)?[[:digit:]]+)(\\.(([[:digit:]]+)?))?" ) ) );
+
+    const std::regex pattern("^[+-]?([0-9]*[.])?[0-9]+$");
+
+    if (std::regex_match(s, pattern)) {
+        try {
+            return std::stod(s); // Convert string to double
+        } catch (const std::invalid_argument& e) {
+            // If conversion fails, return NaN
+            return std::numeric_limits<double>::quiet_NaN();
+        } catch (const std::out_of_range& e) {
+            // If the value is out of range for a double, return NaN
+            return std::numeric_limits<double>::quiet_NaN();
+        }
+    } else {
+        // If the string does not match the pattern, return NaN
+        return std::numeric_limits<double>::quiet_NaN();
+    }
+
+
 }
 
 std::tuple<bool,Point,float> NIBR::getCenterAndRadius(std::string inp) {

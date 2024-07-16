@@ -11,7 +11,7 @@ using namespace NIBR;
 
 bool NIBR::Pathway::addSurface(PathwayRule prule) {
 
-    prule.surfSrc->enablePointCheck(prule.surfaceDiscretizationRes);
+    prule.surfSrc->enablePointCheck(prule.surfaceDiscretizationRes, prule.surfaceUseAs2D);
     surf.back() = prule.surfSrc;
 
     // Prepare if type is seed
@@ -20,7 +20,7 @@ bool NIBR::Pathway::addSurface(PathwayRule prule) {
         disp(MSG_DETAIL,"Prepping seed surface for tracking");
 
         Seeder* seedDef;
-        if (prule.surface4SeedUseInside) {
+        if (prule.surfaceUseAs2D == false) {
             seedDef = new SeedInsideSurface();
             if (!seedDef->setSeed(surf.back(),prule.surfaceDiscretizationRes)) {
                 delete seedDef;

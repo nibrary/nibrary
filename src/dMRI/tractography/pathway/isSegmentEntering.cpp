@@ -237,69 +237,70 @@ bool NIBR::Pathway::isSegmentEntering(NIBR::Walker* w, int ruleNo) {
 
         }
 
-        // Surf - open surface
+        // Surf
         case surf_src: {
 
-            auto interCheck = surf[ruleNo]->intersect(&w->segment);
+            if ( prules[ruleNo].surfaceUseAs2D) {
 
-            // Intersection case for open surfaces
-            if ( (std::get<0>(interCheck) == false) && (std::get<1>(interCheck) == false) && (!isnan(std::get<3>(interCheck)))) {
-                w->segCrosLength = std::get<3>(interCheck) / w->segment.len;
-                // disp(MSG_DEBUG,"Entered rule %d at face %d with %.4f / %.4f", ruleNo, std::get<2>(interCheck),std::get<3>(interCheck),w->segment.len);
-                return true;
+                auto interCheck = surf[ruleNo]->intersect(&w->segment);
+
+                // Intersection case for open surfaces
+                if ( (std::get<0>(interCheck) == false) && (std::get<1>(interCheck) == false) && (!isnan(std::get<3>(interCheck)))) {
+                    w->segCrosLength = std::get<3>(interCheck) / w->segment.len;
+                    // disp(MSG_DEBUG,"Entered rule %d at face %d with %.4f / %.4f", ruleNo, std::get<2>(interCheck),std::get<3>(interCheck),w->segment.len);
+                    return true;
+                }
+
+                // Endpoint is inside
+                if ( (std::get<0>(interCheck) == true) && (std::get<1>(interCheck) == true) && (std::get<2>(interCheck) == INT_MAX) && (isnan(std::get<3>(interCheck))) ) {
+                    w->segCrosLength = 1.0f;
+                    // disp(MSG_DEBUG,"Entered rule (at endpoint) %d at face %d with %.4f / %.4f", ruleNo, std::get<2>(interCheck),std::get<3>(interCheck),w->segment.len);
+                    return true;
+                }
+
+                // disp(MSG_DEBUG,"Did not enter rule %d", ruleNo);
+                return false;
+
+            } else {
+
+                // <isBegInside,isEndInside,intersectingFaceInd,distance>
+
+                auto [isBegInside,isEndInside,intersectingFaceInd,distance] = surf[ruleNo]->intersect(&w->segment);
+
+                auto interCheck = surf[ruleNo]->intersect(&w->segment);
+
+                // Everything inside
+                if ( isBegInside && isEndInside && (intersectingFaceInd == INT_MIN) && isnan(distance) ) {
+                    w->segCrosLength = 0;
+                    // disp(MSG_DEBUG,"Entered rule (in->in) %d at face %d with %.4f / %.4f", ruleNo, std::get<2>(interCheck),std::get<3>(interCheck),w->segment.len);
+                    return true;
+                }
+
+                // // Going from inside to outside - this should not happen since this function is checking the entry scenerio
+                // if ( isBegInside && isEndInside && (intersectingFaceInd != INT_MIN) && (!isnan(distance)) ) {
+                //     w->segCrosLength = std::get<3>(interCheck) / w->segment.len;
+                //     // disp(MSG_DEBUG,"Entered rule (in->out) %d at face %d with %.4f / %.4f", ruleNo, std::get<2>(interCheck),std::get<3>(interCheck),w->segment.len);
+                //     return true;
+                // }
+
+                // Going from outside to inside
+                if ( !isBegInside && isEndInside && (intersectingFaceInd != INT_MIN) && (!isnan(distance)) ) {
+                    w->segCrosLength = std::get<3>(interCheck) / w->segment.len;
+                    // disp(MSG_DEBUG,"Entered rule (out->in) %d at face %d with %.4f / %.4f", ruleNo, std::get<2>(interCheck),std::get<3>(interCheck),w->segment.len);
+                    return true;
+                }
+
+                // Endpoint is inside
+                if ( isBegInside && isEndInside && (intersectingFaceInd == INT_MAX) && isnan(distance) ) {
+                    w->segCrosLength = 1.0f;
+                    // disp(MSG_DEBUG,"Entered rule (at endpoint) %d at face %d with %.4f / %.4f", ruleNo, std::get<2>(interCheck),std::get<3>(interCheck),w->segment.len);
+                    return true;
+                }
+
+                // disp(MSG_DEBUG,"Did not enter rule %d", ruleNo);
+                return false;
+
             }
-
-            // Endpoint is inside
-            if ( (std::get<0>(interCheck) == true) && (std::get<1>(interCheck) == true) && (std::get<2>(interCheck) == INT_MAX) && (isnan(std::get<3>(interCheck))) ) {
-                w->segCrosLength = 1.0f;
-                // disp(MSG_DEBUG,"Entered rule (at endpoint) %d at face %d with %.4f / %.4f", ruleNo, std::get<2>(interCheck),std::get<3>(interCheck),w->segment.len);
-                return true;
-            }
-
-            // disp(MSG_DEBUG,"Did not enter rule %d", ruleNo);
-            return false;
-
-        }
-
-        // Surf - inside
-        case surf_ins_src: {
-
-            // <isBegInside,isEndInside,intersectingFaceInd,distance>
-
-            auto [isBegInside,isEndInside,intersectingFaceInd,distance] = surf[ruleNo]->intersect(&w->segment);
-
-            auto interCheck = surf[ruleNo]->intersect(&w->segment);
-
-            // Everything inside
-            if ( isBegInside && isEndInside && (intersectingFaceInd == INT_MIN) && isnan(distance) ) {
-                w->segCrosLength = 0;
-                // disp(MSG_DEBUG,"Entered rule (in->in) %d at face %d with %.4f / %.4f", ruleNo, std::get<2>(interCheck),std::get<3>(interCheck),w->segment.len);
-                return true;
-            }
-
-            // // Going from inside to outside - this should not happen since this function is checking the entry scenerio
-            // if ( isBegInside && isEndInside && (intersectingFaceInd != INT_MIN) && (!isnan(distance)) ) {
-            //     w->segCrosLength = std::get<3>(interCheck) / w->segment.len;
-            //     // disp(MSG_DEBUG,"Entered rule (in->out) %d at face %d with %.4f / %.4f", ruleNo, std::get<2>(interCheck),std::get<3>(interCheck),w->segment.len);
-            //     return true;
-            // }
-
-            // Going from outside to inside
-            if ( !isBegInside && isEndInside && (intersectingFaceInd != INT_MIN) && (!isnan(distance)) ) {
-                w->segCrosLength = std::get<3>(interCheck) / w->segment.len;
-                // disp(MSG_DEBUG,"Entered rule (out->in) %d at face %d with %.4f / %.4f", ruleNo, std::get<2>(interCheck),std::get<3>(interCheck),w->segment.len);
-                return true;
-            }
-
-            // Endpoint is inside
-            if ( isBegInside && isEndInside && (intersectingFaceInd == INT_MAX) && isnan(distance) ) {
-                w->segCrosLength = 1.0f;
-                // disp(MSG_DEBUG,"Entered rule (at endpoint) %d at face %d with %.4f / %.4f", ruleNo, std::get<2>(interCheck),std::get<3>(interCheck),w->segment.len);
-                return true;
-            }
-
-            // disp(MSG_DEBUG,"Did not enter rule %d", ruleNo);
-            return false;
 
         }
 

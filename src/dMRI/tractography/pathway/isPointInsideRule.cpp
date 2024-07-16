@@ -67,8 +67,7 @@ bool NIBR::Pathway::isPointInsideRule(float* p, int ruleNo) {
         }
 
         // Surface
-        case surf_src:
-        case surf_ins_src: {
+        case surf_src: {
             return surf[ruleNo]->isPointInside(p);
         }
 

@@ -12,9 +12,8 @@ void NIBR::surfaceMask(NIBR::Image<bool>* img, NIBR::Surface* surf)
     disp(MSG_DEBUG,"surfaceMask()");
 
     surf->getClosedAndOpenComponents();
-    disp(MSG_DEBUG,"continueing surfaceMask()...1");
-
-    surf->compClosedAndOpen[0].prepIglAABBTree();
+    Surface& closed = surf->compClosedAndOpen[0];
+    closed.prepIglAABBTree();
 
     auto getMask = [&](NIBR::MT::TASK task)->void {
 
@@ -23,7 +22,7 @@ void NIBR::surfaceMask(NIBR::Image<bool>* img, NIBR::Surface* surf)
         float p[3];
         img->to_xyz(ind,p);
 
-        if (surf->compClosedAndOpen[0].isPointInside_basedOnWindingNumber(p)) {
+        if (closed.isPointInside_basedOnWindingNumber(p)) {
             img->data[ind]=INSIDE;
         }
 
@@ -69,7 +68,7 @@ void NIBR::surfaceMaskWithBoundary(NIBR::Image<int8_t>* img, NIBR::Surface* surf
 void NIBR::surfaceEDT(NIBR::Image<float>* img, NIBR::Surface* surf)
 {
 
-    surf->enablePointCheck(img->smallestPixDim);
+    surf->enablePointCheck(img->smallestPixDim, false);
 
     auto getEDT = [&](NIBR::MT::TASK task)->void {
 
@@ -92,7 +91,7 @@ void NIBR::surfacePVF(NIBR::Image<float>* img, NIBR::Surface* surf)
     float divVol = 1.0f/(div*div*div);
     float step   = 1.0f/(div+1.0f);
 
-    surf->enablePointCheck(img->smallestPixDim);
+    surf->enablePointCheck(img->smallestPixDim, false);
 
     auto estimPartVol = [&](NIBR::MT::TASK task)->void {
         
@@ -153,7 +152,7 @@ void NIBR::surfacePVF(NIBR::Image<float>* img, NIBR::Surface* surf)
 
 void NIBR::surfaceMAT(NIBR::Image<float>* img, NIBR::Surface* surf)
 {
-    surf->enablePointCheck(img->smallestPixDim);
+    surf->enablePointCheck(img->smallestPixDim, false);
 
     struct ComparePairs {
     bool operator()(const std::pair<int64_t, float>& a, const std::pair<int64_t, float>& b) const {
@@ -291,7 +290,7 @@ void NIBR::surfaceMAT(NIBR::Image<float>* img, NIBR::Surface* surf)
 
 void NIBR::surfaceMIS(NIBR::Image<float>* img, NIBR::Surface* surf)
 {
-    surf->enablePointCheck(img->smallestPixDim);
+    surf->enablePointCheck(img->smallestPixDim, false);
 
     struct ComparePairs {
     bool operator()(const std::pair<int64_t, float>& a, const std::pair<int64_t, float>& b) const {

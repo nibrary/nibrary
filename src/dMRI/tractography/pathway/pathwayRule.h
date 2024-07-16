@@ -14,7 +14,6 @@ namespace NIBR
 		img_label_src,	// Image - label
 		img_pvf_src,	// Image - partial volume
 		surf_src,		// Surf
-		surf_ins_src	// Surf  - inside
 	} Pathway_Src;
 
 	typedef enum {
@@ -48,6 +47,12 @@ namespace NIBR
 		exited,
 	} Entry_Status;
 
+	typedef enum {
+		surf_useDim_unknown,
+		surf_useDim_2D,
+		surf_useDim_3D,
+	} Surf_Dim;
+
 	struct PathwayRule {
 		Pathway_Src		  				 src{undef_src};
 		Pathway_Type      				 type{undef_type};
@@ -79,7 +84,8 @@ namespace NIBR
 		std::string       				 surfaceFieldFile4DataDtype{""};
 		std::string       				 surfaceFieldName4Data{""};
 		bool              				 surface4SeedUseNormForDir{false};
-		bool              				 surface4SeedUseInside{false};
+		Surf_Dim              		     surfaceUseDim{surf_useDim_unknown};
+		bool                             surfaceUseAs2D{false};
 		std::vector<std::vector<float>>* data{NULL};
 		int                              uniqueId{0}; 						// This is assigned internally when rule is added using pathwayAdd
 		Surface*                         surfSrc{NULL};

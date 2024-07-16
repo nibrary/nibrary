@@ -52,8 +52,7 @@ bool NIBR::Pathway::setEntryStatus(NIBR::Walker* w, int ruleNo) {
             // Surface case
             // Move 1 micrometer before the stop rule
             case sph_src: 
-            case surf_src:
-            case surf_ins_src: {
+            case surf_src: {
 
                 // disp(MSG_DEBUG,"  Stopping streamline");
                 w->segCrosLength -= EPS3/w->segment.len;
@@ -109,8 +108,7 @@ bool NIBR::Pathway::setEntryStatus(NIBR::Walker* w, int ruleNo) {
             // Surface case
             // Move 1 micrometer after the stop rule
             case sph_src: 
-            case surf_src:
-            case surf_ins_src: {
+            case surf_src: {
 
                 // disp(MSG_DEBUG,"  Stopping streamline");
                 w->segCrosLength += EPS3/w->segment.len; 

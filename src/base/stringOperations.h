@@ -7,7 +7,7 @@
 namespace NIBR 
 {
 
-    bool isNumber(const std::string &s);
+    double isNumber(const std::string &s);
 
     std::vector<std::string> splitString (const std::string &s, char delim);
     

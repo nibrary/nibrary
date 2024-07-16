@@ -63,7 +63,7 @@ bool SeedInsideSurface::setSeed(Surface *surf, float discRes) {
 
     seed_surf   = surf;
 
-    seed_surf->enablePointCheck(discRes);
+    seed_surf->enablePointCheck(discRes, false);
 
     seed_indices = getNonZeroIndices(&(seed_surf->maskAndBoundary));
      

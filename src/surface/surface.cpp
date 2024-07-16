@@ -44,7 +44,7 @@ void NIBR::Surface::init() {
 	nv 			        = 0;
  	nf 			        = 0;
     ne                  = 0;
-    openOrClosed        = OPENORCLOSED;
+    openOrClosed        = OPENORCLOSEDUNSET;
     manifoldOrNot       = MANIFOLDORNOT;
     vertices            = NULL;
     faces               = NULL;
@@ -144,7 +144,7 @@ NIBR::Surface::Surface(std::vector<std::vector<float>>& vertexList, std::vector<
     extension           = "";
 	nv 			        = vertexList.size();
  	nf 			        = faceList.size();
-    openOrClosed        = OPENORCLOSED;
+    openOrClosed        = OPENORCLOSEDUNSET;
     manifoldOrNot       = MANIFOLDORNOT;
 
     vertices = new float*[nv];
@@ -478,7 +478,7 @@ void Surface::reset() {
     }
 
     ne                  = 0;
-    openOrClosed        = OPENORCLOSED;
+    openOrClosed        = OPENORCLOSEDUNSET;
     manifoldOrNot       = MANIFOLDORNOT;
 
     V = Eigen::MatrixXf();
@@ -539,6 +539,8 @@ void NIBR::Surface::printInfo() {
     auto componentAreas       = calcAreasOfConnectedComponents();
     auto componentVolumes     = calcVolumesOfConnectedComponents();
 
+    auto box                  = surfBbox(*this);
+
     categorizeEdges();
     categorizeVertices();
 
@@ -558,10 +560,19 @@ void NIBR::Surface::printInfo() {
     
     std::cout << "File name: " << filePath << std::endl;
 
-    std::vector<std::string> manifoldOrNot{" non-manifold"," manifold"};
-    std::vector<std::string> openOrclosed{"Open","Closed"};
+    std::vector<std::string> manifoldOrNot{" Non-manifold"," Manifold"};
 
-    std::cout << openOrclosed[int(isClosed())] << manifoldOrNot[int(isManifold())] << std::endl;
+    if (openOrClosed == OPEN) {
+        std::cout << "Open" << manifoldOrNot[int(isManifold())] << std::endl;
+    } else if (openOrClosed == CLOSED) {
+        std::cout << "Closed" << manifoldOrNot[int(isManifold())] << std::endl;
+    } else {
+        std::cout << "Mix of open and closed meshes." << manifoldOrNot[int(isManifold())] << std::endl;
+    }
+
+    std::cout << std::left << std::setw(30) << "Bounding box (xmin - xmax): " << std::right << std::setw(25) << " [ " << to_string_with_precision(box[0]) + " - " + to_string_with_precision(box[1]) << " ] " << std::endl;
+    std::cout << std::left << std::setw(30) << "Bounding box (ymin - ymax): " << std::right << std::setw(25) << " [ " << to_string_with_precision(box[2]) + " - " + to_string_with_precision(box[3]) << " ] " << std::endl;
+    std::cout << std::left << std::setw(30) << "Bounding box (zmin - zmax): " << std::right << std::setw(25) << " [ " << to_string_with_precision(box[4]) + " - " + to_string_with_precision(box[5]) << " ] " << std::endl;
                     
     std::cout << std::left << std::setw(30) << "Vertex count: " << std::right << std::setw(10) << nv << std::endl;
     std::cout << std::left << std::setw(30) << "Face count: "   << std::right << std::setw(10) << nf << std::endl;

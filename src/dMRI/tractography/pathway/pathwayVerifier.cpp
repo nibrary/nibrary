@@ -87,11 +87,6 @@ bool NIBR::Pathway::verify() {
             return false;
         }
 
-        if ((prules[i].src==surf_ins_src) && (prules[i].surfaceSource=="")) {
-            disp(MSG_ERROR,"Pathway rule %d is missing path to surface", i);
-            return false;
-        }
-
         // Check types
         if (prules[i].type==undef_type) {
             disp(MSG_ERROR,"Pathway rule %d type can't be undefined", i);

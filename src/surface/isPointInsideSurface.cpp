@@ -8,29 +8,21 @@
 // isPointInside(p) does an initial check using the mask image - only if necessary (p is on the boundary) then the winding number is computed.
 // When testing large numbers of points, using the mask and grid noticable increases the computation speed.
 
-void NIBR::Surface::enablePointCheck(float gridRes) {
+void NIBR::Surface::enablePointCheck(float gridRes, bool interpretAs2D) {
 
     disp(MSG_DEBUG,"enablePointCheck()");
 
     if (enabledPointCheck) return;
 
-    // prepIglAABBTree();
-    // calcTriangleVectors();
-    // getClosedAndOpenComponents();
-
     pointCheckGridRes = gridRes;
     mapSurface2Image(this,&maskAndBoundary,pointCheckGridRes,NULL,&grid,MASK_WITH_BOUNDARY);
     maskAndBoundary.setInterpolationMethod(NEAREST);
 
-    prepIglAABBTree();
-
-    if (compClosedAndOpen[0].nv > 0) {
-        compClosedAndOpen[0].prepIglAABBTree();
-        compClosedAndOpen[0].openOrClosed = CLOSED;
-    }
-
-    if (compClosedAndOpen[1].nv > 0) {
-        compClosedAndOpen[1].openOrClosed = OPEN;
+    if (interpretAs2D) {
+        for (int n = 0; n < maskAndBoundary.numel; n++) {
+            if (maskAndBoundary.data[n] == INSIDE) 
+                maskAndBoundary.data[n] = OUTSIDE;
+        }
     }
 
     enabledPointCheck = true;

@@ -142,10 +142,7 @@ if(BUILDING_GEOGRAM_FROM_SOURCE)
     ExternalProject_Add_Step(build_geogram move_geogram_headers
         COMMENT "Moving Geogram headers from /include/geogram1/geogram to /include/${nibrary}/geogram"
         DEPENDEES install # Assuming 'install' is the last step of building geogram, adjust as needed
-        COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_BINARY_DIR}/install/include/${nibrary}/geogram"
-        COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_BINARY_DIR}/install/include/geogram1/geogram"
-        COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_BINARY_DIR}/install/include/geogram1/geogram" "${CMAKE_BINARY_DIR}/install/include/${nibrary}/geogram"
-        COMMAND ${CMAKE_COMMAND} -E remove_directory "${CMAKE_BINARY_DIR}/install/include/geogram1"
+        COMMAND ${CMAKE_COMMAND} -D nibrary=${nibrary} -D CMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX} -P "${CMAKE_CURRENT_LIST_DIR}/ExternalGeogram_aux.cmake"
         ALWAYS 0 # This ensures the step is only run when the DEPENDEES are updated, not every build
     )
 

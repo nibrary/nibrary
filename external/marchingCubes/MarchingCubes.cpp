@@ -29,8 +29,7 @@
 // step size of the arrays of vertices and triangles
 #define ALLOC_SIZE 65536
 
-#include "../../src/base/verbose.h"
-using namespace NIBR;
+#include "base/verbose.h"
 
 //_____________________________________________________________________________
 // print cube for debug

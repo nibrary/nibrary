@@ -22,7 +22,6 @@
 #pragma GCC diagnostic ignored "-Wunused-result"
 #pragma GCC diagnostic ignored "-Wcomment"
 #pragma GCC diagnostic ignored "-Wfree-nonheap-object"
-#pragma GCC diagnostic ignored "-Wdangling-reference"
 #include <simde/hedley.h>
 #include <Eigen/Dense>
 #include <proxsuite/proxqp/dense/dense.hpp>

@@ -238,49 +238,46 @@ bool NIBR::Pathway::isSegmentExiting(NIBR::Walker* w, int ruleNo) {
 
         }
 
-        // Surf - open surface - point are considered to be always outside, i.e. exited
+        // Surf
         case surf_src: {
-            return true;
-        }
-
-        // Surf - inside
-        case surf_ins_src: {
-
-            // disp(MSG_DEBUG,"w->segment: [%.2f, %.2f, %.2f] -> [%.2f, %.2f, %.2f] ",w->segment.beg[0],w->segment.beg[1],w->segment.beg[2],w->segment.end[0],w->segment.end[1],w->segment.end[2]);
-            auto interCheck = surf[ruleNo]->intersect(&w->segment);
-
-            // Everything is outside
-            if ( (std::get<0>(interCheck) == false) && (std::get<1>(interCheck) == false) && (std::get<2>(interCheck) == INT_MIN) && (isnan(std::get<3>(interCheck))) ) {
-                w->segCrosLength = 0;
-                // disp(MSG_DEBUG,"Exited rule (at first point) %d", ruleNo);
+            if ( prules[ruleNo].surfaceUseAs2D) {
                 return true;
+            } else {
+                // disp(MSG_DEBUG,"w->segment: [%.2f, %.2f, %.2f] -> [%.2f, %.2f, %.2f] ",w->segment.beg[0],w->segment.beg[1],w->segment.beg[2],w->segment.end[0],w->segment.end[1],w->segment.end[2]);
+                auto interCheck = surf[ruleNo]->intersect(&w->segment);
+
+                // Everything is outside
+                if ( (std::get<0>(interCheck) == false) && (std::get<1>(interCheck) == false) && (std::get<2>(interCheck) == INT_MIN) && (isnan(std::get<3>(interCheck))) ) {
+                    w->segCrosLength = 0;
+                    // disp(MSG_DEBUG,"Exited rule (at first point) %d", ruleNo);
+                    return true;
+                }
+
+                // Going from inside to outside
+                if ( (std::get<0>(interCheck) == true) && (std::get<1>(interCheck) == false) && (!isnan(std::get<3>(interCheck))) ) {
+                    w->segCrosLength = std::get<3>(interCheck) / w->segment.len;
+                    // disp(MSG_DEBUG,"Exited rule (through segment) %d - w->segCrosLength: %.2f", ruleNo, w->segCrosLength);
+                    return true;
+                }
+
+                // // Going from outside to inside - this should not happen since this function is checking the exit scenerio
+                // if ( (std::get<0>(interCheck) == false) && (std::get<1>(interCheck) == true) && (!isnan(std::get<3>(interCheck))) ) {
+                //     w->segCrosLength = std::get<3>(interCheck) / w->segment.len;
+                //     // disp(MSG_DEBUG,"Entered rule (out->in) %d at face %d with %.4f / %.4f", ruleNo, std::get<2>(interCheck),std::get<3>(interCheck),w->segment.len);
+                //     return true;
+                // } 
+
+                // Endpoint is outside
+                if ( (std::get<0>(interCheck) == false) && (std::get<1>(interCheck) == false) && (std::get<2>(interCheck) == INT_MAX) && (isnan(std::get<3>(interCheck))) ) {
+                    w->segCrosLength = 1;
+                    // disp(MSG_DEBUG,"Exited rule (at last point) %d", ruleNo);
+                    return true;
+                }
+
+                // disp(MSG_DEBUG,"Not exited rule %d", ruleNo);
+
+                return false;
             }
-
-            // Going from inside to outside
-            if ( (std::get<0>(interCheck) == true) && (std::get<1>(interCheck) == false) && (!isnan(std::get<3>(interCheck))) ) {
-                w->segCrosLength = std::get<3>(interCheck) / w->segment.len;
-                // disp(MSG_DEBUG,"Exited rule (through segment) %d - w->segCrosLength: %.2f", ruleNo, w->segCrosLength);
-                return true;
-            }
-
-            // // Going from outside to inside - this should not happen since this function is checking the exit scenerio
-            // if ( (std::get<0>(interCheck) == false) && (std::get<1>(interCheck) == true) && (!isnan(std::get<3>(interCheck))) ) {
-            //     w->segCrosLength = std::get<3>(interCheck) / w->segment.len;
-            //     // disp(MSG_DEBUG,"Entered rule (out->in) %d at face %d with %.4f / %.4f", ruleNo, std::get<2>(interCheck),std::get<3>(interCheck),w->segment.len);
-            //     return true;
-            // } 
-
-            // Endpoint is outside
-            if ( (std::get<0>(interCheck) == false) && (std::get<1>(interCheck) == false) && (std::get<2>(interCheck) == INT_MAX) && (isnan(std::get<3>(interCheck))) ) {
-                w->segCrosLength = 1;
-                // disp(MSG_DEBUG,"Exited rule (at last point) %d", ruleNo);
-                return true;
-            }
-
-            // disp(MSG_DEBUG,"Not exited rule %d", ruleNo);
-
-            return false;
-
         }
 
     }

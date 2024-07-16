@@ -438,184 +438,11 @@ bool NIBR::Pathway::add(PathwayRule prule) {
 
         }
 
-        case surf_ins_src: {
-
-            disp(MSG_DETAIL,"Rule %d: %s (surface - inside)",ruleInd,prule.surfaceSource.c_str());
-
-            if (prule.surfSrc != NULL) {if (!addSurface(prule)) {return cleanExit();} break;}
-
-            switch (prule.type) {
-                case undef_type:            {disp(MSG_ERROR,"Unacceptable rule type"); return cleanExit();}
-                case seed:
-                case discard_seed:
-                case req_entry:
-                case req_exit:
-                case req_end_inside:
-                case stop_before_entry:
-                case stop_at_entry:
-                case stop_after_entry:
-                case stop_before_exit:
-                case stop_at_exit:
-                case stop_after_exit:
-                case discard_if_enters:
-                case discard_if_exits:
-                case discard_if_ends_inside: {break;}
-            }
-
-            // If same source was used before then just copy the pointer, without allocating new memory
-            bool srcDone = false;
-            for(int j=0; j<ruleInd; j++) {
-                if ((prules[j].src == surf_ins_src) && (prules[j].surfaceSource == prule.surfaceSource) && (prules[j].surfaceDiscretizationRes == prule.surfaceDiscretizationRes) ) {
-
-                    surf.back()             = surf[j];
-
-                    disp(MSG_DETAIL,"Copied source from rule %d",j);
-                    
-                    srcDone = true;
-                    break;
-                }
-            }
-
-            if (!srcDone) {
-
-                if (prule.surfaceDiscretizationRes<=0) {
-                    disp(MSG_ERROR,"Surface discretization resolution can't be negative, which is currently %.2f", prule.surfaceDiscretizationRes);
-                    return cleanExit();
-                }
-
-                NIBR::Surface *surfSrc = new NIBR::Surface(prule.surfaceSource);
-                surfSrc->readMesh();
-                // if (surfSrc->nv == 0) { // What happens in this case? Let's ignore for now...
-
-                if (surfSrc->isClosed()==false) {
-                    disp(MSG_ERROR,"Surface is not closed: %s", prule.surfaceSource.c_str());
-                    delete surfSrc;
-                    return cleanExit();
-                }
-
-                // Prepare for surface indexing
-                surfSrc->enablePointCheck(prule.surfaceDiscretizationRes);
-                surfSrc->calcNormalsOfFaces();
-                surf.back() = surfSrc;
-                disp(MSG_DETAIL,"Reading source for rule %d is completed",ruleInd);
-            }
-
-            // Reading surface data
-            // Currently for multi-dimensional surface data only surface fields can be used
-            bool dataDone = false;
-            int m = (prule.surfaceFieldFile4FaceData!="")+(prule.surfaceFieldFile4VertData!="")+(prule.surfaceFieldName4Data!="");
-            if (m>1) {
-                disp(MSG_ERROR,"Multiple surface data sources are not allowed");
-                if (!srcDone) {delete surf.back();}
-                return cleanExit();
-            } else if (m==1) {
-
-                // If data source was used before then just copy the pointer, without allocating new memory             
-                for(int j=0; j<ruleInd; j++) {
-                    if ( (prules[j].surfaceSource             == prule.surfaceSource)             && 
-                         (prules[j].surfaceFieldFile4FaceData == prule.surfaceFieldFile4FaceData) &&
-                         (prules[j].surfaceFieldFile4VertData == prule.surfaceFieldFile4VertData) &&
-                         (prules[j].surfaceFieldName4Data     == prule.surfaceFieldName4Data) ) {
-                        surfData.back() = surfData[j];
-                        dataDone = true;
-                        break;
-                    }
-                }
-
-                if (!dataDone) {
-                    auto dataField = new SurfaceField;
-                    if (prule.surfaceFieldFile4FaceData!="")    *dataField = surf.back()->makeFieldFromFile(prule.surfaceFieldFile4FaceData, "data", "FACE", prule.surfaceFieldFile4DataDtype, 1, "", false);
-                    if (prule.surfaceFieldFile4VertData!="")    *dataField = surf.back()->makeFieldFromFile(prule.surfaceFieldFile4VertData, "data", "VERT", prule.surfaceFieldFile4DataDtype, 1, "", false);
-                    if (prule.surfaceFieldName4Data!="")        *dataField = surf.back()->readField(prule.surfaceFieldName4Data);
-                    dataField->name = "data";
-                    surf.back()->convert2FaceField(*dataField);
-                    surfData.back() = dataField;
-                }
-
-            }
-
-
-
-            // Prepare if type is seed
-            if ((prule.type == seed) && (isTracking == true)) {
-
-                disp(MSG_DETAIL,"Prepping seed surface for tracking");
-
-                // Reading density
-                SurfaceField        densField;
-                std::vector<float>  densVec;
-                m = (prule.surfaceFieldFile4FaceDens!="")+(prule.surfaceFieldFile4VertDens!="")+(prule.surfaceFieldName4Dens!="");
-                if (m>1) {
-                    disp(MSG_ERROR,"Multiple surface densities are not allowed");
-                    if (!srcDone) {delete surf.back();}
-                    if (!dataDone) {surf.back()->clearField(*surfData.back());}
-                    return cleanExit();
-                } else if (m==1) {
-                    if (prule.surfaceFieldFile4FaceDens!="")    densField = surf.back()->makeFieldFromFile(prule.surfaceFieldFile4FaceDens, "dens", "FACE", prule.surfaceFieldFile4DensDtype, 1, "", false);
-                    if (prule.surfaceFieldFile4VertDens!="")    densField = surf.back()->makeFieldFromFile(prule.surfaceFieldFile4VertDens, "dens", "VERT", prule.surfaceFieldFile4DensDtype, 1, "", false);
-                    if (prule.surfaceFieldName4Dens!="")        densField = surf.back()->readField(prule.surfaceFieldName4Dens);
-                    densField.name = "dens";
-                    surf.back()->convert2FaceField(densField);
-                    densVec = surf.back()->readFloatFieldData(densField,0);
-                    surf.back()->clearField(densField);
-                }
-
-                Seeder* seedDef;
-                if (prule.surface4SeedUseInside) {
-                    // disp(MSG_DETAIL,"  Using surface's inside for seeding");
-                    seedDef = new SeedInsideSurface();
-                    if (!seedDef->setSeed(surf.back(),prule.surfaceDiscretizationRes)) {
-                        if (!srcDone) {delete surf.back();}
-                        if (!dataDone) {surf.back()->clearField(*surfData.back());}
-                        delete seedDef;
-                        return cleanExit();
-                    }
-                } else {
-                    // disp(MSG_DETAIL,"  Not using surface's inside for seeding");
-                    seedDef = new SeedSurface();
-                    if (!seedDef->setSeed(surf.back())) {
-                        if (!srcDone) {delete surf.back();}
-                        if (!dataDone) {surf.back()->clearField(*surfData.back());}
-                        delete seedDef;
-                        return cleanExit();
-                    }
-                    if (!densVec.empty()) {
-                        seedDef->useDensity(densVec);
-                    }
-                    seedDef->useSurfNorm(prule.surface4SeedUseNormForDir);
-                }
-                
-                seeds.back() = seedDef;
-
-                disp(MSG_DETAIL,"Seed surface is ready for tracking");
-
-            }
-
-            break;
-
-        }
-
         case surf_src: {
 
             disp(MSG_DETAIL,"Rule %d: %s (surface)",ruleInd,prule.surfaceSource.c_str());
 
-            switch (prule.type) {
-                case undef_type:                {disp(MSG_ERROR,"Unacceptable rule type"); return cleanExit();}
-                case seed:                      {break;}
-                case discard_seed:              {break;}
-                case req_entry:                 {break;}
-                case req_exit:                  {disp(MSG_ERROR,"Unacceptable rule type. Surface is either not closed or inside is not used."); return cleanExit();}
-                case req_end_inside:            {break;}
-                case stop_before_entry:         {break;}
-                case stop_at_entry:             {break;}
-                case stop_after_entry:          {break;}
-                case stop_before_exit:          {disp(MSG_ERROR,"Unacceptable rule type. Surface is either not closed or inside is not used."); return cleanExit();}
-                case stop_at_exit:              {disp(MSG_ERROR,"Unacceptable rule type. Surface is either not closed or inside is not used."); return cleanExit();}
-                case stop_after_exit:           {disp(MSG_ERROR,"Unacceptable rule type. Surface is either not closed or inside is not used."); return cleanExit();}
-                case discard_if_enters:         {break;}
-                case discard_if_exits:          {disp(MSG_ERROR,"Unacceptable rule type. Surface is either not closed or inside is not used."); return cleanExit();}
-                case discard_if_ends_inside:    {break;}
-            }
+            if (prule.surfSrc != NULL) {if (!addSurface(prule)) {return cleanExit();} break;}
 
             if (prule.surfaceDiscretizationRes<=0) {
                 disp(MSG_ERROR,"Surface discretization resolution can't be negative, which is currently %.2f", prule.surfaceDiscretizationRes);
@@ -635,6 +462,7 @@ bool NIBR::Pathway::add(PathwayRule prule) {
                     (prules[j].surfaceFieldName4Mask      == prule.surfaceFieldName4Mask)      &&
                     (prules[j].label                      == prule.label)                      && 
                     (prules[j].surfaceUseDisc             == prule.surfaceUseDisc)             &&
+                    (prules[j].surfaceUseDim             == prule.surfaceUseDim)             &&
                     ( (prules[j].surfaceDiscCenter[0] == prule.surfaceDiscCenter[0]) || (isnan(prules[j].surfaceDiscCenter[0]) && isnan(prule.surfaceDiscCenter[0])) ) &&
                     ( (prules[j].surfaceDiscCenter[1] == prule.surfaceDiscCenter[1]) || (isnan(prules[j].surfaceDiscCenter[1]) && isnan(prule.surfaceDiscCenter[1])) ) &&
                     ( (prules[j].surfaceDiscCenter[2] == prule.surfaceDiscCenter[2]) || (isnan(prules[j].surfaceDiscCenter[2]) && isnan(prule.surfaceDiscCenter[2])) ) &&
@@ -660,16 +488,24 @@ bool NIBR::Pathway::add(PathwayRule prule) {
             if (srcDone && dataDone && (prule.type != seed)) {
                 break;
             }
-            
-            // Below is necessary to prepare the data and seed if needed. This is because masking makes things complicated.
-            // Reading surface mesh
+
+            // Surface can have a mask, density and data defined.
+            // To handle all the various combinations, we will create a tmpSurf, then
+            // create and add surfaceFields for each of the mask, density and data if they are defined.
+            // Mask field will be defined on VERT.
+            // Data and density will be defined on FACE.
+            // After all the three fields are added, we will apply the mask. 
+            // Application of the mask will will all the adjust the data and density constraint in the masked surface.
+
+
+            // Creating tmpSurf from the input mesh
             NIBR::Surface *tmpSurf = new NIBR::Surface(prule.surfaceSource);
             tmpSurf->readMesh();
 
-            // Reading data
+            // Creating data field
             // Currently for multi-dimensional surface data only surface fields can be used
-            int m = (prule.surfaceFieldFile4FaceData!="")+(prule.surfaceFieldFile4VertData!="")+(prule.surfaceFieldName4Data!="");
             SurfaceField* dataField = new SurfaceField;
+            int m = (prule.surfaceFieldFile4FaceData!="")+(prule.surfaceFieldFile4VertData!="")+(prule.surfaceFieldName4Data!="");
             surfData.back() = dataField;
             if (m>1) {
                 disp(MSG_ERROR,"Multiple surface data sources are not allowed");
@@ -685,7 +521,7 @@ bool NIBR::Pathway::add(PathwayRule prule) {
                 tmpSurf->convert2FaceField(*dataField);
             }
 
-            // Reading density
+            // Creating density field
             SurfaceField densField;
             m = (prule.surfaceFieldFile4FaceDens!="")+(prule.surfaceFieldFile4VertDens!="")+(prule.surfaceFieldName4Dens!="");
             if (m>1) {
@@ -703,7 +539,7 @@ bool NIBR::Pathway::add(PathwayRule prule) {
                 tmpSurf->convert2FaceField(densField);
             }
 
-            // Reading mask
+            // Creating mask field
             SurfaceField maskField;
             m = (prule.surfaceFieldFile4FaceMask!="")+(prule.surfaceFieldFile4VertMask!="")+(prule.surfaceFieldName4Mask!="")+(prule.surfaceUseDisc==true);
             if (m>1) {
@@ -726,7 +562,8 @@ bool NIBR::Pathway::add(PathwayRule prule) {
                 }
             }
 
-            // Preparing mask - Masking is done by marking vertices to select
+            // Applying mask
+            // Masking is done by marking vertices to select
             switch (maskField.owner) {
                 case NOTSET:
                     break;
@@ -747,6 +584,8 @@ bool NIBR::Pathway::add(PathwayRule prule) {
                 }
             }
 
+
+            // Preparing surfSrc
             Surface* surfSrc;
             
             // maskField is either NOTSET or VERTEX at this point
@@ -762,11 +601,30 @@ bool NIBR::Pathway::add(PathwayRule prule) {
                 surfSrc = new Surface(*tmpSurf);
             }
 
+            // At this point, surfSrc is ready. 
+            // It is also masked with matching dataField and densField prepped as well.
 
             if (!srcDone) {
-                // Prepare for surface indexing
-                // if (surfSrc->nv == 0) { // What happens in this case? Let's ignore for now...
-                surfSrc->enablePointCheck(prule.surfaceDiscretizationRes);
+
+                surfSrc->isClosed();
+
+                if (prule.surfaceUseDim == surf_useDim_unknown) {
+                    if (surfSrc->openOrClosed == OPEN) {
+                        NIBR::disp(MSG_DETAIL,"Surface is open. Interpreting surface as 2D boundary: %s", prule.surfaceSource.c_str());
+                        prule.surfaceUseAs2D = true;
+                    } else {
+                        prule.surfaceUseAs2D = false;
+                    }
+                }
+
+                if (prule.surfaceUseDim == surf_useDim_3D) {
+                    if (surfSrc->openOrClosed == OPEN) {
+                        NIBR::disp(MSG_DETAIL,"Surface is open. Interpreting surface as 2D boundary: %s", prule.surfaceSource.c_str());
+                        prule.surfaceUseAs2D = true;
+                    }
+                }
+
+                surfSrc->enablePointCheck(prule.surfaceDiscretizationRes,prule.surfaceUseAs2D);
                 surfSrc->calcNormalsOfFaces();
                 surf.back() = surfSrc;
             }
@@ -781,10 +639,64 @@ bool NIBR::Pathway::add(PathwayRule prule) {
                 dataField = NULL;
             }
 
+
+            // Check rule types
+            if (prule.surfaceUseAs2D) {
+                switch (prule.type) {
+                    case undef_type:                {disp(MSG_ERROR,"Unacceptable rule type"); return cleanExit();}
+                    case seed:                      {break;}
+                    case discard_seed:              {break;}
+                    case req_entry:                 {break;}
+                    case req_exit:                  {disp(MSG_WARN, "Replacing require_exit with require_entry since surface is 2D."); break;}
+                    case req_end_inside:            {break;}
+                    case stop_before_entry:         {break;}
+                    case stop_at_entry:             {break;}
+                    case stop_after_entry:          {break;}
+                    case stop_before_exit:          {disp(MSG_WARN, "Replacing stop_before_exit with stop_before_entry since surface is 2D."); break;}
+                    case stop_at_exit:              {disp(MSG_WARN, "Replacing stop_at_exit with stop_at_entry since surface is 2D."); break;}
+                    case stop_after_exit:           {disp(MSG_WARN, "Replacing stop_after_exit with stop_after_entry since surface is 2D."); break;}
+                    case discard_if_enters:         {break;}
+                    case discard_if_exits:          {disp(MSG_WARN, "Replacing discard_if_exits with discard_if_entry since surface is 2D."); break;}
+                    case discard_if_ends_inside:    {break;}
+                }
+            } else {
+                switch (prule.type) {
+                    case undef_type:                {disp(MSG_ERROR,"Unacceptable rule type"); return cleanExit();}
+                    case seed:
+                    case discard_seed:
+                    case req_entry:
+                    case req_exit:
+                    case req_end_inside:
+                    case stop_before_entry:
+                    case stop_at_entry:
+                    case stop_after_entry:
+                    case stop_before_exit:
+                    case stop_at_exit:
+                    case stop_after_exit:
+                    case discard_if_enters:
+                    case discard_if_exits:
+                    case discard_if_ends_inside:    {break;}
+                }
+            }
+
+
             // Prepare if type is seed
             if ((prule.type == seed) && (isTracking == true)) {
-                Seeder* seedDef = new SeedSurface();
-                if (!seedDef->setSeed(surf.back())) {
+
+                Seeder* seedDef = NULL;
+                bool seedingFailed;
+
+                if (prule.surfaceUseAs2D) {
+                    disp(MSG_DETAIL,"Prepping 2D seed surface for tracking");
+                    Seeder* seedDef = new SeedSurface();
+                    seedingFailed   = !seedDef->setSeed(surf.back());
+                } else {
+                    disp(MSG_DETAIL,"Prepping 3D seed surface for tracking");
+                    Seeder* seedDef = new SeedInsideSurface();
+                    seedingFailed   = !seedDef->setSeed(surf.back(),prule.surfaceDiscretizationRes);
+                }
+
+                if (seedingFailed) {
                     if (!srcDone) { delete surf.back();}
                     tmpSurf->clearField(*dataField);
                     tmpSurf->clearField( densField);
@@ -793,14 +705,22 @@ bool NIBR::Pathway::add(PathwayRule prule) {
                     delete tmpSurf;
                     return cleanExit();
                 }
-                if (densField.owner!=NOTSET) {
-                    surf.back()->convert2FaceField(densField);
-                    auto densVec = surf.back()->readFloatFieldData(densField,0);
-                    seedDef->useDensity(densVec);
-                    tmpSurf->clearField(densField);
+
+                if (prule.surfaceUseAs2D) {
+
+                    if (densField.owner!=NOTSET) {
+                        surf.back()->convert2FaceField(densField);
+                        auto densVec = surf.back()->readFloatFieldData(densField,0);
+                        seedDef->useDensity(densVec);
+                        tmpSurf->clearField(densField);
+                    }
+
+                    seedDef->useSurfNorm(prule.surface4SeedUseNormForDir);
                 }
-                seedDef->useSurfNorm(prule.surface4SeedUseNormForDir);
+
                 seeds.back() = seedDef;
+                disp(MSG_DETAIL,"Done");
+
             }
 
             tmpSurf->clearField(densField);

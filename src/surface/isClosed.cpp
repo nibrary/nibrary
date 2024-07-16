@@ -23,7 +23,7 @@ bool NIBR::Surface::isClosedComp() {
     }
 
     // Let's ignore Euler number for now. 
-    // This proves to be too restrictive since many meshes require difficult fixes that are not available here.
+    // This proves to be too restrictive since many meshes require difficult fixes.
     // e.g. removing of overlapping (in-planar) faces
     // Note: ne is computed during isManifold()
     // int EulerNumber = nv + nf - ne;
@@ -54,19 +54,24 @@ bool NIBR::Surface::isClosed() {
     disp(MSG_DEBUG,"isClosed");
     
     if (openOrClosed==CLOSED) {
-        disp(MSG_DEBUG,"Done isClosed (quick)");
+        disp(MSG_DEBUG,"Done isClosed (quick). Surface is open");
         return true;
     }
 
     if (openOrClosed==OPEN) {
-        disp(MSG_DEBUG,"Done isClosed (quick)");
+        disp(MSG_DEBUG,"Done isClosed (quick. Surface is closed.)");
+        return false;
+    }
+
+    if (openOrClosed==OPENANDCLOSED) {
+        disp(MSG_DEBUG,"Done isClosed (quick). Surface has both open and closed components.");
         return false;
     }
 
     if (nv==0) {
         disp(MSG_DEBUG,"Mesh is empty");
         openOrClosed = OPEN;
-        disp(MSG_DEBUG,"Done isClosed (quick)");
+        disp(MSG_DEBUG,"Done isClosed (quick). Surface is open");
         return false;
     }
 
@@ -78,7 +83,8 @@ bool NIBR::Surface::isClosed() {
 
         int cnt = 0;
 
-        bool foundOpen = false;
+        bool foundOpen   = false;
+        bool foundClosed = false;
         
         for (auto& c : comp) {
             if (!c.isClosedComp()) {
@@ -88,18 +94,27 @@ bool NIBR::Surface::isClosed() {
             } else {
                 disp(MSG_DEBUG,"Component %d is closed",cnt);
                 compOpenOrClosed.push_back(CLOSED);
+                foundClosed = true;
             }
             cnt++;
         }
 
-        if (foundOpen) {
+        if (foundOpen && !foundClosed) {
             openOrClosed = OPEN;
-            disp(MSG_DEBUG,"Done isClosed");
+            disp(MSG_DEBUG,"Done isClosed. Surface is open.");
             return false;
-        } else {
+        }
+
+        if (!foundOpen && foundClosed) {
             openOrClosed = CLOSED;
-            disp(MSG_DEBUG,"Done isClosed");
-            return true;
+            disp(MSG_DEBUG,"Done isClosed. Surface is closed.");
+            return false;
+        }
+
+        if (foundOpen && foundClosed) {
+            openOrClosed = OPENANDCLOSED;
+            disp(MSG_DEBUG,"Done isClosed. Surface has both open and closed components.");
+            return false;
         }
 
     }

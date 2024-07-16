@@ -14,6 +14,8 @@ void NIBR::Surface::enablePointCheck(float gridRes, bool interpretAs2D) {
 
     if (enabledPointCheck) return;
 
+    prepIglAABBTree();
+
     pointCheckGridRes = gridRes;
     mapSurface2Image(this,&maskAndBoundary,pointCheckGridRes,NULL,&grid,MASK_WITH_BOUNDARY);
     maskAndBoundary.setInterpolationMethod(NEAREST);

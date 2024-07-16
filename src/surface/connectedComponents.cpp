@@ -70,17 +70,18 @@ void NIBR::Surface::getClosedAndOpenComponents()
     Surface closedPart;
     Surface openPart;
 
+    compClosedAndOpen.clear();
     compClosedAndOpen.resize(2);
 
     if (openOrClosed == OPEN) {
 
-        compClosedAndOpen[0] = *this;
-        compClosedAndOpen[1] = openPart;
+        compClosedAndOpen[0] = closedPart;
+        compClosedAndOpen[1] = *this;
 
     } else if (openOrClosed == CLOSED) {
 
-        compClosedAndOpen[0] = closedPart;
-        compClosedAndOpen[1] = *this;
+        compClosedAndOpen[0] = *this;
+        compClosedAndOpen[1] = openPart;
 
     } else {
 

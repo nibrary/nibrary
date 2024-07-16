@@ -54,12 +54,12 @@ bool NIBR::Surface::isClosed() {
     disp(MSG_DEBUG,"isClosed");
     
     if (openOrClosed==CLOSED) {
-        disp(MSG_DEBUG,"Done isClosed (quick). Surface is open");
+        disp(MSG_DEBUG,"Done isClosed (quick). Surface is closed");
         return true;
     }
 
     if (openOrClosed==OPEN) {
-        disp(MSG_DEBUG,"Done isClosed (quick. Surface is closed.)");
+        disp(MSG_DEBUG,"Done isClosed (quick. Surface is open.)");
         return false;
     }
 

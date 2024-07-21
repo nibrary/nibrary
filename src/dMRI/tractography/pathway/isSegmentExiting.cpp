@@ -5,11 +5,11 @@ using namespace NIBR;
 
 // This is used for mask and label images, not for pvf images
 template <typename T>
-bool checkExitUsingRayTracing(float& segCrosLength, LineSegment& segment, Image<T>* img, T label) {
+bool checkExitUsingRayTracing(double& segCrosLength, LineSegment& segment, Image<T>* img, T label) {
 
     // segment.beg is outside the image
     if ((*img)(segment.beg)!=label) {
-        segCrosLength = 0;
+        segCrosLength = 0.0;
         return true;
     }
 
@@ -73,7 +73,7 @@ bool checkExitUsingRayTracing(float& segCrosLength, LineSegment& segment, Image<
                 if ((*img)(p1)!=label) {
                     vec3sub(dir,p1,segment.beg); // dir is now in real-space
                     segCrosLength = norm(dir)/segment.len;
-                    if (segCrosLength>1.0f) segCrosLength = 1.0f;
+                    if (segCrosLength>1.0) segCrosLength = 1.0;
                     return true;
                 }
             }
@@ -88,7 +88,7 @@ bool checkExitUsingRayTracing(float& segCrosLength, LineSegment& segment, Image<
 
     // segment.end is inside the image
     if ((*img)(segment.end)!=label) {
-        segCrosLength = 1.0f;
+        segCrosLength = 1.0;
         return true;
     }
 
@@ -98,8 +98,8 @@ bool checkExitUsingRayTracing(float& segCrosLength, LineSegment& segment, Image<
 }
 
 // Explicit instantiation for mask (int8_t) and label (int) images
-template bool checkExitUsingRayTracing<int8_t>(float& segCrosLength, LineSegment& segment, Image<int8_t>* img, int8_t label); // For img_mask
-template bool checkExitUsingRayTracing<int>   (float& segCrosLength, LineSegment& segment, Image<int>* img,    int    label); // For img_label
+template bool checkExitUsingRayTracing<int8_t>(double& segCrosLength, LineSegment& segment, Image<int8_t>* img, int8_t label); // For img_mask
+template bool checkExitUsingRayTracing<int>   (double& segCrosLength, LineSegment& segment, Image<int>* img,    int    label); // For img_label
 
 // If a segment is exiting a pathway rule, this function returns true
 // w->segCrosLength shows the fraction of segment length to exit the pathway rule
@@ -107,7 +107,7 @@ bool NIBR::Pathway::isSegmentExiting(NIBR::Walker* w, int ruleNo) {
 
     // segCrosLength is always between 0 and 1.
     // If segment does not exit the rule then segCrosLength is 1.
-    w->segCrosLength = 1;
+    w->segCrosLength = 1.0;
 
     switch (srcType[ruleNo]) {
 
@@ -126,29 +126,29 @@ bool NIBR::Pathway::isSegmentExiting(NIBR::Walker* w, int ruleNo) {
         // Sphere
         case sph_src: {
 
-            float p2c[3];
+            double p2c[3];
             vec3sub(p2c, sphCenter[ruleNo], w->segment.beg);
-            float p2c_norm = norm(p2c);
+            double p2c_norm = norm(p2c);
 
             // segment.beg is outside the sphere
             if (p2c_norm>sphRadius[ruleNo]) {
-                w->segCrosLength = 0;
+                w->segCrosLength = 0.0;
                 return true;
             }
 
             // segment can't intersect the sphere
-            float q2c[3];
+            double q2c[3];
             vec3sub(q2c, sphCenter[ruleNo], w->segment.end);
-            float q2c_norm = norm(q2c);
+            double q2c_norm = norm(q2c);
 
             // segment.end is inside the sphere
             if (q2c_norm<=sphRadius[ruleNo])
                 return false;
 
             // segment is exiting the sphere
-            float proj_h = dot(&p2c[0], &w->segment.dir[0]);
-            float dd     = p2c_norm*p2c_norm - proj_h*proj_h;
-            float dist   = proj_h + std::sqrt(sphRadiusSquared[ruleNo] - dd);
+            double proj_h = dot(&p2c[0], &w->segment.dir[0]);
+            double dd     = p2c_norm*p2c_norm - proj_h*proj_h;
+            double dist   = proj_h + std::sqrt(sphRadiusSquared[ruleNo] - dd);
 
             // segment intersects the sphere
             w->segCrosLength = dist / w->segment.len;
@@ -173,54 +173,43 @@ bool NIBR::Pathway::isSegmentExiting(NIBR::Walker* w, int ruleNo) {
         // Image - partial volume
         case img_pvf_src: {
 
-            auto isOutsidePvf=[&](float* p)->bool {
-
-                // PVF is 4D
-                if (img_pvf[ruleNo]->getDimension() == 4) {
-                    
-                    // float fraction;
-                    // float maxFraction = FLT_MIN;
-                    // int   maxVolInd   = -1;
-                    
-                    // for (int t=0; t<img_pvf[ruleNo]->imgDims[3]; t++) {
-                    //     fraction = (*img_pvf[ruleNo])(p,t);
-                    //     if ( fraction > maxFraction) {
-                    //         maxFraction = fraction;
-                    //         maxVolInd   = t;
-                    //     }
-                    // }
-
-                    // return (maxVolInd != pvf_vol[ruleNo]) ? true : false;
-
+            auto isOutsidePvf_flt=[&](float* p)->bool {
+                if (img_pvf[ruleNo]->getDimension() == 4) { // PVF is 4D
                     return ((*img_pvf[ruleNo])(p,pvf_vol[ruleNo]) < pvfThresh) ? true : false;
+                } else { // PVF is 3D
+                    return ((*img_pvf[ruleNo])(p) <= 0.0f) ? true : false;
                 }
-
-                // PVF is 3D
-                return ((*img_pvf[ruleNo])(p) <= 0.0f) ? true : false;
-
             };
 
-            if (isOutsidePvf(w->segment.beg)) {
-                w->segCrosLength = 0;
+            auto isOutsidePvf_dbl=[&](double* p)->bool {
+                if (img_pvf[ruleNo]->getDimension() == 4) { // PVF is 4D
+                    return ((*img_pvf[ruleNo])(p,pvf_vol[ruleNo]) < pvfThresh) ? true : false;
+                } else { // PVF is 3D
+                    return ((*img_pvf[ruleNo])(p) <= 0.0f) ? true : false;
+                }
+            };
+
+            if (isOutsidePvf_flt(w->segment.beg)) {
+                w->segCrosLength = 0.0;
                 return true;
             }
                         
-            float downsampleFactor = w->segment.len * maxSegSizeScaler[ruleNo];
+            double downsampleFactor = w->segment.len * maxSegSizeScaler[ruleNo];
 
             // disp(MSG_DEBUG,"segment.len: %.2f, ,maxSegSizeScaler: %.2f, f: %.2f",w->segment.len, maxSegSizeScaler[ruleNo], downsampleFactor);
 
             if (downsampleFactor > 1)
             {
-                float s = w->segment.len / float(std::ceil(downsampleFactor));
-                float end[3];
+                double s = w->segment.len / std::ceil(downsampleFactor);
+                double end[3];
 
-                for (float t = s; t < (w->segment.len + EPS8); t = t + s)
+                for (double t = s; t < (w->segment.len + EPS8); t = t + s)
                 {
                     end[0] = w->segment.beg[0] + w->segment.dir[0] * t;
                     end[1] = w->segment.beg[1] + w->segment.dir[1] * t;
                     end[2] = w->segment.beg[2] + w->segment.dir[2] * t;
                     
-                    if (isOutsidePvf(end)) {
+                    if (isOutsidePvf_dbl(end)) {
                         w->segCrosLength = t / w->segment.len;
                         return true;
                     }
@@ -228,8 +217,8 @@ bool NIBR::Pathway::isSegmentExiting(NIBR::Walker* w, int ruleNo) {
             }
             else
             {
-                if (isOutsidePvf(w->segment.end)) {
-                    w->segCrosLength = 1;
+                if (isOutsidePvf_flt(w->segment.end)) {
+                    w->segCrosLength = 1.0;
                     return true;
                 }
             }
@@ -240,23 +229,24 @@ bool NIBR::Pathway::isSegmentExiting(NIBR::Walker* w, int ruleNo) {
 
         // Surf
         case surf_src: {
-            if ( prules[ruleNo].surfaceUseAs2D) {
+
+            if ( surfIs2D[ruleNo] ) {
+
                 return true;
+
             } else {
-                // disp(MSG_DEBUG,"w->segment: [%.2f, %.2f, %.2f] -> [%.2f, %.2f, %.2f] ",w->segment.beg[0],w->segment.beg[1],w->segment.beg[2],w->segment.end[0],w->segment.end[1],w->segment.end[2]);
-                auto interCheck = surf[ruleNo]->intersect(&w->segment);
+
+                auto [isBegInside,isEndInside,intersectingFaceInd,distance] = surf[ruleNo]->intersect(&w->segment);
 
                 // Everything is outside
-                if ( (std::get<0>(interCheck) == false) && (std::get<1>(interCheck) == false) && (std::get<2>(interCheck) == INT_MIN) && (isnan(std::get<3>(interCheck))) ) {
-                    w->segCrosLength = 0;
-                    // disp(MSG_DEBUG,"Exited rule (at first point) %d", ruleNo);
+                if ( !isBegInside && !isEndInside && (intersectingFaceInd == INT_MIN) && isnan(distance) ) {
+                    w->segCrosLength = 0.0;
                     return true;
                 }
 
-                // Going from inside to outside
-                if ( (std::get<0>(interCheck) == true) && (std::get<1>(interCheck) == false) && (!isnan(std::get<3>(interCheck))) ) {
-                    w->segCrosLength = std::get<3>(interCheck) / w->segment.len;
-                    // disp(MSG_DEBUG,"Exited rule (through segment) %d - w->segCrosLength: %.2f", ruleNo, w->segCrosLength);
+                // Going from inside to outside                
+                if ( isBegInside && !isEndInside && !isnan(distance) ) {
+                    w->segCrosLength = distance / w->segment.len;
                     return true;
                 }
 
@@ -268,13 +258,10 @@ bool NIBR::Pathway::isSegmentExiting(NIBR::Walker* w, int ruleNo) {
                 // } 
 
                 // Endpoint is outside
-                if ( (std::get<0>(interCheck) == false) && (std::get<1>(interCheck) == false) && (std::get<2>(interCheck) == INT_MAX) && (isnan(std::get<3>(interCheck))) ) {
-                    w->segCrosLength = 1;
-                    // disp(MSG_DEBUG,"Exited rule (at last point) %d", ruleNo);
+                if ( !isBegInside && !isEndInside && (intersectingFaceInd == INT_MAX) && isnan(distance) ) {
+                    w->segCrosLength = 1.0;
                     return true;
                 }
-
-                // disp(MSG_DEBUG,"Not exited rule %d", ruleNo);
 
                 return false;
             }

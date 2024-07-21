@@ -8,7 +8,6 @@
 #include <cstdint>
 #include "math/core.h"
 #include "math/sphere.h"
-#include "findSegmentTriangleIntersection.h"
 #include "image/image_transform.h"
 #include "surface_operators.h"
 

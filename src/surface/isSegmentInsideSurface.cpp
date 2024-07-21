@@ -5,29 +5,29 @@
 
 // Returns <isBegInside,isEndInside,intersectingFaceInd,distance>
 // distance=NAN and intersectionFaceInd= INT_MIN, if there is no intersection
-std::tuple<bool,bool,int,float> NIBR::Surface::intersect(LineSegment* seg) 
+std::tuple<bool,bool,int,double> NIBR::Surface::intersect(LineSegment* seg) 
 {  
 
     // Compute ijk of segment.beg and segment.end
-    float p0[3];
+    double p0[3];
     maskAndBoundary.to_ijk(seg->beg,p0);
     int A[3] = {int(std::round(p0[0])), int(std::round(p0[1])), int(std::round(p0[2]))};
     // disp(MSG_DEBUG,"A: [%d,%d,%d]",A[0],A[1],A[2]);
 
-    float p1[3];
+    double p1[3];
     maskAndBoundary.to_ijk(seg->end,p1);
     int B[3] = {int(std::round(p1[0])), int(std::round(p1[1])), int(std::round(p1[2]))};
     // disp(MSG_DEBUG,"B: [%d,%d,%d]",B[0],B[1],B[2]);
 
-    float dist        = NAN;
-    float minDist     = FLT_MAX;
-    int   intFaceInd  = INT_MIN;
+    double dist        = NAN;
+    double minDist     = DBL_MAX;
+    int    intFaceInd  = INT_MIN;
 
     // Returns <doesIntersect,towardsOutside,faceInd,dist>
-    auto checkFaceDistSign=[&](int i, int j, int k)->std::tuple<bool,bool,int,float> {
+    auto checkFaceDistSign=[&](int i, int j, int k)->std::tuple<bool,bool,int,double> {
 
         dist    = NAN;
-        minDist = FLT_MAX;
+        minDist = DBL_MAX;
 
         bool doesIntersect  = false;
         bool towardsOutside = false;
@@ -41,7 +41,7 @@ std::tuple<bool,bool,int,float> NIBR::Surface::intersect(LineSegment* seg)
 
             // disp(MSG_DEBUG,"faceInd: %d, dist: %f", faceInd, dist);
 
-            if ( (!isnan(dist)) && (dist>=0) && (dist<minDist) ) { // equality is at the mesh surface
+            if ( (!isnan(dist)) && (dist<minDist) ) { // equality is at the mesh surface
 
                 minDist       = dist;
                 intFaceInd    = faceInd;
@@ -56,7 +56,7 @@ std::tuple<bool,bool,int,float> NIBR::Surface::intersect(LineSegment* seg)
         }
         // disp(MSG_DEBUG,"Face check done");
 
-        dist = (minDist==FLT_MAX) ? NAN : minDist;
+        dist = (minDist==DBL_MAX) ? NAN : minDist;
 
         // if (doesIntersect) {
         //     if (towardsOutside)
@@ -70,9 +70,9 @@ std::tuple<bool,bool,int,float> NIBR::Surface::intersect(LineSegment* seg)
 
     // Check segment intersection. Operates on voxel A.
     // Returns <isBegInside,isEndInside,intFaceInd,dist>
-    auto isInside=[&]()->std::tuple<bool,bool,int,float> {
+    auto isInside=[&]()->std::tuple<bool,bool,int,double> {
 
-        float val = maskAndBoundary(A[0],A[1],A[2]);
+        int8_t val = maskAndBoundary(A[0],A[1],A[2]);
 
         if (val==OUTSIDE) {
 
@@ -95,7 +95,7 @@ std::tuple<bool,bool,int,float> NIBR::Surface::intersect(LineSegment* seg)
             // There is intersection
             if (doesIntersect) {
                 disp(MSG_DEBUG, "There is intersection.");
-                if (this->isClosed()) {
+                if (this->openOrClosed != OPEN) {
                     // Segment goes outside the region
                     if (towardsOutside) {
                         disp(MSG_DEBUG, "in -> out");
@@ -142,7 +142,7 @@ std::tuple<bool,bool,int,float> NIBR::Surface::intersect(LineSegment* seg)
     length = norm(dir);
     vec3scale(dir,1.0/length);
 
-    std::tuple<bool,bool,int,float> interCheck;
+    std::tuple<bool,bool,int,double> interCheck(false,false,INT_MIN,NAN);
 
     while (length>0.0) {
 

@@ -33,8 +33,8 @@ Propagation_Decision TrackWith_PTT::initialize() {
 		if (dataSupport < TRACKER::params_ptt.modMinDataSupport) {
 			failed = true;
 		} else {
-			curve->copy(initial_curve);
-			curve->saveLastVal();
+			// curve is selected, and next it will be propagated-first value can be reset here
+			curve->resetFirstVal();
 		}
 
 	} else {
@@ -52,7 +52,8 @@ Propagation_Decision TrackWith_PTT::initialize() {
 			} else if ((TRACKER::params_ptt.modMinDataSupport<=dataSupport) && (curve->doRandomThings.uniform_01()*posteriorMax <= dataSupport )) { // Equal helps to sample extrema
                 // This candidate is now selected and it will be propagated
 				initial_curve->copy(curve);
-				curve->saveLastVal();
+				// curve is selected, and next it will be propagated-first value can be reset here
+				curve->resetFirstVal();
 				break;
 			}
 

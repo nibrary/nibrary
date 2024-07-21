@@ -37,12 +37,12 @@ void NIBR::Pathway::walkSecondEnd(NIBR::Walker* walker)
         // If the seed point is inserted we need to shift the begInd accordingly
         if ((walker->seedInserted) && (n==walker->seedInd)) {
 
-            float prevLen = dist(walker->streamline->at(n),walker->streamline->at(n-1));
-            float nextLen = dist(walker->streamline->at(n),walker->streamline->at(n+1));
-            float crsLen  = prevLen * walker->segCrosLength;
-            float corrLen = (prevLen - crsLen) / (prevLen + nextLen);
+            double prevLen = dist(walker->streamline->at(n),walker->streamline->at(n-1));
+            double nextLen = dist(walker->streamline->at(n),walker->streamline->at(n+1));
+            double crsLen  = prevLen * walker->segCrosLength;
+            double corrLen = (prevLen - crsLen) / (prevLen + nextLen);
 
-            walker->begInd = n - 1 + corrLen;
+            walker->begInd = n - 1.0 + corrLen;
 
         }
 

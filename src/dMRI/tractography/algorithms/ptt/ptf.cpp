@@ -12,7 +12,7 @@ PTF::PTF() {
     PP          = new float[9];
     
 	likelihood 	= 0.0;
-    lastVal     = 0.0;
+    firstVal    = NAN;
     
     angularSeparation = 2.0*M_PI/float(TRACKER::params_ptt.probeCount);
     probeStepSize     = TRACKER::params_ptt.probeLength/(TRACKER::params_ptt.probeQuality-1);
@@ -58,9 +58,8 @@ void PTF::copy(PTF *ptf) {
         PP[i]  = ptf->PP[i];
 	
 	likelihood 	      = ptf->likelihood;
-    lastVal           = ptf->lastVal;
-    lastVal_cand      = ptf->lastVal_cand;
-    initLastVal       = ptf->initLastVal;
+    firstVal          = ptf->firstVal;
+    initFirstVal      = ptf->initFirstVal;
     initPosteriorMax  = ptf->initPosteriorMax;
 }
 
@@ -76,7 +75,7 @@ void PTF::getFlippedCopy(PTF *ptf) {
     k1_cand *= -1;
 
 	likelihood 	= 0.0;
-    lastVal     = initLastVal; // When we flip, we now recover the lastVal, which will be used in calcDataSupport for the next candidate
+    firstVal    = initFirstVal; // When we flip, we now recover the firstVal, which will be used in calcDataSupport for the next candidate
 }
 
 
@@ -103,6 +102,10 @@ float PTF::calcDataSupport() {
     
     prepPropagator(probeStepSize);
 
+    if (isnan(firstVal)) {
+        firstVal = TRACKER::params_ptt.img_FOD->getFODamp(p,F[0]);
+    }
+
     // Copy initial _p and _F    
     for (int i=0; i<3; i++) {
         _p[i] = p[i];
@@ -113,7 +116,7 @@ float PTF::calcDataSupport() {
     
     if (TRACKER::params_ptt.img_FOD->getSHorder()%2==0) {
     
-        likelihood = lastVal;
+        likelihood = firstVal;
         
         for (int q=0; q<(TRACKER::params_ptt.probeQuality-1); q++) {
             
@@ -142,19 +145,19 @@ float PTF::calcDataSupport() {
             
             if (TRACKER::params_ptt.probeCount==1) {
                 
-                lastVal_cand = TRACKER::params_ptt.img_FOD->getFODamp(_p,_T);
+                float val = TRACKER::params_ptt.img_FOD->getFODamp(_p,_T);
                 
-                if ((TRACKER::params_ptt.checkWeakLinks==true) && (lastVal_cand < TRACKER::params_ptt.weakLinkThresh)) {
+                if ((TRACKER::params_ptt.checkWeakLinks==true) && (val < TRACKER::params_ptt.weakLinkThresh)) {
                     likelihood  = 0;
                     return 0;
                 } else {
-                    likelihood += lastVal_cand;
+                    likelihood += val;
                 }
                 
                 
             } else {
                 
-                lastVal_cand = 0;
+                float totVal = 0;
                 
                 if (q==(TRACKER::params_ptt.probeQuality-1)) {
                     for (int i=0; i<3; i++) {
@@ -178,12 +181,12 @@ float PTF::calcDataSupport() {
                         likelihood    = 0;
                         return 0;
                     } else {
-                        lastVal_cand += val;
+                        totVal += val;
                     }
 
                 } 
                 
-                likelihood += lastVal_cand;
+                likelihood += totVal;
                 
             }
             
@@ -325,8 +328,8 @@ float PTF::getInitCandidate(float *initDir) {
         }
         
         // At init we use only lastVal because this will be added in calcDataSupport
-        initLastVal = likelihood;
-        lastVal     = initLastVal;
+        initFirstVal = likelihood;
+        firstVal     = initFirstVal;
     }
     
     // lastVal is not used in the asymmetric FOD case

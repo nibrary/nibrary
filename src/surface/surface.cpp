@@ -570,9 +570,9 @@ void NIBR::Surface::printInfo() {
         std::cout << "Mix of open and closed meshes." << manifoldOrNot[int(isManifold())] << std::endl;
     }
 
-    std::cout << std::left << std::setw(30) << "Bounding box (xmin - xmax): " << std::right << std::setw(25) << " [ " << to_string_with_precision(box[0]) + " - " + to_string_with_precision(box[1]) << " ] " << std::endl;
-    std::cout << std::left << std::setw(30) << "Bounding box (ymin - ymax): " << std::right << std::setw(25) << " [ " << to_string_with_precision(box[2]) + " - " + to_string_with_precision(box[3]) << " ] " << std::endl;
-    std::cout << std::left << std::setw(30) << "Bounding box (zmin - zmax): " << std::right << std::setw(25) << " [ " << to_string_with_precision(box[4]) + " - " + to_string_with_precision(box[5]) << " ] " << std::endl;
+    std::cout << std::left << std::setw(30) << "Bounding box (xmin - xmax): " << std::right << std::setw(25) << " [ " + to_string_with_precision(box[0]) + ", " + to_string_with_precision(box[1]) + " ] " << std::endl;
+    std::cout << std::left << std::setw(30) << "Bounding box (ymin - ymax): " << std::right << std::setw(25) << " [ " + to_string_with_precision(box[2]) + ", " + to_string_with_precision(box[3]) + " ] " << std::endl;
+    std::cout << std::left << std::setw(30) << "Bounding box (zmin - zmax): " << std::right << std::setw(25) << " [ " + to_string_with_precision(box[4]) + ", " + to_string_with_precision(box[5]) + " ] " << std::endl;
                     
     std::cout << std::left << std::setw(30) << "Vertex count: " << std::right << std::setw(10) << nv << std::endl;
     std::cout << std::left << std::setw(30) << "Face count: "   << std::right << std::setw(10) << nf << std::endl;
@@ -600,7 +600,7 @@ void NIBR::Surface::printInfo() {
     double totBoundaryArea   = 0;
     for (auto& l : boundaryLengths) {totBoundaryLength += l;}
     for (auto& a : boundaryAreas  ) {totBoundaryArea   += a;}
-    std::cout << std::left << std::setw(30) << "Total boundary length / area:  " << std::right << std::setw(25) << to_string_with_precision(totBoundaryLength) + " / " + to_string_with_precision(totBoundaryArea) <<std::endl;
+    std::cout << std::left << std::setw(30) << "Total boundary len. / area:  " << std::right << std::setw(25) << to_string_with_precision(totBoundaryLength) + " / " + to_string_with_precision(totBoundaryArea) <<std::endl;
 
     for (size_t n = 0; n < boundaryLengths.size(); ++n) {
         std::cout << std::left << std::setw(30) << "   Length / Area (#" + std::to_string(n+1) + "):    " << std::right << std::setw(25) << to_string_with_precision(boundaryLengths[n]) + " / " + to_string_with_precision(boundaryAreas[n]) << std::endl;

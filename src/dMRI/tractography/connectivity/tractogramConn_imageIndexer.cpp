@@ -159,10 +159,10 @@ bool NIBR::SCimageIndexer::processStreamline(int streamlineId, uint16_t threadNo
 
                 std::sort(e.begin(), e.end(), [&](NIBR::Segment s1,NIBR::Segment s2)->bool{return (*(int*)(s1.data)) < (*(int*)(s2.data));});
             
-                int   cl        = *(int*)(e[0].data);       // current label
-                float cs        = 0.0;                      // current label's length
-                int   edgeLabel = cl;                       // edge label, i.e., label with max label
-                float ms        = 0.0;                      // max label's length
+                int    cl        = *(int*)(e[0].data);       // current label
+                double cs        = 0.0;                      // current label's length
+                int    edgeLabel = cl;                       // edge label, i.e., label with max label
+                double ms        = 0.0;                      // max label's length
 
                 int sl;
                 for (auto s : e) {
@@ -352,7 +352,7 @@ bool NIBR::SCimageIndexer::processStreamline(int streamlineId, uint16_t threadNo
     };
 
     // PROCESS END1 : Walk from 0 -> N
-    endLength   = 0;
+    endLength   = 0.0;
     stop        = false;
 
     // Beginning of first segment and its corner in image space
@@ -363,7 +363,7 @@ bool NIBR::SCimageIndexer::processStreamline(int streamlineId, uint16_t threadNo
     A[2] = std::round(p0[2]);
 
     if (endType == END_POINT_LABEL) {
-        seg.length = 0;
+        seg.length = 0.0;
         pushToEnd(1);
     } else {
 

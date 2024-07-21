@@ -42,6 +42,7 @@
 #include "dMRI/tractography/tracker/tracker.h"
 #include "dMRI/tractography/tracker/trackerThread.h"
 
+#include "dMRI/tractography/utility/pathFilter.h"
 #include "dMRI/tractography/utility/parallelStreamlineGenerator.h"
 #include "dMRI/tractography/utility/resampleStreamline.h"
 #include "dMRI/tractography/utility/segmentOperators.h"

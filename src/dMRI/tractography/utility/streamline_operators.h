@@ -104,7 +104,7 @@ namespace NIBR
             auto& sP = streamline[i];
             float sL = lengthR;
 
-            auto pushSegment = [&](float pushAmount)->bool {
+            auto pushSegment = [&](double pushAmount)->bool {
 
                 // Update segment length and run the function
                 seg.length = pushAmount*lengthScale;

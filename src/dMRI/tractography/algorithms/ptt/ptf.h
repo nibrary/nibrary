@@ -54,9 +54,9 @@ public:
     // Copies PTF parameters then flips the curve. This function can be used after the initial curve is picked in order to save a copy of the curve for tracking towards the other side.  
     void  getFlippedCopy(PTF *ptf);
 
-    // After the candidate is found in the algorithm, use setLastVal. 
-    // Likelihood is computed by adding values along probeQuality. The last value will be same for the first value in the coming candidate search. So there is no need to repeat computation.
-    void  saveLastVal() {lastVal = lastVal_cand;}
+    // After the candidate is found in the algorithm, use resetFirstVal. 
+    // Likelihood is computed by adding values along probeQuality. The first value will be same for all the candidates. So there is no need to repeat computation.
+    void  resetFirstVal() {firstVal = NAN;}
 
     // Initial posterior max is used after flipping
     void   setInitPosteriorMax(float postMax) {initPosteriorMax = postMax;}
@@ -78,9 +78,8 @@ private:
     float  probeStepSize;
     float  probeNormalizer;
     
-    float  lastVal;
-    float  lastVal_cand;
-    float  initLastVal;         // This is the initial last val that is saved to be used after flipping
+    float  firstVal;
+    float  initFirstVal;        // This is the initial first val that is saved to be used after flipping
     float  initPosteriorMax;    // This is the posterior max at initialization
 
 

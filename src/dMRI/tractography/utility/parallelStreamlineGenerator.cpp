@@ -71,7 +71,7 @@ void NIBR::getParallelStreamlines(std::vector<std::vector<std::vector<float>>>& 
             vec3sub(curr_T,streamline[l+1],streamline[l]);
             normalize(curr_T);
 
-            R_angle = std::acos(std::clamp(dot(&T[0],&curr_T[0]),-1.0f,1.0f));
+            R_angle = std::acos(std::clamp(dot(&T[0],&curr_T[0]),-1.0,1.0));
 
             curr_T[0] += EPS4;  // for numerical stability reasons
             curr_T[1] += EPS4;
@@ -182,7 +182,7 @@ void NIBR::getParallelStreamlines(std::vector<std::vector<std::vector<float>>>& 
             vec3sub(curr_T,streamline[l+1],streamline[l]);
             normalize(curr_T);
 
-            R_angle = std::acos(std::clamp(dot(&T[0],&curr_T[0]),-1.0f,1.0f));
+            R_angle = std::acos(std::clamp(dot(&T[0],&curr_T[0]),-1.0,1.0));
 
             curr_T[0] += EPS4;  // for numerical stability reasons
             curr_T[1] += EPS4;

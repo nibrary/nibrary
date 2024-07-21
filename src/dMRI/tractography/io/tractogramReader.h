@@ -45,9 +45,9 @@ namespace NIBR
 
     struct Segment {
         int     streamlineNo;
-        float   p[3];
-        float   dir[3];
-        float   length;
+        double  p[3];
+        double  dir[3];
+        double  length;
         void*   data;
     };
 

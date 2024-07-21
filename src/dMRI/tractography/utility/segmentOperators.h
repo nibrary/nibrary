@@ -6,10 +6,10 @@ namespace NIBR
 {
 
 // Returns the length of the segment that is within the sphere, which perfectly fits the voxel
-float segmentSphereIntersectionLength(NIBR::Segment& seg, float* sphere);
+double segmentSphereIntersectionLength(NIBR::Segment& seg, float* sphere);
 
 template<typename T>
-float segmentSphereIntersectionLength(NIBR::Image<T>* img, int* gridPos, NIBR::Segment& seg) 
+double segmentSphereIntersectionLength(NIBR::Image<T>* img, int* gridPos, NIBR::Segment& seg) 
 {
 
     float sphere[4]     = {0,0,0,img->pixDims[0]*0.5f};

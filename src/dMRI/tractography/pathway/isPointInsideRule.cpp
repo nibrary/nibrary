@@ -39,30 +39,11 @@ bool NIBR::Pathway::isPointInsideRule(float* p, int ruleNo) {
         // Image - partial volume
         case img_pvf_src: {
 
-            // PVF is 4D
-            if (img_pvf[ruleNo]->getDimension() == 4) {
-                
-                // float fraction;
-                // float maxFraction = FLT_MIN;
-                // int   maxVolInd   = -1;
-                
-                // for (int t=0; t<img_pvf[ruleNo]->imgDims[3]; t++) {
-                //     fraction = (*img_pvf[ruleNo])(p,t);
-                //     if ( fraction > maxFraction) {
-                //         maxFraction = fraction;
-                //         maxVolInd   = t;
-                //     }
-                // }
-
-                // return (maxVolInd == pvf_vol[ruleNo]) ? true : false;
-
+            if (img_pvf[ruleNo]->getDimension() == 4) { // PVF is 4D
                 return ((*img_pvf[ruleNo])(p,pvf_vol[ruleNo]) >= pvfThresh) ? true : false;
-
+            } else { // PVF is 3D
+                return ((*img_pvf[ruleNo])(p) > 0.0f) ? true : false;            
             }
-
-            // PVF is 3D
-            // disp(MSG_DEBUG,"val: %.2f",(*img_pvf[ruleNo])(p));
-            return ((*img_pvf[ruleNo])(p) > 0.0f) ? true : false;            
 
         }
 

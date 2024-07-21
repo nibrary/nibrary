@@ -14,14 +14,18 @@ bool NIBR::Pathway::getSeedInd(NIBR::Walker* walker)
     if (walker->seedRange.empty()) {
 
         // If seed is a surface and it is open, then find all the crossings
-        if ((srcType[theOneSeed]==surf_src) && !surf[theOneSeed]->isClosed()) {
+        if ((srcType[theOneSeed]==surf_src) && (surf[theOneSeed]->openOrClosed == OPEN)) {
+
+            disp(MSG_DEBUG, "Seed ind search on open surface");
 
             float begInd[3],endInd[3];
-            float s, intersLength, fullSegLength = 0;
+            double s, intersLength, fullSegLength = 0;
             walker->segment.beg = &begInd[0];
             walker->segment.end = &endInd[0];
 
             for (int ascInd=0; ascInd<(walker->streamline->size()-1.5); ascInd++) {
+
+                disp(MSG_DEBUG, "ascInd: %d -> %d", ascInd, ascInd+1);
 
                 begInd[0] = walker->streamline->at(ascInd).x;
                 begInd[1] = walker->streamline->at(ascInd).y;
@@ -38,7 +42,7 @@ bool NIBR::Pathway::getSeedInd(NIBR::Walker* walker)
                 while (isSegmentEntering(walker,theOneSeed) && (walker->segment.len>EPS3)) {
                     intersLength += walker->segCrosLength*walker->segment.len;
                     walker->seedRange.push_back(ascInd + intersLength/fullSegLength);
-                    // disp(MSG_DEBUG, "addedSeed at ascInd: %.6f, inters: %.6f", ascInd, intersLength/fullSegLength);
+                    disp(MSG_DEBUG, "Added seed at ascInd: %d, inters: %.6f", ascInd, intersLength/fullSegLength);
                     
                     // Move segment.beg a little bit forward to prevent another intersection at the same point
                     intersLength          += EPS3;
@@ -50,7 +54,7 @@ bool NIBR::Pathway::getSeedInd(NIBR::Walker* walker)
                     begInd[1] += walker->segment.dir[1]*s;
                     begInd[2] += walker->segment.dir[2]*s;
                     walker->segment.len -= s;                    
-                    // disp(MSG_DEBUG, "ascInd: %.6f, inters: %.6f", ascInd, inters);
+                    // disp(MSG_DEBUG, "ascInd: %d, inters: %.6f", ascInd, intersLength);
                 }
 
             }
@@ -131,10 +135,10 @@ bool NIBR::Pathway::getSeedInd(NIBR::Walker* walker)
     }
 
 
-    float seedPos;
-    int   ind;
-    float res;
-    float p[3];
+    float  seedPos;
+    int    ind;
+    double res;
+    float  p[3];
 
     auto calcSeedPoint = [&] {
         ind     = std::floor(seedPos);

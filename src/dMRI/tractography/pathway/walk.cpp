@@ -47,6 +47,8 @@ void NIBR::Pathway::walk(NIBR::Walker* walker) {
     // The other side is side_B. i.e. w->either option is NOT possible.
     if (hasOneSeed()==false) {
 
+        // disp(MSG_DEBUG,"No seed");
+
         // If there is no seed, there can't be stop_at_exit/entry so we always preserve the whole streamline.
         // Streamline can either be kept or discarded
         walker->begInd = 0;
@@ -105,6 +107,8 @@ void NIBR::Pathway::walk(NIBR::Walker* walker) {
         // This functions add this seed point in the streamline if needed, which is mostly the case.
         // We will try with as many seeds as seedTrials, so we loop with do while
 
+        // disp(MSG_DEBUG,"With seed");
+
         int trials = 0;
 
         do {
@@ -115,6 +119,7 @@ void NIBR::Pathway::walk(NIBR::Walker* walker) {
             if (!getSeedInd(walker)) {
                 walker->action           = DISCARD;
                 walker->discardingReason = SEED_NOT_FOUND;
+                // disp(MSG_DEBUG,"Seed not found");
                 return;
             }
 

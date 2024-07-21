@@ -31,7 +31,7 @@ Propagation_Decision TrackWith_PTT::rejectionSample() {
 			return PROP_FAIL;
 		} else if ((TRACKER::params_ptt.modMinDataSupport<=dataSupport) && (curve->doRandomThings.uniform_01()*posteriorMax <= dataSupport )) { // Equal helps to sample extrema
             // This candidate is now selected and it will be propagated
-            curve->saveLastVal();
+            curve->resetFirstVal();
 			// disp(MSG_DEBUG,"posteriorMax: %f, dataSupport: %f", posteriorMax, dataSupport);
 			return PROP_CONTINUE;
 		}
@@ -109,7 +109,7 @@ Propagation_Decision TrackWith_PTT::sampleFromCDF() {
 
 		if (TRACKER::params_ptt.modMinDataSupport<=dataSupport) {
             // This candidate is now selected and it will be propagated
-            curve->saveLastVal();
+            curve->resetFirstVal();
 			// disp(MSG_DEBUG,"posteriorMax: %f, dataSupport: %f", posteriorMax, dataSupport);
 			return PROP_CONTINUE;
 		}

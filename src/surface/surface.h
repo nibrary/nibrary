@@ -180,7 +180,7 @@ namespace NIBR
 
         bool  isPointInside(float* p);
         bool  isPointInside_basedOnWindingNumber(float* p); // This function might return true, also for open surfaces, if the winding_number > 0.5
-        std::tuple<bool,bool,int,float> intersect(LineSegment* seg); // checks if segment crosses the surface or not. Returns NAN if segment is outside. If output is not NAN, that value shows the distance from the seg.beg.
+        std::tuple<bool,bool,int,double> intersect(LineSegment* seg); // checks if segment crosses the surface or not. Returns NAN if segment is outside. If output is not NAN, that value shows the distance from the seg.beg.
 
         // TODO: The following should be moved to surface_operators and they should generate new surfaces.
         // Because they modify vertices and/or faces of the surface

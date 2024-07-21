@@ -11,9 +11,6 @@ namespace NIBR
     // Compute bounding box of a tractogram
     std::vector<float> getTractogramBBox(NIBR::TractogramReader* tractogram);
 
-    // Returns streamline indx, streamline beg, streamline end
-    std::tuple<std::vector<size_t>,std::vector<float>,std::vector<float>> pathFilter(NIBR::TractogramReader* tractogram, Pathway* pw, int numberOfThreads, int stopLim);
-
     // tuple<diffStreamlineIdx,sameStreamlineIdx>
     std::tuple<std::vector<size_t>,std::vector<size_t>> tractogramDiff(NIBR::TractogramReader* inp_tractogram, NIBR::TractogramReader* ref_tractogram);
 

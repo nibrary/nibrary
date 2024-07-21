@@ -1,6 +1,5 @@
 #include "surface.h"
 #include "math/sphere.h"
-#include "findSegmentTriangleIntersection.h"
 #include "surface2imageMapper.h"
 #include <cmath>
 
@@ -21,6 +20,7 @@ void NIBR::Surface::enablePointCheck(float gridRes, bool interpretAs2D) {
     maskAndBoundary.setInterpolationMethod(NEAREST);
 
     if (interpretAs2D) {
+        disp(MSG_DEBUG,"Point checks will be done by 2D surface interpretation");
         for (int n = 0; n < maskAndBoundary.numel; n++) {
             if (maskAndBoundary.data[n] == INSIDE) 
                 maskAndBoundary.data[n] = OUTSIDE;

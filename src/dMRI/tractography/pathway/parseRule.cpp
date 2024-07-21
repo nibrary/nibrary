@@ -365,6 +365,7 @@ std::tuple<PathwayRule,bool> parseSurface(std::vector<std::string> inp, size_t& 
     }
 
     if (foundArg == 0) {
+        i += k;
         isValid = true;
     } else {
         if (foundArg == k) {
@@ -467,7 +468,7 @@ PathwayRule NIBR::parseSeedInput (std::vector<std::string> inp) {
         if (rule.src == NIBR::res_pnt_src)
             NIBR::disp(MSG_DETAIL,"Parsing res_pnt_src type rule");
         else
-            NIBR::disp(MSG_DETAIL,"Parsing seed unsuccessful");
+            NIBR::disp(MSG_DETAIL,"Parsing seed successful");
         return;
     };
 

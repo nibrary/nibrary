@@ -24,6 +24,10 @@ namespace NIBR
     #define N180OVERPI 57.2957795130823208767981548141051703324054724665643215 // 180/PI
     #define PIOVERN180 0.01745329251994329576923690768488612713442871888541725 // PI/180
 
+    #define EPS16      0.0000000000000001
+    #define EPS15      0.000000000000001
+    #define EPS14      0.00000000000001
+    #define EPS13      0.0000000000001
     #define EPS12      0.000000000001
     #define EPS11      0.00000000001
     #define EPS10      0.0000000001
@@ -45,8 +49,8 @@ namespace NIBR
     struct LineSegment {
         float* beg{NULL};
         float* end{NULL};
-        float  len{0};
-        float  dir[3]{0,0,0};
+        double len{0};
+        double dir[3]{0,0,0};
     };
 
     // Implementation of a generalized signof
@@ -78,7 +82,7 @@ namespace NIBR
     template<class T>
     inline void normalize(T* v) 
     {
-        float scale = 1.0/std::sqrt(v[0]*v[0]+v[1]*v[1]+v[2]*v[2]);
+        double scale = 1.0/std::sqrt(v[0]*v[0]+v[1]*v[1]+v[2]*v[2]);
         v[0] *= scale;
         v[1] *= scale;
         v[2] *= scale;
@@ -87,7 +91,7 @@ namespace NIBR
     template<class T>
     inline void normalize(std::vector<T>& v) 
     {
-        float scale = 1.0/std::sqrt(v[0]*v[0]+v[1]*v[1]+v[2]*v[2]);
+        double scale = 1.0/std::sqrt(v[0]*v[0]+v[1]*v[1]+v[2]*v[2]);
         v[0] *= scale;
         v[1] *= scale;
         v[2] *= scale;
@@ -114,15 +118,15 @@ namespace NIBR
 
 
     template<class T1,class T2>
-    inline float dot(const T1 v1,const T2 v2) 
+    inline double dot(const T1 v1,const T2 v2) 
     {
         return v1[0]*v2[0]+v1[1]*v2[1]+v1[2]*v2[2];
     }
 
     template<class T1,class T2>
-    inline float distS2(const T1 v1,const T2 v2) 
+    inline double distS2(const T1 v1,const T2 v2) 
     {
-        return std::acos(std::clamp(dot(&v1[0],&v2[0]),-1.0f,1.0f));
+        return std::acos(std::clamp(dot(&v1[0],&v2[0]),-1.0,1.0));
     }
 
 
@@ -135,33 +139,33 @@ namespace NIBR
     }
 
     template<class T1,class T2>
-    inline float dist(const T1 p1,const T2 p2)
+    inline double dist(const T1 p1,const T2 p2)
     {
         return std::sqrt( (p1[0]-p2[0])*(p1[0]-p2[0]) + (p1[1]-p2[1])*(p1[1]-p2[1]) + (p1[2]-p2[2])*(p1[2]-p2[2]) );
     }
 
-    inline float dist(const Point* p1,const Point* p2)
+    inline double dist(const Point* p1,const Point* p2)
     {
         return std::sqrt( (p1->x-p2->x)*(p1->x-p2->x) + (p1->y-p2->y)*(p1->y-p2->y) + (p1->z-p2->z)*(p1->z-p2->z) );
     }
 
-    inline float dist(const Point p1,const Point p2)
+    inline double dist(const Point p1,const Point p2)
     {
         return std::sqrt( (p1.x-p2.x)*(p1.x-p2.x) + (p1.y-p2.y)*(p1.y-p2.y) + (p1.z-p2.z)*(p1.z-p2.z) );
     }
 
     template<class T1,class T2>
-    inline float squared_dist(const T1 p1,const T2 p2)
+    inline double squared_dist(const T1 p1,const T2 p2)
     {
         return (p1[0]-p2[0])*(p1[0]-p2[0]) + (p1[1]-p2[1])*(p1[1]-p2[1]) + (p1[2]-p2[2])*(p1[2]-p2[2]);
     }
 
-    inline float squared_dist(const Point* p1,const Point* p2)
+    inline double squared_dist(const Point* p1,const Point* p2)
     {
         return (p1->x-p2->x)*(p1->x-p2->x) + (p1->y-p2->y)*(p1->y-p2->y) + (p1->z-p2->z)*(p1->z-p2->z);
     }
 
-    inline float squared_dist(const Point p1,const Point p2)
+    inline double squared_dist(const Point p1,const Point p2)
     {
         return (p1.x-p2.x)*(p1.x-p2.x) + (p1.y-p2.y)*(p1.y-p2.y) + (p1.z-p2.z)*(p1.z-p2.z);
     }
@@ -231,9 +235,9 @@ namespace NIBR
     template<class T1,class T2>
     inline void applyTransform(T1 v, T2 M)
     {
-        float x = v[0]*M[0][0] + v[1]*M[0][1] + v[2]*M[0][2] + M[0][3];
-        float y = v[0]*M[1][0] + v[1]*M[1][1] + v[2]*M[1][2] + M[1][3];
-        float z = v[0]*M[2][0] + v[1]*M[2][1] + v[2]*M[2][2] + M[2][3];
+        double x = v[0]*M[0][0] + v[1]*M[0][1] + v[2]*M[0][2] + M[0][3];
+        double y = v[0]*M[1][0] + v[1]*M[1][1] + v[2]*M[1][2] + M[1][3];
+        double z = v[0]*M[2][0] + v[1]*M[2][1] + v[2]*M[2][2] + M[2][3];
         v[0] = x;
         v[1] = y;
         v[2] = z;
@@ -244,9 +248,9 @@ namespace NIBR
     {
 
         for (auto v : v_arr) {
-            float x = v[0]*M[0][0] + v[1]*M[0][1] + v[2]*M[0][2] + M[0][3];
-            float y = v[0]*M[1][0] + v[1]*M[1][1] + v[2]*M[1][2] + M[1][3];
-            float z = v[0]*M[2][0] + v[1]*M[2][1] + v[2]*M[2][2] + M[2][3];
+            double x = v[0]*M[0][0] + v[1]*M[0][1] + v[2]*M[0][2] + M[0][3];
+            double y = v[0]*M[1][0] + v[1]*M[1][1] + v[2]*M[1][2] + M[1][3];
+            double z = v[0]*M[2][0] + v[1]*M[2][1] + v[2]*M[2][2] + M[2][3];
             v[0] = x;
             v[1] = y;
             v[2] = z;

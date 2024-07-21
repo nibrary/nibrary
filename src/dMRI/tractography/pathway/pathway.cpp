@@ -112,6 +112,7 @@ NIBR::Pathway::~Pathway() {
     pvf_vol.clear();
     maxSegSizeScaler.clear();
     surf.clear();
+    surfIs2D.clear();
     surfData.clear();
     sphCenter.clear();
     sphRadius.clear();
@@ -206,6 +207,8 @@ void NIBR::Pathway::print() {
 
 	} else {
 
+        int n = 0;
+
 		for (std::vector<PathwayRule>::iterator it = prules.begin(); it != prules.end(); ++it) {
 
 			switch (it->type) {
@@ -251,20 +254,21 @@ void NIBR::Pathway::print() {
 
             if (it->src == surf_src) {
 
-                if (it->type==seed) {
+                if (it->type == seed) {
 
-                    if (it->surfaceUseAs2D) {
-                        if (it->surface4SeedUseNormForDir)
+                    if (surfIs2D[n]) {
+                        if (it->surface4SeedUseNormForDir) {
                             std::cout << it->surfaceSource << " (surface as 2D boundary, uses surface normal)";
-                        else
+                        } else {
                             std::cout << it->surfaceSource << " (surface as 2D boundary, does not use surface normal)";
+                        }
                     } else {
                         std::cout << it->surfaceSource << " (surface as 3D volume)";
                     }
 
                 } else {
 
-                    if (it->surfaceUseAs2D) {
+                    if (surfIs2D[n]) {
                         std::cout << it->surfaceSource << " (surface as 2D boundary)";
                     } else {
                         std::cout << it->surfaceSource << " (surface as 3D volume)";
@@ -288,6 +292,8 @@ void NIBR::Pathway::print() {
             }
 
             std::cout << std::endl;
+
+            n++;
 
 		}
 

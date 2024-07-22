@@ -4,6 +4,7 @@
 #endif
 
 #include <stdlib.h>
+#include <limits.h>
 #include <iostream>
 #include <iomanip>
 #include <string>
@@ -47,6 +48,7 @@ namespace NIBR
     };
 
     struct LineSegment {
+        int    id{INT_MIN};
         float* beg{NULL};
         float* end{NULL};
         float  len{0};
@@ -74,7 +76,7 @@ namespace NIBR
     template<class T>
     inline double norm(const T v) 
     { 
-        return std::sqrt(v[0]*v[0]+v[1]*v[1]+v[2]*v[2]);
+        return std::sqrt(double(v[0])*double(v[0])+double(v[1])*double(v[1])+double(v[2])*double(v[2]));
     }
 
 
@@ -82,7 +84,7 @@ namespace NIBR
     template<class T>
     inline void normalize(T* v) 
     {
-        double scale = 1.0/std::sqrt(v[0]*v[0]+v[1]*v[1]+v[2]*v[2]);
+        double scale  = 1.0/std::sqrt(double(v[0])*double(v[0])+double(v[1])*double(v[1])+double(v[2])*double(v[2]));
         v[0] *= scale;
         v[1] *= scale;
         v[2] *= scale;
@@ -91,7 +93,7 @@ namespace NIBR
     template<class T>
     inline void normalize(std::vector<T>& v) 
     {
-        double scale = 1.0/std::sqrt(v[0]*v[0]+v[1]*v[1]+v[2]*v[2]);
+        double scale  = 1.0/std::sqrt(double(v[0])*double(v[0])+double(v[1])*double(v[1])+double(v[2])*double(v[2]));
         v[0] *= scale;
         v[1] *= scale;
         v[2] *= scale;
@@ -120,7 +122,7 @@ namespace NIBR
     template<class T1,class T2>
     inline double dot(const T1 v1,const T2 v2) 
     {
-        return v1[0]*v2[0]+v1[1]*v2[1]+v1[2]*v2[2];
+        return double(v1[0])*double(v2[0])+double(v1[1])*double(v2[1])+double(v1[2])*double(v2[2]);
     }
 
     template<class T1,class T2>

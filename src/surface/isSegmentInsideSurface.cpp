@@ -43,10 +43,8 @@ std::tuple<bool,bool,int,double> NIBR::Surface::intersect(LineSegment* seg)
             facesDone.insert(faceInd);
 
             // disp(MSG_DEBUG,"faceInd: %d", faceInd);
-
-            // findSegmentTriangleIntersection(this, faceInd, seg->beg, seg->dir, seg->len, NULL, &dist);
+            
             findSegmentTriangleIntersection(this, faceInd, seg->beg, seg->end, NULL, &dist);
-            // findSegmentTriangleIntersection(this, faceInd, seg->beg, seg->dir, seg->len, NULL, &dist);
 
             // disp(MSG_DEBUG,"faceInd: %d, dist: %f", faceInd, dist);
 

@@ -15,16 +15,16 @@ NIBR::Walker* NIBR::Pathway::createWalker(std::vector<Point>* streamline) {
     walker->seedInd                 = -1;
     walker->seedRange               = std::vector<float>();
     walker->seedInserted            = false;
-    walker->begInd                  = 0;
-    walker->endInd                  = 0;
+    walker->begInd                  = 0.0;
+    walker->endInd                  = 0.0;
     walker->segment.beg             = NULL;
     walker->segment.end             = NULL;
-    walker->segment.len             = 0;
-    walker->segment.dir[0]          = 1;
-    walker->segment.dir[1]          = 0;
-    walker->segment.dir[2]          = 0;
-    walker->segCrosLength           = 1;
-    walker->trackedLength           = 0;
+    walker->segment.len             = 0.0;
+    walker->segment.dir[0]          = 1.0;
+    walker->segment.dir[1]          = 0.0;
+    walker->segment.dir[2]          = 0.0;
+    walker->segCrosLength           = 1.0;
+    walker->trackedLength           = 0.0;
     
     walker->terminationReasonSideA  = TERMINATIONREASON_NOTSET;
     walker->terminationReasonSideB  = TERMINATIONREASON_NOTSET;

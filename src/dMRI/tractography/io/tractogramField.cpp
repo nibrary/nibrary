@@ -196,8 +196,8 @@ std::vector<NIBR::TractogramField> NIBR::readTractogramFields(TractogramReader& 
                 TractogramField field;
                 field.name = name;
 
-                float*** fdata;
-                int***   idata;
+                float*** fdata = NULL;
+                int***   idata = NULL;
                 
                 if (std::string(type)=="float") fdata = new float**[tractogram.numberOfStreamlines];
                 if (std::string(type)=="int")   idata = new   int**[tractogram.numberOfStreamlines];

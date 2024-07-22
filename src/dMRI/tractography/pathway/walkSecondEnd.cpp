@@ -42,7 +42,7 @@ void NIBR::Pathway::walkSecondEnd(NIBR::Walker* walker)
             float crsLen  = prevLen * walker->segCrosLength;
             float corrLen = (prevLen - crsLen) / (prevLen + nextLen);
 
-            walker->begInd = n - 1.0f + corrLen;
+            walker->begInd = n - 1.0 + corrLen;
 
         }
 

@@ -26,7 +26,7 @@ NIBR::Walker *NIBR::Pathway::tieFirstEnd(NIBR::Walker *w)
 			w->terminationReasonSideB = MIN_DATASUPPORT_REACHED;
 
 		w->action = STOP;
-		w->segCrosLength = 1.0f;
+		w->segCrosLength = 1.0;
 	}
 
 	if (tieDiscardRules(w)->action == DISCARD) return w;	

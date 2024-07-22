@@ -9,7 +9,7 @@ bool checkEnteryUsingRayTracing(float& segCrosLength, LineSegment& segment, Imag
 
     // segment.beg is inside the image
     if ((*img)(segment.beg)==label) {
-        segCrosLength = 0;
+        segCrosLength = 0.0;
         return true;
     }
 

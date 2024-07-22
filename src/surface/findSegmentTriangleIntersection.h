@@ -13,10 +13,6 @@ namespace NIBR {
     // Given a point (p), direction (dir), length -> the function finds the intersection position on the triangle (pos) and its distance (dist) to p.
     // The function returns 0 if there is no intersection.
     double findSegmentTriangleIntersection(NIBR::Surface* inpSurf, int faceIndex, double* p, double* dir, double length, double* pos, double* dist);
-    float  findSegmentTriangleIntersection(NIBR::Surface* inpSurf, int faceIndex,  float* p,  float* dir,  float length,  float* pos,  float* dist);
-
-    double findSegmentTriangleIntersection(NIBR::Surface* inpSurf, int faceIndex, float*  beg, float* end, double* pos, double* dist);
-
-    // float findSegmentTriangleIntersection(NIBR::Surface* inpSurf, int faceIndex, float* p, float* dir, float length, float* pos, float* dist);
+    double findSegmentTriangleIntersection(NIBR::Surface* inpSurf, int faceIndex, float* beg, float* end, double* pos, double* dist);
 
 }

@@ -35,7 +35,7 @@ NIBR::Pathway::~Pathway() {
 
     // Set here the default values so verify() calls when removing rules don't pop up
     satisfy_requirements_in_order = NO_ORDER;
-    minLength                     = 0;
+    minLength                     = 0.0;
     maxLength                     = FLT_MAX;
     atMaxLength                   = ATMAXLENGTH_DISCARD;
     directionality                = TWO_SIDED;
@@ -140,7 +140,7 @@ NIBR::Pathway::~Pathway() {
 
     // disp(MSG_DEBUG,"User inputs cleared");
 
-    ruleCnt                       = 0; // internal but has to be set to 0 here because resets should not do it
+    ruleCnt = 0; // internal but has to be set to 0 here because resets should not do it
 
 
     // disp(MSG_DEBUG,"Pathway deconstructed");

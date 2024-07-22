@@ -19,7 +19,7 @@ NIBR::WalkerAction NIBR::Pathway::checkWalker(NIBR::Walker *w, int b, int e)
 	vec3sub(w->segment.dir,w->segment.end,w->segment.beg);
     w->segment.len   = norm(w->segment.dir);
     normalize(w->segment.dir);
-	w->segCrosLength = 1;
+	w->segCrosLength = 1.0;
 
 	for (int n = 0; n < ruleCnt; n++) {
 
@@ -227,7 +227,7 @@ NIBR::WalkerAction NIBR::Pathway::checkWalker(NIBR::Walker *w, int b, int e)
 				return DISCARD;
 			}
 
-			w->segCrosLength   = 1.0f - shorten/w->segment.len;
+			w->segCrosLength   = 1.0 - shorten/w->segment.len;
 
 			w->segment.len    *= w->segCrosLength;
 			// Don't! Modifying segment end modifies streamline

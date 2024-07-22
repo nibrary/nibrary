@@ -42,19 +42,19 @@ void NIBR::tractogram2surfaceMapper(NIBR::TractogramReader* _tractogram, NIBR::S
         
         float** streamline = tractogram[threadNo].readStreamline(streamlineId);
         
-        NIBR::Segment seg;
-        seg.streamlineNo = streamlineId;
+        NIBR::LineSegment seg;
+        seg.id = streamlineId;
 
         auto addToMap=[&]()->void{
             for (auto f : surfaceGrid[A[0]][A[1]][A[2]]) {
 
-                float pointOfIntersection[3];
-                float distanceToIntersection;
-                float angle = findSegmentTriangleIntersection(surf, f, &seg.p[0], &seg.dir[0], seg.length, &pointOfIntersection[0], &distanceToIntersection);
+                double pointOfIntersection[3];
+                double distanceToIntersection;
+                float angle = findSegmentTriangleIntersection(surf, f, seg.beg, seg.end, &pointOfIntersection[0], &distanceToIntersection);
 
                 if (angle>0) {
                     streamline2faceMap tmp;
-                    tmp.index  = seg.streamlineNo;
+                    tmp.index  = seg.id;
                     tmp.dir[0] = seg.dir[0];
                     tmp.dir[1] = seg.dir[1];
                     tmp.dir[2] = seg.dir[2];
@@ -79,15 +79,16 @@ void NIBR::tractogram2surfaceMapper(NIBR::TractogramReader* _tractogram, NIBR::S
 
             // End of segment in real and image space
             img.to_ijk(streamline[i+1],p1);
+            seg.beg = streamline[i];
+            seg.end = streamline[i+1];
             for (int m=0;m<3;m++) {
-                seg.p[m]    = streamline[i][m];
-                seg.dir[m]  = streamline[i+1][m] - streamline[i][m];
-                B[m]        = std::round(p1[m]);
+                seg.dir[m] = streamline[i+1][m] - streamline[i][m];
+                B[m]       = std::round(p1[m]);
             }
             
             // Find segment length and direction in real space
-            seg.length = norm(seg.dir);
-            vec3scale(seg.dir,1.0f/seg.length);
+            seg.len = norm(seg.dir);
+            vec3scale(seg.dir,1.0/seg.len);
             
             // Add the first voxel in the map if it is within the mask
             if ( img.isInside(A) && mask[A[0]][A[1]][A[2]] ) {

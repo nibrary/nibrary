@@ -248,7 +248,7 @@ bool NIBR::Pathway::add(PathwayRule prule) {
                 imgSrc->setInterpolationMethod(NEAREST);
 
                 img_mask.back()         = imgSrc;
-                maxSegSizeScaler.back() = 1.0/double(imgSrc->smallestPixDim*SUB_VOXEL_RATIO);
+                maxSegSizeScaler.back() = 1.0f/(imgSrc->smallestPixDim*SUB_VOXEL_RATIO);
             }
 
             if ((prule.type == seed) && (isTracking == true)) {
@@ -312,7 +312,7 @@ bool NIBR::Pathway::add(PathwayRule prule) {
                 imgSrc->setInterpolationMethod(NEAREST);
 
                 img_label.back()        = imgSrc;
-                maxSegSizeScaler.back() = 1.0/double(imgSrc->smallestPixDim*SUB_VOXEL_RATIO);
+                maxSegSizeScaler.back() = 1.0f/(imgSrc->smallestPixDim*SUB_VOXEL_RATIO);
             }
 
             if (prule.useLabel == true)
@@ -410,7 +410,7 @@ bool NIBR::Pathway::add(PathwayRule prule) {
 
                 imgSrc->read();
                 img_pvf.back()          = imgSrc;
-                maxSegSizeScaler.back() = 1.0/double(imgSrc->smallestPixDim*SUB_VOXEL_RATIO);
+                maxSegSizeScaler.back() = 1.0f/(imgSrc->smallestPixDim*SUB_VOXEL_RATIO);
                 disp(MSG_DETAIL,"Reading source for rule %d is completed",ruleInd);
             }
 

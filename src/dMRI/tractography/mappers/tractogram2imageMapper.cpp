@@ -374,10 +374,10 @@ bool NIBR::Tractogram2ImageMapper<T1>::processStreamline(int streamlineId, uint1
                 seg.p[0]   = streamline[0][0];
                 seg.p[1]   = streamline[0][1];
                 seg.p[2]   = streamline[0][2];
-                seg.dir[0] = 1.0;
-                seg.dir[1] = 0.0;
-                seg.dir[2] = 0.0;
-                seg.length = 0.0;
+                seg.dir[0] = 1.0f;
+                seg.dir[1] = 0.0f;
+                seg.dir[2] = 0.0f;
+                seg.length = 0.0f;
                 
                 f(this, A, seg);
                 
@@ -464,7 +464,7 @@ bool NIBR::Tractogram2ImageMapper<T1>::processStreamline(int streamlineId, uint1
             // Grid lengthScale
             lengthScale = std::sqrt(dir[0]*img->pixDims[0]*dir[0]*img->pixDims[0]+dir[1]*img->pixDims[1]*dir[1]*img->pixDims[1]+dir[2]*img->pixDims[2]*dir[2]*img->pixDims[2]);
 
-            auto pushSegment = [&](double pushAmount)->bool {
+            auto pushSegment = [&](float pushAmount)->bool {
 
                 // Update segment length and run the function
                 seg.length = pushAmount*lengthScale;

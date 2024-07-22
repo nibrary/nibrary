@@ -87,8 +87,8 @@ namespace NIBR
         float                      begInd;
         float                      endInd;
         LineSegment                segment;
-        double                     segCrosLength;
-        double                     trackedLength;
+        float                      segCrosLength;
+        float                      trackedLength;
         
         TerminationReason          terminationReasonSideA;
         TerminationReason          terminationReasonSideB;
@@ -193,7 +193,7 @@ private:
         std::vector<int>                                                      img_label_val;
         std::vector<NIBR::Image<float>*>                                      img_pvf;
         std::vector<int>                                                      pvf_vol;
-        std::vector<double>                                                   maxSegSizeScaler;
+        std::vector<float>                                                    maxSegSizeScaler;
         std::vector<NIBR::Surface*>                                           surf;
         std::vector<bool>                                                     surfIs2D;
         std::vector<NIBR::SurfaceField*>                                      surfData;

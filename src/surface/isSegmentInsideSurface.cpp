@@ -19,9 +19,11 @@ std::tuple<bool,bool,int,double> NIBR::Surface::intersect(LineSegment* seg)
     int B[3] = {int(std::round(p1[0])), int(std::round(p1[1])), int(std::round(p1[2]))};
     // disp(MSG_DEBUG,"B: [%d,%d,%d]",B[0],B[1],B[2]);
 
-    double dist        = NAN;
-    double minDist     = DBL_MAX;
-    int    intFaceInd  = INT_MIN;
+    double  dist        = NAN;
+    double  minDist     = DBL_MAX;
+    int     intFaceInd  = INT_MIN;
+
+    std::set<int> facesDone;
 
     // Returns <doesIntersect,towardsOutside,faceInd,dist>
     auto checkFaceDistSign=[&](int i, int j, int k)->std::tuple<bool,bool,int,double> {
@@ -34,14 +36,21 @@ std::tuple<bool,bool,int,double> NIBR::Surface::intersect(LineSegment* seg)
 
         // disp(MSG_DEBUG,"Checking faces");
         for (auto faceInd : grid[i][j][k]) {
+
+            if (facesDone.find(faceInd) != facesDone.end()) 
+                continue;
             
+            facesDone.insert(faceInd);
+
             // disp(MSG_DEBUG,"faceInd: %d", faceInd);
 
-            findSegmentTriangleIntersection(this, faceInd, seg->beg, seg->dir, seg->len, NULL, &dist);
+            // findSegmentTriangleIntersection(this, faceInd, seg->beg, seg->dir, seg->len, NULL, &dist);
+            findSegmentTriangleIntersection(this, faceInd, seg->beg, seg->end, NULL, &dist);
+            // findSegmentTriangleIntersection(this, faceInd, seg->beg, seg->dir, seg->len, NULL, &dist);
 
             // disp(MSG_DEBUG,"faceInd: %d, dist: %f", faceInd, dist);
 
-            if ( (!isnan(dist)) && (dist<minDist) ) { // equality is at the mesh surface
+            if ( (!isnan(dist)) && (dist<minDist) ) {
 
                 minDist       = dist;
                 intFaceInd    = faceInd;
@@ -144,7 +153,10 @@ std::tuple<bool,bool,int,double> NIBR::Surface::intersect(LineSegment* seg)
 
     std::tuple<bool,bool,int,double> interCheck(false,false,INT_MIN,NAN);
 
+    int voxCnt = 0;
     while (length>0.0) {
+
+        disp(MSG_DEBUG, "Doing vox: %d", voxCnt++);
 
         interCheck = isInside();
 

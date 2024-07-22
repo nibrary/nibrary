@@ -49,8 +49,8 @@ namespace NIBR
     struct LineSegment {
         float* beg{NULL};
         float* end{NULL};
-        double len{0};
-        double dir[3]{0,0,0};
+        float  len{0};
+        float  dir[3]{0,0,0};
     };
 
     // Implementation of a generalized signof

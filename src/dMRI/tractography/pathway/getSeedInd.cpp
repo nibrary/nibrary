@@ -19,7 +19,7 @@ bool NIBR::Pathway::getSeedInd(NIBR::Walker* walker)
             disp(MSG_DEBUG, "Seed ind search on open surface");
 
             float begInd[3],endInd[3];
-            double s, intersLength, fullSegLength = 0;
+            float s, intersLength, fullSegLength = 0;
             walker->segment.beg = &begInd[0];
             walker->segment.end = &endInd[0];
 
@@ -135,10 +135,10 @@ bool NIBR::Pathway::getSeedInd(NIBR::Walker* walker)
     }
 
 
-    float  seedPos;
-    int    ind;
-    double res;
-    float  p[3];
+    float seedPos;
+    int   ind;
+    float res;
+    float p[3];
 
     auto calcSeedPoint = [&] {
         ind     = std::floor(seedPos);

@@ -5,11 +5,11 @@ using namespace NIBR;
 
 // This is used for mask and label images, not for pvf images
 template <typename T>
-bool checkEnteryUsingRayTracing(double& segCrosLength, LineSegment& segment, Image<T>* img, T label) {
+bool checkEnteryUsingRayTracing(float& segCrosLength, LineSegment& segment, Image<T>* img, T label) {
 
     // segment.beg is inside the image
     if ((*img)(segment.beg)==label) {
-        segCrosLength = 0.0;
+        segCrosLength = 0;
         return true;
     }
 
@@ -73,7 +73,7 @@ bool checkEnteryUsingRayTracing(double& segCrosLength, LineSegment& segment, Ima
                 if ((*img)(p1)==label) {
                     vec3sub(dir,p1,segment.beg); // dir is now in real-space
                     segCrosLength = norm(dir)/segment.len;
-                    if (segCrosLength>1.0) segCrosLength = 1.0;
+                    if (segCrosLength>1.0f) segCrosLength = 1.0f;
                     return true;
                 }
             }
@@ -88,7 +88,7 @@ bool checkEnteryUsingRayTracing(double& segCrosLength, LineSegment& segment, Ima
 
     // segment.end is inside the image
     if ((*img)(segment.end)==label) {
-        segCrosLength = 1.0;
+        segCrosLength = 1.0f;
         return true;
     }
 
@@ -98,8 +98,8 @@ bool checkEnteryUsingRayTracing(double& segCrosLength, LineSegment& segment, Ima
 }
 
 // Explicit instantiation for mask (int8_t) and label (int) images
-template bool checkEnteryUsingRayTracing<int8_t>(double& segCrosLength, LineSegment& segment, Image<int8_t>* img, int8_t label); // For img_mask
-template bool checkEnteryUsingRayTracing<int>   (double& segCrosLength, LineSegment& segment, Image<int>* img,    int    label); // For img_label
+template bool checkEnteryUsingRayTracing<int8_t>(float& segCrosLength, LineSegment& segment, Image<int8_t>* img, int8_t label); // For img_mask
+template bool checkEnteryUsingRayTracing<int>   (float& segCrosLength, LineSegment& segment, Image<int>* img,    int    label); // For img_label
 
 // If a segment is entering a pathway rule, this function returns true
 // w->segCrosLength shows the fraction of segment length to enter the pathway rule
@@ -126,26 +126,26 @@ bool NIBR::Pathway::isSegmentEntering(NIBR::Walker* w, int ruleNo) {
         // Sphere
         case sph_src: {
 
-            double p2c[3];
+            float p2c[3];
             vec3sub(p2c, sphCenter[ruleNo], w->segment.beg);
-            double p2c_norm = norm(p2c);
+            float p2c_norm = norm(p2c);
 
             // segment.beg is inside the sphere
-            if (p2c_norm<=double(sphRadius[ruleNo])) {
-                w->segCrosLength = 0.0;
+            if (p2c_norm<=sphRadius[ruleNo]) {
+                w->segCrosLength = 0;
                 return true;
             }
 
             // segment can't intersect the sphere
-            double proj_h = dot(&p2c[0], &w->segment.dir[0]);
+            float proj_h = dot(&p2c[0], &w->segment.dir[0]);
             if ( proj_h < 0.0 ) 
                 return false;
             
-            double proj_vsq = (p2c_norm*p2c_norm) - (proj_h*proj_h);
+            float proj_vsq = (p2c_norm*p2c_norm) - (proj_h*proj_h);
             if (proj_vsq > sphRadiusSquared[ruleNo])
                 return false;
 
-            double dist = proj_h - std::sqrt( sphRadiusSquared[ruleNo] - proj_vsq );
+            float dist = proj_h - std::sqrt( sphRadiusSquared[ruleNo] - proj_vsq );
             if (dist>w->segment.len)
                 return false;
 
@@ -172,7 +172,7 @@ bool NIBR::Pathway::isSegmentEntering(NIBR::Walker* w, int ruleNo) {
         // Image - partial volume
         case img_pvf_src: {
 
-            auto isInsidePvf_flt=[&](float* p)->bool {
+            auto isInsidePvf=[&](float* p)->bool {
                 if (img_pvf[ruleNo]->getDimension() == 4) { // PVF is 4D
                     return ((*img_pvf[ruleNo])(p,pvf_vol[ruleNo]) >= pvfThresh) ? true : false;
                 } else { // PVF is 3D
@@ -180,35 +180,29 @@ bool NIBR::Pathway::isSegmentEntering(NIBR::Walker* w, int ruleNo) {
                 }
             };
 
-            auto isInsidePvf_dbl=[&](double* p)->bool {
-                if (img_pvf[ruleNo]->getDimension() == 4) { // PVF is 4D
-                    return ((*img_pvf[ruleNo])(p,pvf_vol[ruleNo]) >= pvfThresh) ? true : false;
-                } else { // PVF is 3D
-                    return ((*img_pvf[ruleNo])(p) > 0.0f) ? true : false;
-                }
-            };
+            
 
-            if (isInsidePvf_flt(w->segment.beg)) {
-                w->segCrosLength = 0.0;
+            if (isInsidePvf(w->segment.beg)) {
+                w->segCrosLength = 0;
                 return true;
             }
                         
-            double downsampleFactor = w->segment.len * maxSegSizeScaler[ruleNo];
+            float downsampleFactor = w->segment.len * maxSegSizeScaler[ruleNo];
 
             // disp(MSG_DEBUG,"segment.len: %.2f, ,maxSegSizeScaler: %.2f, f: %.2f",w->segment.len, maxSegSizeScaler[ruleNo], downsampleFactor);
 
             if (downsampleFactor > 1)
             {
-                double s = w->segment.len / std::ceil(downsampleFactor);
-                double end[3];
+                float s = w->segment.len / float(std::ceil(downsampleFactor));
+                float end[3];
 
-                for (double t = s; t < (w->segment.len + EPS8); t = t + s)
+                for (float t = s; t < (w->segment.len + EPS8); t = t + s)
                 {
                     end[0] = w->segment.beg[0] + w->segment.dir[0] * t;
                     end[1] = w->segment.beg[1] + w->segment.dir[1] * t;
                     end[2] = w->segment.beg[2] + w->segment.dir[2] * t;
                     
-                    if (isInsidePvf_dbl(end)) {
+                    if (isInsidePvf(end)) {
                         w->segCrosLength = t / w->segment.len;
                         return true;
                     }
@@ -216,8 +210,8 @@ bool NIBR::Pathway::isSegmentEntering(NIBR::Walker* w, int ruleNo) {
             }
             else
             {
-                if (isInsidePvf_flt(w->segment.end)) {
-                    w->segCrosLength = 1.0;
+                if (isInsidePvf(w->segment.end)) {
+                    w->segCrosLength = 1;
                     return true;
                 }
             }
@@ -229,6 +223,8 @@ bool NIBR::Pathway::isSegmentEntering(NIBR::Walker* w, int ruleNo) {
         // Surf
         case surf_src: {
 
+            disp(MSG_DEBUG, "beg: [%.8f , %.8f , %.8f]", w->segment.beg[0],w->segment.beg[1],w->segment.beg[2] );
+            disp(MSG_DEBUG, "end: [%.8f , %.8f , %.8f]", w->segment.end[0],w->segment.end[1],w->segment.end[2] );
             auto [isBegInside,isEndInside,intersectingFaceInd,distance] = surf[ruleNo]->intersect(&w->segment);
 
             if ( surfIs2D[ruleNo] ) {
@@ -245,7 +241,7 @@ bool NIBR::Pathway::isSegmentEntering(NIBR::Walker* w, int ruleNo) {
 
                 // Everything inside
                 if ( isBegInside && isEndInside && (intersectingFaceInd == INT_MIN) && isnan(distance) ) {
-                    w->segCrosLength = 0.0;
+                    w->segCrosLength = 0.0f;
                     return true;
                 }
 
@@ -264,7 +260,7 @@ bool NIBR::Pathway::isSegmentEntering(NIBR::Walker* w, int ruleNo) {
 
                 // Endpoint is inside
                 if ( isBegInside && isEndInside && (intersectingFaceInd == INT_MAX) && isnan(distance) ) {
-                    w->segCrosLength = 1.0;
+                    w->segCrosLength = 1.0f;
                     return true;
                 }
 

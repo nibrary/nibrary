@@ -48,9 +48,9 @@ void NIBR::tractogram2surfaceMapper(NIBR::TractogramReader* _tractogram, NIBR::S
         auto addToMap=[&]()->void{
             for (auto f : surfaceGrid[A[0]][A[1]][A[2]]) {
 
-                double pointOfIntersection[3];
-                double distanceToIntersection;
-                double angle = findSegmentTriangleIntersection(surf, f, &seg.p[0], &seg.dir[0], seg.length, &pointOfIntersection[0], &distanceToIntersection);
+                float pointOfIntersection[3];
+                float distanceToIntersection;
+                float angle = findSegmentTriangleIntersection(surf, f, &seg.p[0], &seg.dir[0], seg.length, &pointOfIntersection[0], &distanceToIntersection);
 
                 if (angle>0) {
                     streamline2faceMap tmp;

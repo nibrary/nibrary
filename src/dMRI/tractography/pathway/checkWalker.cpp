@@ -3,7 +3,7 @@
 using namespace NIBR;
 
 NIBR::WalkerAction NIBR::Pathway::checkWalker(NIBR::Walker *w) {
-	// disp(MSG_DEBUG, "Checking between streamline indices %d - %d",int(w->streamline->size())-2, int(w->streamline->size())-1);
+	disp(MSG_DEBUG, "Checking between streamline indices %d - %d",int(w->streamline->size())-2, int(w->streamline->size())-1);
 	return checkWalker(w,w->streamline->size()-2,w->streamline->size()-1);
 }
 
@@ -19,13 +19,13 @@ NIBR::WalkerAction NIBR::Pathway::checkWalker(NIBR::Walker *w, int b, int e)
 	vec3sub(w->segment.dir,w->segment.end,w->segment.beg);
     w->segment.len   = norm(w->segment.dir);
     normalize(w->segment.dir);
-	w->segCrosLength = 1.0;
+	w->segCrosLength = 1;
 
 	for (int n = 0; n < ruleCnt; n++) {
 
 		if (prules[n].type==seed) continue;
 
-		// disp(MSG_DEBUG,"Rule: %d, check 0", ruleCnt);
+		disp(MSG_DEBUG,"Rule %d. Segment %d - %d. Checking...", ruleCnt, b, e);
 
 		// No need to continue if the rule is done already
 		if (w->isDone[n])

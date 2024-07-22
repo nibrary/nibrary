@@ -73,10 +73,10 @@ bool NIBR::Pathway::setEntryStatus(NIBR::Walker* w, int ruleNo) {
             case img_pvf_src: {
 
                 // disp(MSG_DEBUG,"  Stopping streamline");
-                double downsampleFactor = w->segment.len * maxSegSizeScaler[ruleNo];
+                float downsampleFactor = w->segment.len * maxSegSizeScaler[ruleNo];
 
                 if (downsampleFactor > 1) {
-                    double s = w->segment.len / std::ceil(downsampleFactor);
+                    float s = w->segment.len / float(std::ceil(downsampleFactor));
                     w->segCrosLength -= s/w->segment.len;
                 } else {
                     w->segCrosLength  = 0.0;
@@ -113,7 +113,7 @@ bool NIBR::Pathway::setEntryStatus(NIBR::Walker* w, int ruleNo) {
                 // disp(MSG_DEBUG,"  Stopping streamline");
                 w->segCrosLength += EPS3/w->segment.len; 
                 
-                if (w->segCrosLength>1.0) {
+                if (w->segCrosLength>1.0f) {
                     disp(MSG_DEBUG,"  Can't stop streamline: segment can't be longer");
                     return false;
                 }

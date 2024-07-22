@@ -13,11 +13,11 @@ NIBR::WalkerAction NIBR::Pathway::checkSeed(NIBR::Walker *w, NIBR::Tracking_Side
 	// Prepare segment
 	w->segment.beg    = &(w->streamline->at(w->seedInd).x);
     w->segment.end    = &(w->streamline->at(w->seedInd).x);
-	w->segment.len    = 0.0;
-	w->segment.dir[0] = 1.0;
-	w->segment.dir[1] = 0.0;
-	w->segment.dir[2] = 0.0;
-	w->segCrosLength  = 1.0;
+	w->segment.len    = 0;
+	w->segment.dir[0] = 1;
+	w->segment.dir[1] = 0;
+	w->segment.dir[2] = 0;
+	w->segCrosLength  = 1;
 
 	w->side = side;
 	// disp(MSG_DEBUG,"Walker side: %d ", w->side);
@@ -179,11 +179,11 @@ NIBR::WalkerAction NIBR::Pathway::checkSeed(NIBR::Walker *w)
 	// Prepare segment
 	w->segment.beg    = &(w->streamline->at(w->seedInd).x);
     w->segment.end    = &(w->streamline->at(w->seedInd).x);
-	w->segment.len    = 0.0;
-	w->segment.dir[0] = 1.0;
-	w->segment.dir[1] = 0.0;
-	w->segment.dir[2] = 0.0;
-	w->segCrosLength  = 1.0;
+	w->segment.len    = 0;
+	w->segment.dir[0] = 1;
+	w->segment.dir[1] = 0;
+	w->segment.dir[2] = 0;
+	w->segCrosLength  = 1;
 
 	disp(MSG_DEBUG,"Walker side: %d", w->side);
 

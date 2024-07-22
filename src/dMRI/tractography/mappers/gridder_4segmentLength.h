@@ -106,8 +106,7 @@ namespace NIBR
                 std::map<int64_t,float>* dirLength = new std::map<int64_t,float>();
                 tim->grid[ind] = ((void*)dirLength);   // Allocate memory here
             }            
-            float tmpDir[3] = {float(seg.dir[0]),float(seg.dir[1]),float(seg.dir[2])};
-            (*((std::map<int64_t,float>*)(tim->grid[ind])))[SF::coordinate2index(&tmpDir[0])] += seg.length;
+            (*((std::map<int64_t,float>*)(tim->grid[ind])))[SF::coordinate2index(seg.dir)] += seg.length;
 
         }
 

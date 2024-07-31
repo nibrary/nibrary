@@ -18,7 +18,10 @@ SeederOutputState SeedSurface::getSeed(float* p, float* dir, int t) {
 
     auto V = seed_surf->vertices;
     auto F = seed_surf->faces;
-    auto N = seed_surf->normalsOfVertices;
+    auto Nv = seed_surf->normalsOfVertices;
+    auto Nf = seed_surf->normalsOfFaces;
+
+    float T[3];
 
     while (true) {
 
@@ -33,9 +36,16 @@ SeederOutputState SeedSurface::getSeed(float* p, float* dir, int t) {
         float* c = V[F[f][2]];
 
         doRandomThings[t].getARandomPointWithinTriangle(p, a, b, c);
+
+        // Make sure that the point is within surface thickness
+        vec3sub(&T[0],p,a);
+        float dist = std::fabs(dot(Nf[f],&T[0]));
+
+        if (dist > HALFSURFTHICKNESS)
+            continue;
             
         if (surfNorm) {
-            barycentricInterp(dir, p, a, b, c, N[F[f][0]], N[F[f][1]], N[F[f][2]]);
+            barycentricInterp(dir, p, a, b, c, Nv[F[f][0]], Nv[F[f][1]], Nv[F[f][2]]);
             normalize(dir);
         }
         break;

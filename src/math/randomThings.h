@@ -118,6 +118,13 @@ namespace NIBR
 
 	inline void RandomDoer::getARandomPointWithinSphere(float* p, float r) {
 
+		if (r <= 0.0f) {
+			p[0] = 0.0f;
+			p[1] = 0.0f;
+			p[2] = 0.0f;
+			return;
+		}
+
 		do {
 			p[0] = (*unidis_m1_p1)(gen);
 			p[1] = (*unidis_m1_p1)(gen);
@@ -241,6 +248,12 @@ namespace NIBR
 		p[0] += uniform_m05_p05()*pixDim[0];
 		p[1] += uniform_m05_p05()*pixDim[1];
 		p[2] += uniform_m05_p05()*pixDim[2];
+
+		// Prevents points to be exactly on the voxel edges
+		for (int i = 0; i < 3; i++) {
+			if (p[i] == (pixDim[i]-0.5f)) p[i] += HALFSURFTHICKNESS;
+			if (p[i] == (pixDim[i]+0.5f)) p[i] -= HALFSURFTHICKNESS;
+		}
 	}
 
 }

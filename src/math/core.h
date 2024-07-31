@@ -41,6 +41,14 @@ namespace NIBR
     #define EPS3       0.001
     #define EPS2       0.01
 
+    // If a point is close enough to the surface, we will then 
+    // consider that the point is in contact with the surface mesh,
+    // i.e., p ∈ [surf-HALFSURFTHICKNESS, surf+HALFSURFTHICKNESS].
+    // The constant surface thickness is used to avoid edge cases,
+    // where points can sometimes be exactly on the surface meshes.
+    #define SURFTHICKNESS     0.0001
+    #define HALFSURFTHICKNESS 0.00005
+
     struct Point{
         float x;
         float y;

@@ -29,9 +29,12 @@ NIBR::WalkerAction NIBR::Pathway::checkSeed(NIBR::Walker *w, NIBR::Tracking_Side
 		// If there is seed, that is not allowed on edges, and if this is for the seed rule
 		// unless the seed is surf_src when surfIs2D
 		// then discard
-		if (   hasOneSeed() && noEdgeSeeds && (n == theOneSeed)					    &&
-		    !((prules[n].src == surf_src) && surfIs2D[n])    &&
-			   isPointAtEdgeOfRule(&(w->streamline->at(w->seedInd).x),n,EPS3)) {
+		if ( hasOneSeed() && 
+			 noEdgeSeeds && 
+			 (n == theOneSeed) && 
+			 !((prules[n].src == surf_src) && surfIs2D[n]) &&
+			 isPointAtEdgeOfRule(&(w->streamline->at(w->seedInd).x),n,EPS3)
+			) {
 
 			w->action = DISCARD;
 			w->discardingReason = IMPROPER_SEED;

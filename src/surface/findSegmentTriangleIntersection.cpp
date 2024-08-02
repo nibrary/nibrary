@@ -39,9 +39,9 @@ double NIBR::findSegmentTriangleIntersection(NIBR::Surface* inpSurf, int faceInd
     // Check if t is within range, i.e., segment crosses the triangle
     double t  = dot(&tmp[0], &v2[0]);
 
-    disp(MSG_DEBUG, "faceInd: %d, l: %.14f, det: %.14f, t: %.14f, t-f:%.14f", faceIndex, length, det, t, std::fabs(t)-length*std::fabs(det));
-    disp(MSG_DEBUG, "  beg: [%.8f , %.8f , %.8f]", p[0],p[1],p[2] );
-    disp(MSG_DEBUG, "  end: [%.8f , %.8f , %.8f]", p[0]+length*dir[0],p[1]+length*dir[1],p[2]+length*dir[2] );
+    // disp(MSG_DEBUG, "faceInd: %d, l: %.14f, det: %.14f, t: %.14f, t-f:%.14f", faceIndex, length, det, t, std::fabs(t)-length*std::fabs(det));
+    // disp(MSG_DEBUG, "  beg: [%.8f , %.8f , %.8f]", p[0],p[1],p[2] );
+    // disp(MSG_DEBUG, "  end: [%.8f , %.8f , %.8f]", p[0]+length*dir[0],p[1]+length*dir[1],p[2]+length*dir[2] );
 
     if (( (det < 0.0) && ((t > 0.0) || (t < length*det))) ||
         ( (det > 0.0) && ((t < 0.0) || (t > length*det)))) {
@@ -80,5 +80,4 @@ double NIBR::findSegmentTriangleIntersection(NIBR::Surface* inpSurf, int faceInd
     vec3scale(dir,1.0/length);
 
     return NIBR::findSegmentTriangleIntersection(inpSurf, faceIndex, p, dir, length, pos, dist);
-
 }

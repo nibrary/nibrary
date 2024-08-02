@@ -195,7 +195,6 @@ private:
         std::vector<int>                                                      pvf_vol;
         std::vector<float>                                                    maxSegSizeScaler;
         std::vector<NIBR::Surface*>                                           surf;
-        std::vector<bool>                                                     surfIs2D;
         std::vector<NIBR::SurfaceField*>                                      surfData;
         std::vector<float*>                                                   sphCenter;
         std::vector<float>                                                    sphRadius;

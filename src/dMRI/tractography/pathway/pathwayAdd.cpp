@@ -37,7 +37,6 @@ bool NIBR::Pathway::add(PathwayRule prule) {
     pvf_vol.         push_back(-1);     // means, the pvf is 3D
     maxSegSizeScaler.push_back(NAN);
     surf.            push_back(NULL);
-    surfIs2D.        push_back(false);
     surfData.        push_back(NULL);
     sphCenter.       push_back(NULL);
     sphRadius.       push_back(NAN);
@@ -58,7 +57,6 @@ bool NIBR::Pathway::add(PathwayRule prule) {
         pvf_vol.         pop_back();
         maxSegSizeScaler.pop_back();
         surf.            pop_back();
-        surfIs2D.        pop_back();
         surfData.        pop_back();
         sphCenter.       pop_back();
         sphRadius.       pop_back();
@@ -464,7 +462,7 @@ bool NIBR::Pathway::add(PathwayRule prule) {
                     (prules[j].surfaceFieldName4Mask      == prule.surfaceFieldName4Mask)      &&
                     (prules[j].label                      == prule.label)                      && 
                     (prules[j].surfaceUseDisc             == prule.surfaceUseDisc)             &&
-                    (prules[j].surfaceUseDim             == prule.surfaceUseDim)             &&
+                    (prules[j].surfaceUseDim              == prule.surfaceUseDim)              &&
                     ( (prules[j].surfaceDiscCenter[0] == prule.surfaceDiscCenter[0]) || (isnan(prules[j].surfaceDiscCenter[0]) && isnan(prule.surfaceDiscCenter[0])) ) &&
                     ( (prules[j].surfaceDiscCenter[1] == prule.surfaceDiscCenter[1]) || (isnan(prules[j].surfaceDiscCenter[1]) && isnan(prule.surfaceDiscCenter[1])) ) &&
                     ( (prules[j].surfaceDiscCenter[2] == prule.surfaceDiscCenter[2]) || (isnan(prules[j].surfaceDiscCenter[2]) && isnan(prule.surfaceDiscCenter[2])) ) &&
@@ -472,7 +470,6 @@ bool NIBR::Pathway::add(PathwayRule prule) {
                     (prules[j].surfaceDiscretizationRes   == prule.surfaceDiscretizationRes) ) {
 
                     surf.back()     = surf[j];
-                    surfIs2D.back() = surfIs2D[j];
 
                     if (    (prules[j].surfaceFieldFile4FaceData == prule.surfaceFieldFile4FaceData) &&
                             (prules[j].surfaceFieldFile4VertData == prule.surfaceFieldFile4VertData) &&
@@ -614,30 +611,30 @@ bool NIBR::Pathway::add(PathwayRule prule) {
                 if (prule.surfaceUseDim == surf_useDim_unknown) {
                     if (surfSrc->openOrClosed == OPEN) {
                         NIBR::disp(MSG_DETAIL,"Surface is open, interpreting as 2D boundary: %s", prule.surfaceSource.c_str());
-                        surfIs2D.back() = true;
+                        surfSrc->make2D();
                     } else if (surfSrc->openOrClosed == CLOSED) {
                         NIBR::disp(MSG_DETAIL,"Surface is closed, interpreting as 3D: %s", prule.surfaceSource.c_str());
-                        surfIs2D.back() = false;
+                        surfSrc->make3D();
                     } else if (surfSrc->openOrClosed == OPENANDCLOSED) {
                         NIBR::disp(MSG_DETAIL,"Surface has open and closed components, interpreting as 3D: %s", prule.surfaceSource.c_str());
-                        surfIs2D.back() = false;
+                        surfSrc->make3D();
                     }
                 }
 
                 if (prule.surfaceUseDim == surf_useDim_3D) {
                     if (surfSrc->openOrClosed == OPEN) {
                         NIBR::disp(MSG_DETAIL,"Surface is open, interpreting as 2D boundary: %s", prule.surfaceSource.c_str());
-                        surfIs2D.back() = true;
+                        surfSrc->make2D();
                     } else {
-                        surfIs2D.back() = false;
+                        surfSrc->make3D();
                     }
                 }
 
                 if (prule.surfaceUseDim == surf_useDim_2D) {
-                    surfIs2D.back() = true;
+                    surfSrc->make2D();
                 }
 
-                surfSrc->enablePointCheck(prule.surfaceDiscretizationRes,surfIs2D.back());
+                surfSrc->enablePointCheck(prule.surfaceDiscretizationRes);
                 surfSrc->calcNormalsOfFaces();
                 surf.back() = surfSrc;
             }
@@ -654,7 +651,7 @@ bool NIBR::Pathway::add(PathwayRule prule) {
 
 
             // Check rule types
-            if (surfIs2D.back()) {
+            if (surfSrc->interpretAs2D) {
                 switch (prule.type) {
                     case undef_type:                {disp(MSG_ERROR,"Unacceptable rule type"); return cleanExit();}
                     case seed:                      {break;}
@@ -699,7 +696,7 @@ bool NIBR::Pathway::add(PathwayRule prule) {
                 Seeder* seedDef = NULL;
                 bool seedingFailed;
 
-                if (surfIs2D.back()) {
+                if (surfSrc->interpretAs2D) {
                     disp(MSG_DETAIL,"Prepping 2D seed surface for tracking");
                     seedDef = new SeedSurface();
                     seedingFailed   = !seedDef->setSeed(surf.back());
@@ -719,7 +716,7 @@ bool NIBR::Pathway::add(PathwayRule prule) {
                     return cleanExit();
                 }
 
-                if (surfIs2D.back()) {
+                if (surfSrc->interpretAs2D) {
 
                     if (densField.owner!=NOTSET) {
                         surf.back()->convert2FaceField(densField);

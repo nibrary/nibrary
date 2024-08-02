@@ -55,14 +55,20 @@ extern "C" {
 
 namespace NIBR
 {
-
     // This is not nice but NIBR::PI has to be redefined because compiler does not like it together with igl::PI
     #define PI 		   3.14159265358979323846264338327950288419716939937510582
 
-    // The following are the voxel values when surfaces are mapped to images
-    #define OUTSIDE          0  // voxel center is outside
-    #define INSIDE           1  // voxel center is inside
-    #define BOUNDARY         2  // voxel contains triangle(s)
+    // We assume:
+    // - the normals are pointing outwards,
+    // - the edges do not belong to the surface, i.e. dist != 0.0f,
+    // - surfaces have a border containing points, p ∈ (0.0 SURFTHICKNESS],
+    // - points within the border are inside the surface.
+    // i.e. all points within the surface have distance > 0.0f
+    #define SURFTHICKNESS    0.000001
+
+    #define OUTSIDE          0
+    #define INSIDE           1
+    #define BOUNDARY         2
 
     // The following are the voxel values when white matter is mapped to image
     #define WM_DEEP          1  // deep white matter
@@ -176,11 +182,18 @@ namespace NIBR
         float distToPoint(float *p, int& faceInd, float* closestPoint);
 
         // Enables the use to isPointInside based on a voxelized grid.
-        void  enablePointCheck(float gridRes, bool interpretAs2D);
+        void  enablePointCheck(float gridRes);
+        void  make2D() {interpretAs2D = true;}
+        void  make3D() {interpretAs2D = false;}
 
+        short whereIsPoint(float* p);
         bool  isPointInside(float* p);
         bool  isPointInside_basedOnWindingNumber(float* p); // This function might return true, also for open surfaces, if the winding_number > 0.5
-        std::tuple<bool,bool,int,double> intersect(LineSegment* seg); // checks if segment crosses the surface or not. Returns NAN if segment is outside. If output is not NAN, that value shows the distance from the seg.beg.
+        
+        // Checks if a segment intersects the surface or not. 
+        // <isSegBegInside,isSegEndInside,distFromSegBegToMesh,intersectingFaceIndex,intersectionIsInsideToOutside>
+        // distFromBegToMesh is NAN if segment is not intersecting the mesh.
+        std::tuple<bool,bool,double,int,bool> intersectSegment(LineSegment* seg);
 
         // TODO: The following should be moved to surface_operators and they should generate new surfaces.
         // Because they modify vertices and/or faces of the surface
@@ -194,18 +207,19 @@ namespace NIBR
         int ne;          // Number of unique edges
         OpenOrClosed  openOrClosed;
         ManifoldOrNot manifoldOrNot;
+        bool interpretAs2D;
 
         std::string extension;
         float **vertices;
         int **faces;
 
         // Eigen variables
-        Eigen::MatrixXf V;
+        Eigen::MatrixXd V;
         Eigen::MatrixXi F;
 
         // Igl variables
         igl::FastWindingNumberBVH fwn_bvh;
-        igl::AABB<Eigen::MatrixXf,3> AABB_tree;        
+        igl::AABB<Eigen::MatrixXd,3> AABB_tree;        
 
         std::vector<SurfaceField> fields;
 

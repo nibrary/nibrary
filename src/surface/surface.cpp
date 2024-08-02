@@ -46,6 +46,7 @@ void NIBR::Surface::init() {
     ne                  = 0;
     openOrClosed        = OPENORCLOSEDUNSET;
     manifoldOrNot       = MANIFOLDORNOT;
+    interpretAs2D       = false;
     vertices            = NULL;
     faces               = NULL;
     centersOfFaces      = NULL;
@@ -146,6 +147,7 @@ NIBR::Surface::Surface(std::vector<std::vector<float>>& vertexList, std::vector<
  	nf 			        = faceList.size();
     openOrClosed        = OPENORCLOSEDUNSET;
     manifoldOrNot       = MANIFOLDORNOT;
+    interpretAs2D       = false;
 
     vertices = new float*[nv];
     for (int n = 0; n < nv; n++) {
@@ -216,6 +218,7 @@ void NIBR::Surface::copyFrom(const Surface& obj)
     ne                   = obj.ne;
     openOrClosed         = obj.openOrClosed;
     manifoldOrNot        = obj.manifoldOrNot;
+    interpretAs2D        = obj.interpretAs2D;
     area                 = obj.area;
     volume               = obj.volume;
     filePath 		     = obj.filePath;
@@ -480,10 +483,11 @@ void Surface::reset() {
     ne                  = 0;
     openOrClosed        = OPENORCLOSEDUNSET;
     manifoldOrNot       = MANIFOLDORNOT;
+    interpretAs2D       = false;
 
-    V = Eigen::MatrixXf();
+    V = Eigen::MatrixXd();
     F = Eigen::MatrixXi();
-    AABB_tree = igl::AABB<Eigen::MatrixXf,3>();
+    AABB_tree = igl::AABB<Eigen::MatrixXd,3>();
 
     centersOfFaces      = NULL;
     normalsOfFaces      = NULL;
@@ -568,6 +572,12 @@ void NIBR::Surface::printInfo() {
         std::cout << "Closed" << manifoldOrNot[int(isManifold())] << std::endl;
     } else {
         std::cout << "Mix of open and closed meshes." << manifoldOrNot[int(isManifold())] << std::endl;
+    }
+
+    if (interpretAs2D) {
+        std::cout << std::left << std::setw(30) << "Interpreting as 2D" << std::right << std::setw(10) << nv << std::endl;
+    } else {
+        std::cout << std::left << std::setw(30) << "Interpreting as 3D" << std::right << std::setw(10) << nv << std::endl;
     }
 
     std::cout << std::left << std::setw(30) << "Bounding box (xmin - xmax): " << std::right << std::setw(25) << " [ " + to_string_with_precision(box[0]) + ", " + to_string_with_precision(box[1]) + " ] " << std::endl;

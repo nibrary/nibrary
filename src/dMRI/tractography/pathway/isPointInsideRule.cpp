@@ -23,7 +23,7 @@ bool NIBR::Pathway::isPointInsideRule(float* p, int ruleNo) {
             float p2c[3];
             vec3sub(p2c, sphCenter[ruleNo], p);
             float p2c_sq_norm = p2c[0]*p2c[0] + p2c[1]*p2c[1] + p2c[2]*p2c[2];
-            return (p2c_sq_norm<=sphRadiusSquared[ruleNo]) ? true : false;
+            return (p2c_sq_norm < sphRadiusSquared[ruleNo]) ? true : false;
         }
 
         // Image - mask

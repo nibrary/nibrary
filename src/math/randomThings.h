@@ -125,14 +125,13 @@ namespace NIBR
 			return;
 		}
 
+		// Guarantees the (float32) distance to be under < r
 		do {
-			p[0] = (*unidis_m1_p1)(gen);
-			p[1] = (*unidis_m1_p1)(gen);
-			p[2] = (*unidis_m1_p1)(gen);
-		} while (norm(p)>1);
-		p[0] *= r;  
-		p[1] *= r;
-		p[2] *= r;
+			p[0] = (*unidis_m1_p1)(gen) * r;
+			p[1] = (*unidis_m1_p1)(gen) * r;
+			p[2] = (*unidis_m1_p1)(gen) * r;
+		} while ( std::sqrt(p[0]*p[0] + p[1]*p[1] + p[2]*p[2]) >= r);
+
 	}
 
 	inline void RandomDoer::getARandomPointWithinTriangle(float* out, float* a, float* b, float* c) {
@@ -142,9 +141,9 @@ namespace NIBR
 
 		// Generate a uniformly random point in the triangle with vertices (0,0) (0,1) (1,0).
 		// If the point (r1, r2) is not inside the triangle, reflect it through the point (0.5, 0.5).
-		if (r1 + r2 > 1) {
-			r1 = 1 - r1;
-			r2 = 1 - r2;
+		if (r1 + r2 > 1.0f) {
+			r1 = 1.0f - r1;
+			r2 = 1.0f - r2;
 		}
 
 		// Map the point (r1, r2) in the unit-leg triangle to a point in the triangle ABC.
@@ -251,8 +250,8 @@ namespace NIBR
 
 		// Prevents points to be exactly on the voxel edges
 		for (int i = 0; i < 3; i++) {
-			if (p[i] == (pixDim[i]-0.5f)) p[i] += HALFSURFTHICKNESS;
-			if (p[i] == (pixDim[i]+0.5f)) p[i] -= HALFSURFTHICKNESS;
+			if (p[i] == (pixDim[i]-0.5f)) p[i] = std::nextafterf(pixDim[i]-0.5f, FLT_MAX);
+			if (p[i] == (pixDim[i]+0.5f)) p[i] = std::nextafterf(pixDim[i]+0.5f, FLT_MIN);
 		}
 	}
 

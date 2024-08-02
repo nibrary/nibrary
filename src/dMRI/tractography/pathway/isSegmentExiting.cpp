@@ -223,43 +223,34 @@ bool NIBR::Pathway::isSegmentExiting(NIBR::Walker* w, int ruleNo) {
         // Surf
         case surf_src: {
 
-            if ( surfIs2D[ruleNo] ) {
+            // disp(MSG_DEBUG, "beg: [%.8f , %.8f , %.8f]", w->segment.beg[0],w->segment.beg[1],w->segment.beg[2]) ;
+            // disp(MSG_DEBUG, "end: [%.8f , %.8f , %.8f]", w->segment.end[0],w->segment.end[1],w->segment.end[2]);
 
+            auto [isBegInside,isEndInside,distance,intersectingFaceInd,towardsOutside] = surf[ruleNo]->intersectSegment(&w->segment);
+
+            // Segment beginning is outside
+            if (!isBegInside) {
+                w->segCrosLength = 0.0f;
+                disp(MSG_DEBUG, "Exited rule (in->out) %d at beg.", ruleNo);
                 return true;
-
-            } else {
-
-                disp(MSG_DEBUG, "beg: [%.8f , %.8f , %.8f]", w->segment.beg[0],w->segment.beg[1],w->segment.beg[2] );
-                disp(MSG_DEBUG, "end: [%.8f , %.8f , %.8f]", w->segment.end[0],w->segment.end[1],w->segment.end[2] );
-                auto [isBegInside,isEndInside,intersectingFaceInd,distance] = surf[ruleNo]->intersect(&w->segment);
-
-                // Everything is outside
-                if ( !isBegInside && !isEndInside && (intersectingFaceInd == INT_MIN) && isnan(distance) ) {
-                    w->segCrosLength = 0.0f;
-                    return true;
-                }
-
-                // Going from inside to outside                
-                if ( isBegInside && !isEndInside && !isnan(distance) ) {
-                    w->segCrosLength = distance / w->segment.len;
-                    return true;
-                }
-
-                // // Going from outside to inside - this should not happen since this function is checking the exit scenerio
-                // if ( (std::get<0>(interCheck) == false) && (std::get<1>(interCheck) == true) && (!isnan(std::get<3>(interCheck))) ) {
-                //     w->segCrosLength = std::get<3>(interCheck) / w->segment.len;
-                //     // disp(MSG_DEBUG,"Entered rule (out->in) %d at face %d with %.4f / %.4f", ruleNo, std::get<2>(interCheck),std::get<3>(interCheck),w->segment.len);
-                //     return true;
-                // } 
-
-                // Endpoint is outside
-                if ( !isBegInside && !isEndInside && (intersectingFaceInd == INT_MAX) && isnan(distance) ) {
-                    w->segCrosLength = 1.0f;
-                    return true;
-                }
-
-                return false;
             }
+            // Segment beginning is inside
+            
+            // If there is intersection and segment enters outside
+            if (!isnan(distance) && towardsOutside) {
+                w->segCrosLength = distance / w->segment.len;
+                disp(MSG_DEBUG, "Exited rule (in->out) %d at face %d with %.4f / %.4f at intersection.", ruleNo, intersectingFaceInd, float(distance), w->segment.len);
+                return true;
+            }
+
+            // Endpoint is outside
+            if (!isEndInside) {
+                w->segCrosLength = 1.0f;
+                disp(MSG_DEBUG, "Exited rule (in->out) %d at end.", ruleNo);
+                return true;
+            }
+
+            return false;
         }
 
     }

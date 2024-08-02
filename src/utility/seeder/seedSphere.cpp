@@ -11,7 +11,7 @@ SeederOutputState SeedSphere::getSeed(float* p,int t) {
 
     // Points are always generated within the sphere.
     // They are never placed exactly on the sphere surface.
-    doRandomThings[t].getARandomPointWithinSphere(p,seed_radius-HALFSURFTHICKNESS);
+    doRandomThings[t].getARandomPointWithinSphere(p,seed_radius);
     p[0] += seed_center[0];
     p[1] += seed_center[1];
     p[2] += seed_center[2];

@@ -26,35 +26,42 @@ NIBR::WalkerAction NIBR::Pathway::checkSeed(NIBR::Walker *w, NIBR::Tracking_Side
 
 		// disp(MSG_DEBUG,"checkSeed for prule: %d, side: %d",n,prules[n].side);
 
-		// If there is seed, that is not allowed on edges, and if this is for the seed rule
-		// unless the seed is surf_src when surfIs2D
-		// then discard
-		if ( hasOneSeed() && 
-			 noEdgeSeeds && 
-			 (n == theOneSeed) && 
-			 !((prules[n].src == surf_src) && surfIs2D[n]) &&
-			 isPointAtEdgeOfRule(&(w->streamline->at(w->seedInd).x),n,EPS3)
-			) {
-
-			w->action = DISCARD;
-			w->discardingReason = IMPROPER_SEED;
-			// disp(MSG_DEBUG,"Found edge seed");
-			return DISCARD;
-
-		}
+		// // If seeds points are not allowed on edges, then discard, 
+		// // when the seed point is on the edge of the seed region
+		// if ( hasOneSeed() && 
+		// 	 noEdgeSeeds && 
+		// 	 (n == theOneSeed) && 
+		// 	 !((prules[n].src == surf_src) && surfIs2D[n]) &&
+		// 	 isPointAtEdgeOfRule(&(w->streamline->at(w->seedInd).x),n,EPS3)
+		// 	) 
+		// {
+		// 	w->action = DISCARD;
+		// 	w->discardingReason = IMPROPER_SEED;
+		// 	// disp(MSG_DEBUG,"Found edge seed");
+		// 	return DISCARD;
+		// }
 
 		if ((prules[n].type) == seed) continue;
 
 		bool inside = isPointInsideRule(&(w->streamline->at(w->seedInd).x),n);
 
-		// If the seed is not already inside, if there is seed, that is not allowed on edges, and if this is not for the seed rule
-		// if the seed point is close to the surf_src when surfIs2D
-		// then consider inside
-		if ( !inside && hasOneSeed() && noEdgeSeeds && (n != theOneSeed)			&&
-		     ((prules[n].src == surf_src) && surfIs2D[n])   	&&
-			   isPointAtEdgeOfRule(&(w->streamline->at(w->seedInd).x),n,EPS8)) {
-			inside = true;
-		}
+		// // If seeds points are not allowed on edges, then discard,
+		// //  
+		// // when the seed point is on the edge of another region that is not a 2D mesh
+
+		// // If the seed point is not already inside, if there is seed, that is not allowed on edges, and if this is not for the seed rule
+		// // if the seed point is close to the surf_src when surfIs2D
+		// // then consider inside
+		// if ( !inside && 
+		//      hasOneSeed() && 
+		// 	 noEdgeSeeds && 
+		// 	 (n != theOneSeed) &&
+		//      ((prules[n].src == surf_src) && surfIs2D[n]) &&
+		// 	 isPointAtEdgeOfRule(&(w->streamline->at(w->seedInd).x),n,SURFTHICKNESS)
+		// 	) 
+		// {
+		// 	inside = true;
+		// }
 
 		if (!inside) continue;
 
@@ -194,32 +201,32 @@ NIBR::WalkerAction NIBR::Pathway::checkSeed(NIBR::Walker *w)
 
 		disp(MSG_DEBUG,"checkSeed for prule: %d, side: %d",n,prules[n].side);
 
-		// If there is seed, that is not allowed on edges, and if this is for the seed rule
-		// unless the seed is surf_src when surfIs2D
-		// then discard
-		if (   hasOneSeed() && noEdgeSeeds && (n == theOneSeed)						&&
-		    !((prules[n].src == surf_src) && surfIs2D[n])   	&&
-			   isPointAtEdgeOfRule(&(w->streamline->at(w->seedInd).x),n,EPS3)) {
+		// // If there is seed, that is not allowed on edges, and if this is for the seed rule
+		// // unless the seed is surf_src when surfIs2D
+		// // then discard
+		// if (   hasOneSeed() && noEdgeSeeds && (n == theOneSeed)						&&
+		//     !((prules[n].src == surf_src) && surfIs2D[n])   	&&
+		// 	   isPointAtEdgeOfRule(&(w->streamline->at(w->seedInd).x),n,EPS3)) {
 
-			w->action = DISCARD;
-			w->discardingReason = IMPROPER_SEED;
-			disp(MSG_DEBUG,"Found edge seed");
-			return DISCARD;
+		// 	w->action = DISCARD;
+		// 	w->discardingReason = IMPROPER_SEED;
+		// 	disp(MSG_DEBUG,"Found edge seed");
+		// 	return DISCARD;
 
-		}
+		// }
 
 		if ((prules[n].type) == seed) continue;
 
 		bool inside = isPointInsideRule(&(w->streamline->at(w->seedInd).x),n);
 
-		// If the seed is not already inside, if there is seed, that is not allowed on edges, and if this is not for the seed rule
-		// if the seed point is close to the surf_src when surfIs2D
-		// then consider inside
-		if ( !inside && hasOneSeed() && noEdgeSeeds && (n != theOneSeed)			&&
-		     ((prules[n].src == surf_src) && surfIs2D[n])  	&&
-			   isPointAtEdgeOfRule(&(w->streamline->at(w->seedInd).x),n,EPS8)) {
-			inside = true;
-		}
+		// // If the seed is not already inside, if there is seed, that is not allowed on edges, and if this is not for the seed rule
+		// // if the seed point is close to the surf_src when surfIs2D
+		// // then consider inside
+		// if ( !inside && hasOneSeed() && noEdgeSeeds && (n != theOneSeed)			&&
+		//      ((prules[n].src == surf_src) && surfIs2D[n])  	&&
+		// 	   isPointAtEdgeOfRule(&(w->streamline->at(w->seedInd).x),n,EPS8)) {
+		// 	inside = true;
+		// }
 
 		if (!inside) continue;
 

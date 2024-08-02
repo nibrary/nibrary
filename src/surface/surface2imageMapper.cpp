@@ -11,6 +11,8 @@ void NIBR::surfaceMask(NIBR::Image<bool>* img, NIBR::Surface* surf)
 {
     disp(MSG_DEBUG,"surfaceMask()");
 
+    if (surf->interpretAs2D) return; // In this case, there is only BOUNDARY and OUTSIDE
+
     surf->getClosedAndOpenComponents();
     Surface& closed = surf->compClosedAndOpen[0];
     closed.prepIglAABBTree();
@@ -50,11 +52,12 @@ void NIBR::surfaceMaskWithBoundary(NIBR::Image<int8_t>* img, NIBR::Surface* surf
             return;
         }
 
-        float p[3];
-        img->to_xyz(ind,p);
-
-        if (closed.isPointInside_basedOnWindingNumber(p)) {
-            img->data[ind]=INSIDE;
+        if (surf->interpretAs2D == false) {
+            float p[3];
+            img->to_xyz(ind,p);
+            if (closed.isPointInside_basedOnWindingNumber(p)) {
+                img->data[ind]=INSIDE;
+            }
         }
 
     };
@@ -68,7 +71,7 @@ void NIBR::surfaceMaskWithBoundary(NIBR::Image<int8_t>* img, NIBR::Surface* surf
 void NIBR::surfaceEDT(NIBR::Image<float>* img, NIBR::Surface* surf)
 {
 
-    surf->enablePointCheck(img->smallestPixDim, false);
+    surf->enablePointCheck(img->smallestPixDim);
 
     auto getEDT = [&](NIBR::MT::TASK task)->void {
 
@@ -91,7 +94,7 @@ void NIBR::surfacePVF(NIBR::Image<float>* img, NIBR::Surface* surf)
     float divVol = 1.0f/(div*div*div);
     float step   = 1.0f/(div+1.0f);
 
-    surf->enablePointCheck(img->smallestPixDim, false);
+    surf->enablePointCheck(img->smallestPixDim);
 
     auto estimPartVol = [&](NIBR::MT::TASK task)->void {
         
@@ -152,7 +155,7 @@ void NIBR::surfacePVF(NIBR::Image<float>* img, NIBR::Surface* surf)
 
 void NIBR::surfaceMAT(NIBR::Image<float>* img, NIBR::Surface* surf)
 {
-    surf->enablePointCheck(img->smallestPixDim, false);
+    surf->enablePointCheck(img->smallestPixDim);
 
     struct ComparePairs {
     bool operator()(const std::pair<int64_t, float>& a, const std::pair<int64_t, float>& b) const {
@@ -290,7 +293,7 @@ void NIBR::surfaceMAT(NIBR::Image<float>* img, NIBR::Surface* surf)
 
 void NIBR::surfaceMIS(NIBR::Image<float>* img, NIBR::Surface* surf)
 {
-    surf->enablePointCheck(img->smallestPixDim, false);
+    surf->enablePointCheck(img->smallestPixDim);
 
     struct ComparePairs {
     bool operator()(const std::pair<int64_t, float>& a, const std::pair<int64_t, float>& b) const {

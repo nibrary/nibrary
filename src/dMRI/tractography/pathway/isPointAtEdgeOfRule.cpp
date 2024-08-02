@@ -14,7 +14,7 @@ bool NIBR::Pathway::isPointAtEdgeOfRule(float* p, int ruleNo, float distThresh) 
         // Sphere
         case sph_src: {
 
-            float p2c = squared_dist(sphCenter[ruleNo],p);
+            float p2c     = squared_dist(sphCenter[ruleNo],p);
             float big_sph = (sphRadius[ruleNo]+distThresh)*(sphRadius[ruleNo]+distThresh);
             float sma_sph = (sphRadius[ruleNo]-distThresh)*(sphRadius[ruleNo]-distThresh);
 
@@ -55,7 +55,7 @@ bool NIBR::Pathway::isPointAtEdgeOfRule(float* p, int ruleNo, float distThresh) 
         // Surfaces
         case surf_src: {
 
-            if (std::fabs(surf[ruleNo]->squaredDistToPoint(p)) < (distThresh*distThresh))
+            if (surf[ruleNo]->squaredDistToPoint(p) < (distThresh*distThresh))
                 return true;
 
             break;

@@ -57,12 +57,15 @@ int argCount(const std::vector<std::string>& inp, int q)
     int k = 0;
     for (int n = q; n < int(inp.size()); n++) {
         if (isRule(inp,n)) {break;}
+        // std::cout << inp[n] << " ";
         k++;
     }
+    // std::cout << std::endl;
+    // NIBR::disp(MSG_INFO,"Found %d arguments", k);
     return k;
 }
 
-std::tuple<bool,float> surfArgIs2D(const std::vector<std::string>& inp, int q) 
+std::tuple<bool,bool> surfArgIs2D(const std::vector<std::string>& inp, int q) 
 {
     bool is2D = false;
     bool is3D = false;
@@ -74,6 +77,7 @@ std::tuple<bool,float> surfArgIs2D(const std::vector<std::string>& inp, int q)
     }
     
     if (!is2D && !is3D) return std::make_tuple(false,false);
+
     if (is2D  &&  is3D) {
         NIBR::disp(MSG_WARN,"Surface can't be interpreted both 2D and 3D. Using default interpretation, i.e., 3D if surface is closed, 2D otherwise.");
         return std::make_tuple(false,false);
@@ -197,10 +201,9 @@ std::tuple<PathwayRule,bool> parseImage(std::vector<std::string> inp, size_t& i)
 
     std::string ext = getFileExtension(inp[i]);
 
-    int k           = argCount(inp,i);
-
     if ((ext == "nii.gz") || (ext == "nii") || (ext == "mgz"))
     {
+        int k = argCount(inp,i);
 
         if (k==1) {
 
@@ -254,10 +257,10 @@ std::tuple<PathwayRule,bool> parseImage(std::vector<std::string> inp, size_t& i)
 
         }
 
-    }
+        if (isValid) {
+            i += k;
+        }
 
-    if (isValid) {
-        i += k;
     }
 
     return std::make_tuple(rule,isValid);
@@ -287,12 +290,13 @@ std::tuple<PathwayRule,bool> parseSurface(std::vector<std::string> inp, size_t& 
 
     std::string ext = getFileExtension(inp[i]);
 
-    int k           = argCount(inp,i);
-
-    int foundArg    = -1;
-
     if ((ext == "vtk") || (ext == "gii"))
     {
+
+        int k           = argCount(inp,i);
+
+        int foundArg    = 0;
+
         rule.src            = surf_src;
         rule.surfaceSource  = inp[i];
         foundArg++;
@@ -362,23 +366,22 @@ std::tuple<PathwayRule,bool> parseSurface(std::vector<std::string> inp, size_t& 
             foundArg++;
         }
 
-    }
-
-    if (foundArg == 0) {
-        i += k;
-        isValid = true;
-    } else {
-        if (foundArg == k) {
+        if (foundArg == 0) {
             i += k;
             isValid = true;
         } else {
-            NIBR::disp(MSG_ERROR,"Unknown surface argument (Count: %d).", foundArg);
-            return std::make_tuple(rule,false);
+            if (foundArg == k) {
+                i += k;
+                isValid = true;
+            } else {
+                NIBR::disp(MSG_ERROR,"Unknown surface arguments - found %d, parsed %d", k, foundArg);
+                return std::make_tuple(rule,false);
+            }
         }
-    }
+
+    }    
 
     return std::make_tuple(rule,isValid);
-
 
 }
 
@@ -453,7 +456,7 @@ std::vector<PathwayRule> NIBR::parsePathwayInput(std::vector<std::string> inp) {
 }
 
 // Handles the same cases as above but without the <rule> since this function is reserved for seed
-// NAN                               -> is reserved for point source, i.e. list of coordinates
+// NAN -> is reserved for point source, i.e. list of coordinates
 
 PathwayRule NIBR::parseSeedInput (std::vector<std::string> inp) {
 
@@ -469,6 +472,7 @@ PathwayRule NIBR::parseSeedInput (std::vector<std::string> inp) {
             NIBR::disp(MSG_DETAIL,"Parsing res_pnt_src type rule");
         else
             NIBR::disp(MSG_DETAIL,"Parsing seed successful");
+            
         return;
     };
 
@@ -489,7 +493,7 @@ PathwayRule NIBR::parseSeedInput (std::vector<std::string> inp) {
     if (isValid) {setRule();  return rule;}
 
     std::tie(rule, isValid)  = parseSurface(inp,i);
-    if (isValid) {setRule();  return rule;}
+    if (isValid) {setRule();  return rule;} 
     
     return rule;
 

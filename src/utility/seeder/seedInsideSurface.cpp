@@ -25,7 +25,7 @@ SeederOutputState SeedInsideSurface::getSeed(float* p, int t) {
         doRandomThings[t].randomizeWithinVoxel(p,seed_surf->maskAndBoundary.pixDims);
 
         // Make sure that the point is not exactly on the border
-        if (seed_surf->distToPoint(p) > 0.0f)
+        if (float(seed_surf->distToPoint(p)) > 0.0f)
             break;
 
     }

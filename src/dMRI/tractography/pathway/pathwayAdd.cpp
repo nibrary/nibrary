@@ -609,6 +609,7 @@ bool NIBR::Pathway::add(PathwayRule prule) {
                 surfSrc->isClosed();
 
                 if (prule.surfaceUseDim == surf_useDim_unknown) {
+                    NIBR::disp(MSG_DETAIL,"Surface interpretation undefined as 2D boundary: %s", prule.surfaceSource.c_str());
                     if (surfSrc->openOrClosed == OPEN) {
                         NIBR::disp(MSG_DETAIL,"Surface is open, interpreting as 2D boundary: %s", prule.surfaceSource.c_str());
                         surfSrc->make2D();
@@ -622,6 +623,7 @@ bool NIBR::Pathway::add(PathwayRule prule) {
                 }
 
                 if (prule.surfaceUseDim == surf_useDim_3D) {
+                    NIBR::disp(MSG_DETAIL,"Surface interpretation is set to 3D: %s", prule.surfaceSource.c_str());
                     if (surfSrc->openOrClosed == OPEN) {
                         NIBR::disp(MSG_DETAIL,"Surface is open, interpreting as 2D boundary: %s", prule.surfaceSource.c_str());
                         surfSrc->make2D();
@@ -631,6 +633,7 @@ bool NIBR::Pathway::add(PathwayRule prule) {
                 }
 
                 if (prule.surfaceUseDim == surf_useDim_2D) {
+                    NIBR::disp(MSG_DETAIL,"Surface interpretation is set to 2D: %s", prule.surfaceSource.c_str());
                     surfSrc->make2D();
                 }
 
@@ -651,6 +654,10 @@ bool NIBR::Pathway::add(PathwayRule prule) {
 
 
             // Check rule types
+            if ((surfSrc->openOrClosed == OPENANDCLOSED) && (prule.type == seed)) {
+                disp(MSG_DETAIL,"Seed surfaces containing both open and closed components are not supported");
+            }
+
             if (surfSrc->interpretAs2D) {
                 switch (prule.type) {
                     case undef_type:                {disp(MSG_ERROR,"Unacceptable rule type"); return cleanExit();}
@@ -696,7 +703,10 @@ bool NIBR::Pathway::add(PathwayRule prule) {
                 Seeder* seedDef = NULL;
                 bool seedingFailed;
 
-                if (surfSrc->interpretAs2D) {
+                if (surfSrc->openOrClosed == OPENANDCLOSED) {
+                    seedingFailed = true;
+                    disp(MSG_DETAIL,"Seed surfaces containing both open and closed components are not supported");
+                } else if (surfSrc->interpretAs2D) {
                     disp(MSG_DETAIL,"Prepping 2D seed surface for tracking");
                     seedDef = new SeedSurface();
                     seedingFailed   = !seedDef->setSeed(surf.back());

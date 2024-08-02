@@ -53,7 +53,6 @@ void Trekker::seed_surface_vertDensity(std::string surf_vertDensity_fname) {TRAC
 void Trekker::seed_surface_fieldDensity(std::string surf_fieldDensity) {TRACKER::seed.surf_density_fieldname = surf_fieldDensity;}
 void Trekker::seed_surface_density_fileDataType(std::string  densityFileDataType) {TRACKER::seed.surf_densityFile_dataType = densityFileDataType;}
 void Trekker::seed_surface_useNormForDir(bool useNorm) {TRACKER::seed.useSurfNorm = useNorm;}
-void Trekker::seed_surface_useInside(bool useInside) {TRACKER::seed.useInsideSurf = useInside;}
 
 // Pathway options
 bool Trekker::pathway_addSeed(std::vector<std::string> rule) { 
@@ -62,8 +61,7 @@ bool Trekker::pathway_addSeed(std::vector<std::string> rule) {
         TRACKER::pw.remove(TRACKER::pw.getSeedRuleInd());
     } 
     
-    auto r = parseSeedInput(rule); 
-
+    auto r = parseSeedInput(rule);
     return (r.src != undef_src) ? TRACKER::seed.setSeed(r) : false;
 }
 

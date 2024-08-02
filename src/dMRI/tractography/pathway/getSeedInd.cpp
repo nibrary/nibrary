@@ -10,51 +10,74 @@ bool NIBR::Pathway::getSeedInd(NIBR::Walker* walker)
         return false;
     }
 
+    bool is2Dsurf = (srcType[theOneSeed]==surf_src) && (surf[theOneSeed]->interpretAs2D == true);
+
     // If a seed search was not done before, then do it
     if (walker->seedRange.empty()) {
 
-        // If seed is a surface and it is open, then find all the crossings
-        if ((srcType[theOneSeed]==surf_src) && (surf[theOneSeed]->openOrClosed == OPEN)) {
+        // If seed is a surface is a 2D boundary
+        if (is2Dsurf) {
 
             disp(MSG_DEBUG, "Seed ind search on open surface");
 
-            float begInd[3],endInd[3];
-            float s, intersLength, fullSegLength = 0;
+            float  begInd[3],endInd[3];
+            double s, intersLength, fullSegLength = 0.0;
+
             walker->segment.beg = &begInd[0];
             walker->segment.end = &endInd[0];
 
             for (int ascInd=0; ascInd<(walker->streamline->size()-1.5); ascInd++) {
 
-                disp(MSG_DEBUG, "ascInd: %d -> %d", ascInd, ascInd+1);
+                auto resetSegment = [&]() {
+                    begInd[0] = walker->streamline->at(ascInd).x;
+                    begInd[1] = walker->streamline->at(ascInd).y;
+                    begInd[2] = walker->streamline->at(ascInd).z;
 
-                begInd[0] = walker->streamline->at(ascInd).x;
-                begInd[1] = walker->streamline->at(ascInd).y;
-                begInd[2] = walker->streamline->at(ascInd).z;
-                endInd[0] = walker->streamline->at(ascInd+1).x;
-                endInd[1] = walker->streamline->at(ascInd+1).y;
-                endInd[2] = walker->streamline->at(ascInd+1).z;
+                    endInd[0] = walker->streamline->at(ascInd+1).x;
+                    endInd[1] = walker->streamline->at(ascInd+1).y;
+                    endInd[2] = walker->streamline->at(ascInd+1).z;
 
-                prepSegment(walker);
+                    prepSegment(walker);
 
-                intersLength  = 0;
-                fullSegLength = walker->segment.len;
+                    intersLength  = 0.0;
+                    fullSegLength = walker->segment.len;
+                };
 
-                while (isSegmentEntering(walker,theOneSeed) && (walker->segment.len>EPS3)) {
-                    intersLength += walker->segCrosLength*walker->segment.len;
-                    walker->seedRange.push_back(ascInd + intersLength/fullSegLength);
-                    disp(MSG_DEBUG, "Added seed at ascInd: %d, inters: %.6f", ascInd, intersLength/fullSegLength);
+                auto appendPointAndCropSegment = [&]() {
+                    s = double(walker->segCrosLength) * double(walker->segment.len);
+                    intersLength += s;
+                    if (intersLength > fullSegLength) intersLength = fullSegLength;
+
+                    walker->seedRange.push_back(double(ascInd) + intersLength/fullSegLength);
+                    disp(MSG_DEBUG, "Added seed at ascInd: %d, inters: %.12f, range: %.12f", ascInd, intersLength/fullSegLength, walker->seedRange.back());
                     
                     // Move segment.beg a little bit forward to prevent another intersection at the same point
-                    intersLength          += EPS3;
-                    walker->segCrosLength += EPS3/walker->segment.len;
+                    intersLength += EPS3;
+                    s            += EPS3;
 
                     // Move the beginning point and adjust segment length too
-                    s          = walker->segment.len*walker->segCrosLength;
                     begInd[0] += walker->segment.dir[0]*s;
                     begInd[1] += walker->segment.dir[1]*s;
                     begInd[2] += walker->segment.dir[2]*s;
                     walker->segment.len -= s;                    
                     // disp(MSG_DEBUG, "ascInd: %d, inters: %.6f", ascInd, intersLength);
+                };
+
+                // There can be multiple intersections within one segment
+                // Intersections can be both towards inside or outside
+
+                // First check intersections towards the inside of the mesh
+                resetSegment();
+                disp(MSG_DEBUG, "ascInd: %d -> %d (checking entering)", ascInd, ascInd+1);
+                while (isSegmentEntering(walker,theOneSeed) && (walker->segment.len>EPS3)) {
+                    appendPointAndCropSegment();
+                }
+
+                // Then check intersections towards the outside of the mesh
+                resetSegment();
+                disp(MSG_DEBUG, "ascInd: %d -> %d (checking exiting)", ascInd, ascInd+1);
+                while (isSegmentExiting(walker,theOneSeed) && (walker->segment.len>EPS3)) {
+                    appendPointAndCropSegment();
                 }
 
             }
@@ -200,32 +223,32 @@ bool NIBR::Pathway::getSeedInd(NIBR::Walker* walker)
 
     // If a random seed is not needed, return the first point that is inside the seed
     // and clear the seedRange. No more seeds are possible
-    if (seedTrials == 0) {
-        seedPos = walker->seedRange.front();
-        calcSeedPoint();
-        // disp(MSG_DEBUG, "seedPos (3): %.4f - %d", seedPos, int(isPointInsideRule(p,theOneSeed)));
-        setSeed();
-        walker->seedRange.clear();
-        walker->seedRange.push_back(NAN); // So further trials immediately returns false
-        return true;
-    } 
+    // if (seedTrials == 0) {
+    //     seedPos = walker->seedRange.front();
+    //     calcSeedPoint();
+    //     // disp(MSG_DEBUG, "seedPos (3): %.4f - %d", seedPos, int(isPointInsideRule(p,theOneSeed)));
+    //     setSeed();
+    //     walker->seedRange.clear();
+    //     walker->seedRange.push_back(NAN); // So further trials immediately returns false
+    //     return true;
+    // } 
     
     // If a random seed is requested from an open surface, then give the intersection points in order, and remove them from the list
     // until no more possible seeds remained, i.e. there are limited seed points available
-    if ((srcType[theOneSeed]==surf_src) && !surf[theOneSeed]->isClosed()) {
-        seedPos = walker->seedRange.front();
-        calcSeedPoint();
-        // disp(MSG_DEBUG, "seedPos (1): %.4f - %d", seedPos, int(isPointInsideRule(p,theOneSeed)));
-        setSeed();
+    // if (is2Dsurf) {
+    //     seedPos = walker->seedRange.front();
+    //     calcSeedPoint();
+    //     // disp(MSG_DEBUG, "seedPos (1): %.4f - %d", seedPos, int(isPointInsideRule(p,theOneSeed)));
+    //     setSeed();
 
-        // Remove the seed from the list. If this was the last seed, push NAN, so further trials immediately returns false
-        walker->seedRange.erase(walker->seedRange.begin());
-        if (walker->seedRange.empty()) {
-            walker->seedRange.push_back(NAN);
-        }
+    //     // Remove the seed from the list. If this was the last seed, push NAN, so further trials immediately returns false
+    //     walker->seedRange.erase(walker->seedRange.begin());
+    //     if (walker->seedRange.empty()) {
+    //         walker->seedRange.push_back(NAN);
+    //     }
 
-        return true;
-    } 
+    //     return true;
+    // } 
     
 
     // At this point, there is a seed region found between walker->seedRange.front() and walker->seedRange.back(). 
@@ -234,9 +257,11 @@ bool NIBR::Pathway::getSeedInd(NIBR::Walker* walker)
     // If after maxTrial trials, no suitable seed is found, then assign either the first or the last point that are in the seed
     // i.e. this strategy always returns a valid seed, but depending on how large is maxTrial, there is a bias. 1000 seems to be a good comprimise
     RandomDoer r;
+    if (is2Dsurf) r.init_uniform_int(int(walker->seedRange.size()));
+
     bool seedFound = false;
-    int trial = 0;
-    int maxTrial = 100;
+    int trial      = 0;
+    int maxTrial   = 1000;
 
 
     /*
@@ -249,7 +274,13 @@ bool NIBR::Pathway::getSeedInd(NIBR::Walker* walker)
     
     
     while (!seedFound && trial<maxTrial) {
-        seedPos = r.uniform_a_b(walker->seedRange.front(),walker->seedRange.back());
+        
+        if (is2Dsurf) {
+            seedPos = walker->seedRange[r.uniform_int()] + r.uniform_m1_p1()*EPS6;
+        } else {
+            seedPos = r.uniform_a_b(walker->seedRange.front(),walker->seedRange.back());
+        }
+
         calcSeedPoint();
         // disp(MSG_DEBUG, "seedPos (2): %.4f - %d", seedPos, int(isPointInsideRule(p,theOneSeed)));
         seedFound = isPointInsideRule(p,theOneSeed);
@@ -259,8 +290,11 @@ bool NIBR::Pathway::getSeedInd(NIBR::Walker* walker)
     if (trial==maxTrial) {
         seedPos = (r.uniform_m05_p05()>0) ? walker->seedRange.front() : walker->seedRange.back();
         calcSeedPoint();
+        seedFound = isPointInsideRule(p,theOneSeed);
         // disp(MSG_DEBUG, "seedPos (3): %.4f - %d", seedPos, int(isPointInsideRule(p,theOneSeed)));
     }
+
+    if (seedFound == false) return false;
 
     setSeed();
     return true;

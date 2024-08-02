@@ -46,16 +46,28 @@ SeederOutputState SeedSurface::getSeed(float* p, float* dir, int t) {
 
         // Try and project the point inside if needed
         if (dist < 0.0f) {
+            disp(MSG_DEBUG,"Fixed negative dist while seeding");
             p[0] -= 2.0 * dist * Nf[f][0];
             p[1] -= 2.0 * dist * Nf[f][1];
             p[2] -= 2.0 * dist * Nf[f][2];
-            vec3sub(&T[0],p,a);
+            vec3sub(&T[0],a,p);
+            dist = dot(Nf[f],&T[0]);
+        }
+
+        if (dist == 0.0f) {
+            disp(MSG_DEBUG,"Fixed zero dist while seeding");
+            p[0] -= EPS7 * Nf[f][0];
+            p[1] -= EPS7 * Nf[f][1];
+            p[2] -= EPS7 * Nf[f][2];
+            vec3sub(&T[0],a,p);
             dist = dot(Nf[f],&T[0]);
         }
 
         // Make sure that the point is within border.
-        if ((dist <= 0.0f) && (dist > SURFTHICKNESS))
+        if ((float(dist) <= 0.0f ) || (float(dist) > (0.75*SURFTHICKNESS) ))
             continue;
+        
+        disp(MSG_DEBUG,"Seed dist is: %.12f", dist);
             
         if (surfNorm) {
             barycentricInterp(dir, p, a, b, c, Nv[F[f][0]], Nv[F[f][1]], Nv[F[f][2]]);

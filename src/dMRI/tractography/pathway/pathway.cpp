@@ -255,7 +255,7 @@ void NIBR::Pathway::print() {
 
                 if (it->type == seed) {
 
-                    if (it->surfSrc->interpretAs2D) {
+                    if (surf[n]->interpretAs2D) {
                         if (it->surface4SeedUseNormForDir) {
                             std::cout << it->surfaceSource << " (surface as 2D boundary, uses surface normal)";
                         } else {
@@ -267,7 +267,7 @@ void NIBR::Pathway::print() {
 
                 } else {
 
-                    if (it->surfSrc->interpretAs2D) {
+                    if (surf[n]->interpretAs2D) {
                         std::cout << it->surfaceSource << " (surface as 2D boundary)";
                     } else {
                         std::cout << it->surfaceSource << " (surface as 3D volume)";

@@ -49,7 +49,11 @@ bool NIBR::Pathway::addSurface(PathwayRule prule) {
         disp(MSG_DETAIL,"Prepping seed surface for tracking");
 
         Seeder* seedDef;
-        if (prule.surfSrc->interpretAs2D == false) {
+        
+        if (prule.surfSrc->openOrClosed == OPENANDCLOSED) {
+            disp(MSG_DETAIL,"Seed surfaces containing both open and closed components are not supported");
+            return false;
+        } else if (prule.surfSrc->interpretAs2D == false) {
             seedDef = new SeedInsideSurface();
             if (!seedDef->setSeed(surf.back(),prule.surfaceDiscretizationRes)) {
                 delete seedDef;

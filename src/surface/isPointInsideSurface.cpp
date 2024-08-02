@@ -61,6 +61,8 @@ bool NIBR::Surface::isPointInside(float* p, double& dist, int& faceInd, float* c
         vec3sub(&v[0],vertices[faces[faceInd][0]],p);
         dist = (dot(normalsOfFaces[faceInd],&v[0]) > 0.0) ? std::sqrt(dist) : -std::sqrt(dist);
 
+        disp(MSG_DEBUG, "dist: %.12f",dist);
+
         if (dist < 0.0)             return false;
         if (dist <= SURFTHICKNESS)  return true;
         

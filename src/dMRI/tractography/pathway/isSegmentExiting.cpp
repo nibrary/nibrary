@@ -223,8 +223,8 @@ bool NIBR::Pathway::isSegmentExiting(NIBR::Walker* w, int ruleNo) {
         // Surf
         case surf_src: {
 
-            // disp(MSG_DEBUG, "beg: [%.8f , %.8f , %.8f]", w->segment.beg[0],w->segment.beg[1],w->segment.beg[2]) ;
-            // disp(MSG_DEBUG, "end: [%.8f , %.8f , %.8f]", w->segment.end[0],w->segment.end[1],w->segment.end[2]);
+            disp(MSG_DEBUG, "beg: [%.8f , %.8f , %.8f]", w->segment.beg[0],w->segment.beg[1],w->segment.beg[2]) ;
+            disp(MSG_DEBUG, "end: [%.8f , %.8f , %.8f]", w->segment.end[0],w->segment.end[1],w->segment.end[2]);
 
             auto [isBegInside,isEndInside,distance,intersectingFaceInd,towardsOutside] = surf[ruleNo]->intersectSegment(&w->segment);
 
@@ -239,6 +239,7 @@ bool NIBR::Pathway::isSegmentExiting(NIBR::Walker* w, int ruleNo) {
             // If there is intersection and segment enters outside
             if (!isnan(distance) && towardsOutside) {
                 w->segCrosLength = distance / w->segment.len;
+                if (w->segCrosLength > 1.0f) w->segCrosLength = 1.0f;
                 disp(MSG_DEBUG, "Exited rule (in->out) %d at face %d with %.4f / %.4f at intersection.", ruleNo, intersectingFaceInd, float(distance), w->segment.len);
                 return true;
             }
@@ -250,6 +251,7 @@ bool NIBR::Pathway::isSegmentExiting(NIBR::Walker* w, int ruleNo) {
                 return true;
             }
 
+            disp(MSG_DEBUG, "Did not exit rule %d.", ruleNo);
             return false;
         }
 

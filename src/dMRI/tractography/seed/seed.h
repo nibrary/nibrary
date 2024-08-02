@@ -54,7 +54,6 @@ public:
     std::string surf_density_fieldname{""};
 
     bool        useSurfNorm{false};
-    bool        useInsideSurf{true};
 
 private:
 

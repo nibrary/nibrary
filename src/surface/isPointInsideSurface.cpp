@@ -39,8 +39,10 @@ bool NIBR::Surface::isPointInside_basedOnWindingNumber(float* p) {
     return (igl::fast_winding_number(fwn_bvh,2,point) > 0.5);
 }
 
-// Returns true if a point is inside a surface mesh
-bool NIBR::Surface::isPointInside(float* p) {
+// OUTSIDE  -> dist = DBL_MIN
+// INSIDE   -> dist = DBL_MAX
+// BOUNDARY -> dist = dist to surface mesh
+bool NIBR::Surface::isPointInside(float* p, double& dist, int& faceInd, float* closestPoint) {
 
     if (!enabledPointCheck) {
         disp(MSG_FATAL, "enablePointCheck is not initialized");
@@ -53,28 +55,32 @@ bool NIBR::Surface::isPointInside(float* p) {
 
     int8_t vox = (maskAndBoundary)(A[0],A[1],A[2]);
 
-
     auto isOnBoundary = [&]()->bool {
-        int faceInd;
         double v[3];
-        double dist = squaredDistToPoint(p, faceInd);
+        dist = squaredDistToPoint(p, faceInd, closestPoint);
         vec3sub(&v[0],vertices[faces[faceInd][0]],p);
         dist = (dot(normalsOfFaces[faceInd],&v[0]) > 0.0) ? std::sqrt(dist) : -std::sqrt(dist);
-        return ((dist <= SURFTHICKNESS) && (dist > 0.0));
+        if (((dist <= SURFTHICKNESS) && (dist > 0.0))) {
+            return true;
+        } else {
+            return false;
+        }
     };
 
 
     if (interpretAs2D == false) {
 
-        if (vox == OUTSIDE) return false;
-        if (vox == INSIDE)  return true;
+        if (vox == OUTSIDE) {dist = DBL_MIN; return false;}
+        if (vox == INSIDE)  {dist = DBL_MAX; return true;}
 
         // The point is close to the boundary
 
         // If the surface has closed components
         if (compClosedAndOpen[0].nv > 0) {
-            if (this->compClosedAndOpen[0].isPointInside_basedOnWindingNumber(p))
+            if (this->compClosedAndOpen[0].isPointInside_basedOnWindingNumber(p)) {
+                dist = DBL_MAX;
                 return true;
+            }
         }
 
         // If the surface has open components,
@@ -83,12 +89,21 @@ bool NIBR::Surface::isPointInside(float* p) {
             return isOnBoundary();
         }
 
+        dist = DBL_MIN;
         return false;
 
     }
 
     return isOnBoundary();
 
+}
+
+// Returns true if a point is inside a surface mesh
+bool NIBR::Surface::isPointInside(float* p) {
+    double dist;
+    int faceInd;
+    float closestPoint[3];
+    return isPointInside(p, dist, faceInd, &closestPoint[0]);
 }
 
 // Returns the location of the point:

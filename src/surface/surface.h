@@ -188,6 +188,7 @@ namespace NIBR
 
         short whereIsPoint(float* p);
         bool  isPointInside(float* p);
+        bool  isPointInside(float* p, double& dist, int& faceInd, float* closestPoint);
         bool  isPointInside_basedOnWindingNumber(float* p); // This function might return true, also for open surfaces, if the winding_number > 0.5
         
         // Checks if a segment intersects the surface or not. 

@@ -23,13 +23,13 @@ double NIBR::Surface::squaredDistToPoint(float *p, int& faceInd, float* closestP
     
 }
 
-double NIBR::Surface::squaredDistToPoint(float *p) {
-    int faceInd;
+double NIBR::Surface::squaredDistToPoint(float *p, int& faceInd) {
     float closestPoint[3];
     return squaredDistToPoint(p,faceInd,&closestPoint[0]);
 }
 
-double NIBR::Surface::squaredDistToPoint(float *p, int& faceInd) {
+double NIBR::Surface::squaredDistToPoint(float *p) {
+    int faceInd;
     float closestPoint[3];
     return squaredDistToPoint(p,faceInd,&closestPoint[0]);
 }
@@ -61,7 +61,7 @@ double NIBR::Surface::distToPoint(float *p, int& faceInd, float* closestPoint) {
     Eigen::MatrixXd C;
     AABB_tree.squared_distance(V,F,point,sqrD,I,C);
 
-    double dist = isInside ? std::sqrt(sqrD(0)) : -std::sqrt(sqrD(0));
+    dist = isInside ? std::sqrt(sqrD(0)) : -std::sqrt(sqrD(0));
     
     closestPoint[0] = C(0,0);
     closestPoint[1] = C(0,1);
@@ -74,7 +74,6 @@ double NIBR::Surface::distToPoint(float *p, int& faceInd, float* closestPoint) {
 }
 
 double NIBR::Surface::distToPoint(float *p, int& faceInd) {
-    int faceInd;
     float closestPoint[3];
     return distToPoint(p,faceInd,&closestPoint[0]);
 }

@@ -575,9 +575,9 @@ void NIBR::Surface::printInfo() {
     }
 
     if (interpretAs2D) {
-        std::cout << std::left << std::setw(30) << "Interpreting as 2D" << std::right << std::setw(10) << nv << std::endl;
+        std::cout << std::left << std::setw(30) << "Interpreting as 2D." << std::endl;
     } else {
-        std::cout << std::left << std::setw(30) << "Interpreting as 3D" << std::right << std::setw(10) << nv << std::endl;
+        std::cout << std::left << std::setw(30) << "Interpreting as 3D." << std::endl;
     }
 
     std::cout << std::left << std::setw(30) << "Bounding box (xmin - xmax): " << std::right << std::setw(25) << " [ " + to_string_with_precision(box[0]) + ", " + to_string_with_precision(box[1]) + " ] " << std::endl;

@@ -63,6 +63,7 @@ bool NIBR::Surface::isPointInside(float* p, double& dist, int& faceInd, float* c
         if (((dist <= SURFTHICKNESS) && (dist > 0.0))) {
             return true;
         } else {
+            dist = -dist;
             return false;
         }
     };

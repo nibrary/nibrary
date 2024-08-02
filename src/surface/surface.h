@@ -174,12 +174,12 @@ namespace NIBR
         void toEigen();
         void prepIglAABBTree();
 
-        float squaredDistToPoint(float *p);
-        float squaredDistToPoint(float *p, int& faceInd);
-        float squaredDistToPoint(float *p, int& faceInd, float* closestPoint);
-        float distToPoint(float *p);
-        float distToPoint(float *p, int& faceInd);
-        float distToPoint(float *p, int& faceInd, float* closestPoint);
+        double squaredDistToPoint(float *p);
+        double squaredDistToPoint(float *p, int& faceInd);
+        double squaredDistToPoint(float *p, int& faceInd, float* closestPoint);
+        double distToPoint(float *p);
+        double distToPoint(float *p, int& faceInd);
+        double distToPoint(float *p, int& faceInd, float* closestPoint);
 
         // Enables the use to isPointInside based on a voxelized grid.
         void  enablePointCheck(float gridRes);

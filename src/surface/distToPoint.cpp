@@ -1,6 +1,6 @@
 #include "surface.h"
 
-float NIBR::Surface::squaredDistToPoint(float *p) {
+double NIBR::Surface::squaredDistToPoint(float *p) {
 
     Eigen::MatrixXd point(1,3);
 
@@ -18,7 +18,7 @@ float NIBR::Surface::squaredDistToPoint(float *p) {
 }
 
 
-float NIBR::Surface::distToPoint(float *p) {
+double NIBR::Surface::distToPoint(float *p) {
 
     if (!enabledPointCheck) {
         disp(MSG_FATAL, "enablePointCheck is not initialized");
@@ -36,14 +36,14 @@ float NIBR::Surface::distToPoint(float *p) {
     Eigen::MatrixXd C;
     AABB_tree.squared_distance(V,F,point,sqrD,I,C);
 
-    float dist = isPointInside(p) ? std::sqrt(sqrD(0)) : -std::sqrt(sqrD(0));
+    double dist = isPointInside(p) ? std::sqrt(sqrD(0)) : -std::sqrt(sqrD(0));
     
     return dist;
     
 }
 
 
-float NIBR::Surface::squaredDistToPoint(float *p, int& faceInd) {
+double NIBR::Surface::squaredDistToPoint(float *p, int& faceInd) {
 
     Eigen::MatrixXd point(1,3);
 
@@ -62,7 +62,7 @@ float NIBR::Surface::squaredDistToPoint(float *p, int& faceInd) {
     
 }
 
-float NIBR::Surface::distToPoint(float *p, int& faceInd) {
+double NIBR::Surface::distToPoint(float *p, int& faceInd) {
 
     if (!enabledPointCheck) {
         disp(MSG_FATAL, "enablePointCheck is not initialized");
@@ -80,14 +80,14 @@ float NIBR::Surface::distToPoint(float *p, int& faceInd) {
     Eigen::MatrixXd C;
     AABB_tree.squared_distance(V,F,point,sqrD,I,C);
 
-    float dist = isPointInside(p) ? std::sqrt(sqrD(0)) : -std::sqrt(sqrD(0));
+    double dist = isPointInside(p) ? std::sqrt(sqrD(0)) : -std::sqrt(sqrD(0));
     
     faceInd = I(0);
     return dist;
     
 }
 
-float NIBR::Surface::squaredDistToPoint(float *p, int& faceInd, float* closestPoint) {
+double NIBR::Surface::squaredDistToPoint(float *p, int& faceInd, float* closestPoint) {
 
     Eigen::MatrixXd point(1,3);
 
@@ -110,7 +110,7 @@ float NIBR::Surface::squaredDistToPoint(float *p, int& faceInd, float* closestPo
     
 }
 
-float NIBR::Surface::distToPoint(float *p, int& faceInd, float* closestPoint) {
+double NIBR::Surface::distToPoint(float *p, int& faceInd, float* closestPoint) {
 
     if (!enabledPointCheck) {
         disp(MSG_FATAL, "enablePointCheck is not initialized");
@@ -128,7 +128,7 @@ float NIBR::Surface::distToPoint(float *p, int& faceInd, float* closestPoint) {
     Eigen::MatrixXd C;
     AABB_tree.squared_distance(V,F,point,sqrD,I,C);
 
-    float dist = isPointInside(p) ? std::sqrt(sqrD(0)) : -std::sqrt(sqrD(0));
+    double dist = isPointInside(p) ? std::sqrt(sqrD(0)) : -std::sqrt(sqrD(0));
     
     closestPoint[0] = C(0,0);
     closestPoint[1] = C(0,1);

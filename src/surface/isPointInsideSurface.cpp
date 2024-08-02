@@ -55,21 +55,11 @@ bool NIBR::Surface::isPointInside(float* p) {
 
 
     auto isOnBoundary = [&]()->bool {
-
-        double v[3]    = {0.0,0.0,0.0};
-        double dist    = NAN;
-        double minDist = FLT_MAX;
-
-        for (auto faceInd : grid[A[0]][A[1]][A[2]]) {
-            vec3sub(&v[0],vertices[faces[faceInd][0]],p);
-            dist = dot(normalsOfFaces[faceInd],&v[0]);
-            if ( (!isnan(dist)) && (float(dist) > 0.0f) && (dist < minDist) ) {
-                minDist = dist;
-            }
-        }
-
-        return (minDist <= SURFTHICKNESS);
-
+        int faceInd;
+        double v[3];
+        vec3sub(&v[0],vertices[faces[faceInd][0]],p);
+        double dist = (dot(normalsOfFaces[faceInd],&v[0]) > 0.0) ? std::sqrt(squaredDistToPoint(p, faceInd)) : -std::sqrt(squaredDistToPoint(p, faceInd));
+        return ((dist <= SURFTHICKNESS) && (dist > 0.0));
     };
 
 
@@ -118,21 +108,11 @@ short NIBR::Surface::whereIsPoint(float* p) {
     int8_t vox = (maskAndBoundary)(A[0],A[1],A[2]);
 
     auto isOnBoundary = [&]()->bool {
-
-        double v[3]    = {0.0,0.0,0.0};
-        double dist    = NAN;
-        double minDist = FLT_MAX;
-
-        for (auto faceInd : grid[A[0]][A[1]][A[2]]) {
-            vec3sub(&v[0],vertices[faces[faceInd][0]],p);
-            dist = dot(normalsOfFaces[faceInd],&v[0]);
-            if ( (!isnan(dist)) && (float(dist) > 0.0f) && (dist < minDist) ) {
-                minDist = dist;
-            }
-        }
-
-        return (minDist <= SURFTHICKNESS);
-
+        int faceInd;
+        double v[3];
+        vec3sub(&v[0],vertices[faces[faceInd][0]],p);
+        double dist = (dot(normalsOfFaces[faceInd],&v[0]) > 0.0) ? std::sqrt(squaredDistToPoint(p, faceInd)) : -std::sqrt(squaredDistToPoint(p, faceInd));
+        return ((dist <= SURFTHICKNESS) && (dist > 0.0));
     };
 
     if (interpretAs2D == false) {

@@ -67,10 +67,10 @@ bool NIBR::Surface::isPointInside(float* p, double& dist, int& faceInd, float* c
         }
     };
 
+    if (vox == OUTSIDE) {dist = DBL_MIN; return false;}
 
     if (interpretAs2D == false) {
 
-        if (vox == OUTSIDE) {dist = DBL_MIN; return false;}
         if (vox == INSIDE)  {dist = DBL_MAX; return true;}
 
         // The point is close to the boundary

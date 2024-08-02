@@ -58,7 +58,8 @@ bool NIBR::Surface::isPointInside(float* p) {
         int faceInd;
         double v[3];
         vec3sub(&v[0],vertices[faces[faceInd][0]],p);
-        double dist = (dot(normalsOfFaces[faceInd],&v[0]) > 0.0) ? std::sqrt(squaredDistToPoint(p, faceInd)) : -std::sqrt(squaredDistToPoint(p, faceInd));
+        double dist = squaredDistToPoint(p, faceInd);
+        dist = (dot(normalsOfFaces[faceInd],&v[0]) > 0.0) ? std::sqrt(dist) : -std::sqrt(dist);
         return ((dist <= SURFTHICKNESS) && (dist > 0.0));
     };
 
@@ -111,7 +112,8 @@ short NIBR::Surface::whereIsPoint(float* p) {
         int faceInd;
         double v[3];
         vec3sub(&v[0],vertices[faces[faceInd][0]],p);
-        double dist = (dot(normalsOfFaces[faceInd],&v[0]) > 0.0) ? std::sqrt(squaredDistToPoint(p, faceInd)) : -std::sqrt(squaredDistToPoint(p, faceInd));
+        double dist = squaredDistToPoint(p, faceInd);
+        dist = (dot(normalsOfFaces[faceInd],&v[0]) > 0.0) ? std::sqrt(dist) : -std::sqrt(dist);
         return ((dist <= SURFTHICKNESS) && (dist > 0.0));
     };
 

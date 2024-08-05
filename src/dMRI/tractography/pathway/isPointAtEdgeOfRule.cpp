@@ -1,6 +1,6 @@
 #include "pathway.h"
 #include "math/sphere.h"
-
+/*
 bool NIBR::Pathway::isPointAtEdgeOfRule(float* p, int ruleNo, float distThresh) {
 
     switch (srcType[ruleNo]) {
@@ -66,3 +66,4 @@ bool NIBR::Pathway::isPointAtEdgeOfRule(float* p, int ruleNo, float distThresh) 
     return false;
 
 }
+*/

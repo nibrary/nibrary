@@ -134,12 +134,12 @@ void Params_PTT::setDefaults() {
 	if (probeCount<1)   probeCount = NAN;
 	if (probeRadius<0)  probeRadius= NAN;
 
-	if (probeCount == NAN && probeRadius== NAN) {
+	if (isnan(probeCount) && isnan(probeRadius)) {
 		probeCount = DEFAULT_PTT_PROBECOUNT;
 		probeRadius= DEFAULT_PTT_PROBERADIUS_IN_PIXELDIM*smallestPixDim;
-	} else if (probeCount==NAN && probeRadius!=NAN) {
+	} else if (isnan(probeCount) && probeRadius!=NAN) {
 		probeCount = DEFAULT_PTT_PROBECOUNT_WHEN_THEREIS_PROBERADIUS;
-	} else if (probeCount!=NAN && probeRadius==NAN) {
+	} else if (!isnan(probeCount) && isnan(probeRadius)) {
 		probeRadius= DEFAULT_PTT_PROBERADIUS_IN_PIXELDIM*smallestPixDim;
 	}
 

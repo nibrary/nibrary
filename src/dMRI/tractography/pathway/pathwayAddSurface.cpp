@@ -39,6 +39,10 @@ bool NIBR::Pathway::addSurface(PathwayRule prule) {
         prule.surfSrc->make2D();
     }
 
+    if ((prule.surfSrc->interpretAs2D == false) && (prule.surfSrc->openOrClosed == OPENANDCLOSED) && (prule.type == seed)) {
+        disp(MSG_DETAIL,"Seed surfaces containing both open and closed components are not supported");
+    }
+
     prule.surfSrc->enablePointCheck(prule.surfaceDiscretizationRes);
 
     surf.back() = prule.surfSrc;

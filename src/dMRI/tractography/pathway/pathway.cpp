@@ -14,7 +14,7 @@ NIBR::Pathway::Pathway() {
     atMaxLength                   = ATMAXLENGTH_DISCARD;
     directionality                = TWO_SIDED;
     skipSeedROI                   = false;
-    noEdgeSeeds                   = false;
+    // noEdgeSeeds                   = false;
     seedTrials                    = 0;
     pvfThresh                     = PVF_THRESH;
 
@@ -40,7 +40,7 @@ NIBR::Pathway::~Pathway() {
     atMaxLength                   = ATMAXLENGTH_DISCARD;
     directionality                = TWO_SIDED;
     skipSeedROI                   = false;
-    noEdgeSeeds                   = false;
+    // noEdgeSeeds                   = false;
     seedTrials                    = 0;
 
     // disp(MSG_DEBUG,"Deleting interval variables");
@@ -181,11 +181,11 @@ void NIBR::Pathway::print() {
     else
         std::cout << "OFF"  << std::endl;
 
-    std::cout << "noEdgeSeeds                : ";
-    if (noEdgeSeeds)
-        std::cout << "ON"   << std::endl;
-    else
-        std::cout << "OFF"  << std::endl;
+    // std::cout << "noEdgeSeeds                : ";
+    // if (noEdgeSeeds)
+    //     std::cout << "ON"   << std::endl;
+    // else
+    //     std::cout << "OFF"  << std::endl;
 
     if (!isTracking) {
         std::cout << "seedTrials                 : " << seedTrials << std::endl;

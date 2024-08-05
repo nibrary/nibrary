@@ -48,10 +48,10 @@ bool NIBR::Pathway::verify() {
         }
 
         if (prules[i].src==sph_src) {
-            if ( (prules[i].radius   ==NAN) ||
-                 (prules[i].center[0]==NAN) ||
-                 (prules[i].center[1]==NAN) ||
-                 (prules[i].center[2]==NAN) ) {
+            if ( isnan(prules[i].radius   ) ||
+                 isnan(prules[i].center[0]) ||
+                 isnan(prules[i].center[1]) ||
+                 isnan(prules[i].center[2]) ) {
                     disp(MSG_ERROR,"Pathway rule %d has NAN in sphere source", i);
                     return false;
                  }
@@ -156,10 +156,10 @@ bool NIBR::Pathway::verify() {
     }
 
     // Check noEdgeSeeds
-    if ( noEdgeSeeds && !hasOneSeed() ) {
-        disp(MSG_ERROR,"Seed must be provided to prevent seeding at edges.");
-        return false;
-    }
+    // if ( noEdgeSeeds && !hasOneSeed() ) {
+    //     disp(MSG_ERROR,"Seed must be provided to prevent seeding at edges.");
+    //     return false;
+    // }
 
     // Check skipSeedROI
     if ( skipSeedROI && !hasOneSeed() ) {

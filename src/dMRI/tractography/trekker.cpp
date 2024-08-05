@@ -85,7 +85,7 @@ bool Trekker::pathway_stopAtMax(bool q)                     {return TRACKER::pw.
 bool Trekker::pathway_oneSided (bool q)                     {return TRACKER::pw.oneSided(q);}
 bool Trekker::pathway_inOrder  (bool q)                     {return TRACKER::pw.inOrder(q);}
 bool Trekker::pathway_skipSeed (bool q)                     {return TRACKER::pw.skipSeed(q);}
-bool Trekker::pathway_noEdgeSeed (bool q)                   {return TRACKER::pw.noEdgeSeed(q);}
+// bool Trekker::pathway_noEdgeSeed (bool q)                   {return TRACKER::pw.noEdgeSeed(q);}
 
 
 

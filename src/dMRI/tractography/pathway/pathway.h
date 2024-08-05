@@ -116,7 +116,7 @@ namespace NIBR
         bool    oneSided(bool p)      {directionality = p ? ONE_SIDED : TWO_SIDED;                isVerified = false; return verify();}
         bool    inOrder(bool p)       {satisfy_requirements_in_order = p ? IN_ORDER : NO_ORDER;   isVerified = false; return verify();}
         bool    skipSeed(bool p)      {skipSeedROI = p;                                           isVerified = false; return verify();}
-        bool    noEdgeSeed(bool p)    {noEdgeSeeds = p;                                           isVerified = false; return verify();}
+        // bool    noEdgeSeed(bool p)    {noEdgeSeeds = p;                                           isVerified = false; return verify();}
         bool    setSeedTrials(int p)  {seedTrials = p;                                            isVerified = false; return verify();}
           
         
@@ -128,7 +128,7 @@ namespace NIBR
         Directionality              directionality;
         RequirementOrder            satisfy_requirements_in_order;
         bool                        skipSeedROI;
-        bool                        noEdgeSeeds;
+        // bool                        noEdgeSeeds;
         int                         seedTrials;
         float                       pvfThresh;
 
@@ -173,7 +173,7 @@ private:
         bool                        getSeedInd(Walker* walker);
         float                       getStreamlineLength(Walker* walker);
 
-        bool                        isPointAtEdgeOfRule(float*  p, int ruleNo, float distThresh);
+        // bool                        isPointAtEdgeOfRule(float*  p, int ruleNo, float distThresh);
         bool                        isPointInsideRule(float*  p, int ruleNo);
         bool                        isSegmentEntering(Walker* w, int ruleNo);
         bool                        isSegmentExiting(Walker* w, int ruleNo);

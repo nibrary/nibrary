@@ -186,10 +186,13 @@ NIBR::WalkerAction NIBR::Pathway::checkWalker(NIBR::Walker *w, int b, int e)
 
 	if (w->action == STOP) {
 		w->segment.len   *= w->segCrosLength;
-		// Don't! Modifying segment end modifies streamline
-		// w->segment.end[0] = w->segment.beg[0] + w->segment.dir[0]*w->segment.len;
-		// w->segment.end[1] = w->segment.beg[1] + w->segment.dir[1]*w->segment.len;
-		// w->segment.end[2] = w->segment.beg[2] + w->segment.dir[2]*w->segment.len;
+		disp(MSG_DEBUG,"Shortened segment by %.12f", w->segCrosLength);
+		// Don't modifying segment end unless tracking
+		if (isTracking) {
+			w->segment.end[0] = w->segment.beg[0] + w->segment.dir[0] * w->segment.len;
+			w->segment.end[1] = w->segment.beg[1] + w->segment.dir[1] * w->segment.len;
+			w->segment.end[2] = w->segment.beg[2] + w->segment.dir[2] * w->segment.len;
+		}
 	}
 	
 	w->trackedLength += w->segment.len;

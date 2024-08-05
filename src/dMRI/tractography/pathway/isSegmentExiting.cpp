@@ -223,10 +223,10 @@ bool NIBR::Pathway::isSegmentExiting(NIBR::Walker* w, int ruleNo) {
         // Surf
         case surf_src: {
 
-            disp(MSG_DEBUG, "beg: [%.8f , %.8f , %.8f]", w->segment.beg[0],w->segment.beg[1],w->segment.beg[2]) ;
-            disp(MSG_DEBUG, "end: [%.8f , %.8f , %.8f]", w->segment.end[0],w->segment.end[1],w->segment.end[2]);
+            // disp(MSG_DEBUG, "beg: [%.8f , %.8f , %.8f]", w->segment.beg[0],w->segment.beg[1],w->segment.beg[2]) ;
+            // disp(MSG_DEBUG, "end: [%.8f , %.8f , %.8f]", w->segment.end[0],w->segment.end[1],w->segment.end[2]);
 
-            auto [isBegInside,isEndInside,distance,intersectingFaceInd,towardsOutside] = surf[ruleNo]->intersectSegment(&w->segment);
+            auto [isBegInside,isEndInside,distance,intersectingFaceInd,towardsOutside,boundaryTransitionDist] = surf[ruleNo]->intersectSegment(&w->segment);
 
             // Segment beginning is outside
             if (!isBegInside) {
@@ -244,14 +244,21 @@ bool NIBR::Pathway::isSegmentExiting(NIBR::Walker* w, int ruleNo) {
                 return true;
             }
 
-            // Endpoint is outside
+            // Segment transitions outside the boundary without intersection
+            if (!isnan(boundaryTransitionDist)) {
+                w->segCrosLength = boundaryTransitionDist / w->segment.len;
+                disp(MSG_DEBUG, "Exited rule (in->out) %d boundary without intersection.", ruleNo);
+                return true;
+            }
+
+            // Segment end is outside (This case should not happen)
             if (!isEndInside) {
                 w->segCrosLength = 1.0f;
                 disp(MSG_DEBUG, "Exited rule (in->out) %d at end.", ruleNo);
                 return true;
             }
 
-            disp(MSG_DEBUG, "Did not exit rule %d.", ruleNo);
+            // disp(MSG_DEBUG, "Did not exit rule %d.", ruleNo);
             return false;
         }
 

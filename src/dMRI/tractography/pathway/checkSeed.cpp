@@ -28,10 +28,9 @@ NIBR::WalkerAction NIBR::Pathway::checkSeed(NIBR::Walker *w, NIBR::Tracking_Side
 
 		// // If seeds points are not allowed on edges, then discard, 
 		// // when the seed point is on the edge of the seed region
-		// if ( hasOneSeed() && 
-		// 	 noEdgeSeeds && 
+		// if ( noEdgeSeeds &&  
+		// 	 hasOneSeed() && 
 		// 	 (n == theOneSeed) && 
-		// 	 !((prules[n].src == surf_src) && surfIs2D[n]) &&
 		// 	 isPointAtEdgeOfRule(&(w->streamline->at(w->seedInd).x),n,EPS3)
 		// 	) 
 		// {
@@ -45,13 +44,10 @@ NIBR::WalkerAction NIBR::Pathway::checkSeed(NIBR::Walker *w, NIBR::Tracking_Side
 
 		bool inside = isPointInsideRule(&(w->streamline->at(w->seedInd).x),n);
 
-		// // If seeds points are not allowed on edges, then discard,
-		// //  
-		// // when the seed point is on the edge of another region that is not a 2D mesh
-
-		// // If the seed point is not already inside, if there is seed, that is not allowed on edges, and if this is not for the seed rule
-		// // if the seed point is close to the surf_src when surfIs2D
-		// // then consider inside
+		// If seeds points are not allowed on edges, then discard, 
+		// when the seed point is on the edge of a region that is not seed
+		// If the seed point is not already inside, if there is seed, that is not allowed on edges, and if this is not for the seed rule
+		// if the seed point is close to the surf_src when surfIs2D then consider inside
 		// if ( !inside && 
 		//      hasOneSeed() && 
 		// 	 noEdgeSeeds && 

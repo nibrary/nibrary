@@ -156,24 +156,7 @@ bool NIBR::Pathway::add(PathwayRule prule) {
 
             disp(MSG_DETAIL,"Rule %d: center=[%.2f,%.2f,%.2f] radius=%.2f (sphere)",ruleInd,prule.center[0],prule.center[1],prule.center[2],prule.radius);
 
-            switch (prule.type) {
-                case undef_type:            {disp(MSG_ERROR,"Unacceptable rule type"); return cleanExit();}
-                case seed:
-                case discard_seed:
-                case req_entry:
-                case req_exit:
-                case req_end_inside:
-                case stop_before_entry:
-                case stop_at_entry:
-                case stop_after_entry:
-                case stop_before_exit:
-                case stop_at_exit:
-                case stop_after_exit:
-                case discard_if_enters:
-                case discard_if_exits:
-                case discard_if_ends_inside: {break;}
-            }
-
+            if (prule.type == undef_type) {disp(MSG_ERROR,"Unacceptable rule type"); return cleanExit();}
 
             float* tmpCenter = new float[3];
             tmpCenter[0]     = prule.center[0];
@@ -201,23 +184,7 @@ bool NIBR::Pathway::add(PathwayRule prule) {
 
             disp(MSG_DETAIL,"Rule %d: %s (mask image)",ruleInd,prule.imageMaskSource.c_str());
 
-            switch (prule.type) {
-                case undef_type:            {disp(MSG_ERROR,"Unacceptable rule type"); return cleanExit();}
-                case seed:
-                case discard_seed:
-                case req_entry:
-                case req_exit:
-                case req_end_inside:
-                case stop_before_entry:
-                case stop_at_entry:
-                case stop_after_entry:
-                case stop_before_exit:
-                case stop_at_exit:
-                case stop_after_exit:
-                case discard_if_enters:
-                case discard_if_exits:
-                case discard_if_ends_inside: {break;}
-            }
+            if (prule.type == undef_type) {disp(MSG_ERROR,"Unacceptable rule type"); return cleanExit();}
 
             // If same source was used before then just copy the pointer, without allocating new memory
             bool srcDone = false;
@@ -268,23 +235,7 @@ bool NIBR::Pathway::add(PathwayRule prule) {
 
             disp(MSG_DETAIL,"Rule %d: %s (label image)",ruleInd,prule.imageLabelSource.c_str());
 
-            switch (prule.type) {
-                case undef_type:            {disp(MSG_ERROR,"Unacceptable rule type"); return cleanExit();}
-                case seed:
-                case discard_seed:
-                case req_entry:
-                case req_exit:
-                case req_end_inside:
-                case stop_before_entry:
-                case stop_at_entry:
-                case stop_after_entry:
-                case stop_before_exit:
-                case stop_at_exit:
-                case stop_after_exit:
-                case discard_if_enters:
-                case discard_if_exits:
-                case discard_if_ends_inside: {break;}
-            }
+            if (prule.type == undef_type) {disp(MSG_ERROR,"Unacceptable rule type"); return cleanExit();}
 
             // If same source was used before then just copy the pointer, without allocating new memory
             bool srcDone = false;
@@ -337,23 +288,7 @@ bool NIBR::Pathway::add(PathwayRule prule) {
 
             disp(MSG_DETAIL,"Rule %d: %s (partial volume image)",ruleInd,prule.imagePvfSource.c_str());
 
-            switch (prule.type) {
-                case undef_type:            {disp(MSG_ERROR,"Unacceptable rule type"); return cleanExit();}
-                case seed:
-                case discard_seed:
-                case req_entry:
-                case req_exit:
-                case req_end_inside:
-                case stop_before_entry:
-                case stop_at_entry:
-                case stop_after_entry:
-                case stop_before_exit:
-                case stop_at_exit:
-                case stop_after_exit:
-                case discard_if_enters:
-                case discard_if_exits:
-                case discard_if_ends_inside: {break;}
-            }
+            if (prule.type == undef_type) {disp(MSG_ERROR,"Unacceptable rule type"); return cleanExit();}
 
             // If same source was used before then just copy the pointer, without allocating new memory
             bool srcDone = false;
@@ -441,6 +376,8 @@ bool NIBR::Pathway::add(PathwayRule prule) {
         case surf_src: {
 
             disp(MSG_DETAIL,"Rule %d: %s (surface)",ruleInd,prule.surfaceSource.c_str());
+
+            if (prule.type == undef_type) {disp(MSG_ERROR,"Unacceptable rule type"); return cleanExit();}
 
             if (prule.surfSrc != NULL) {if (!addSurface(prule)) {return cleanExit();} break;}
 
@@ -637,6 +574,10 @@ bool NIBR::Pathway::add(PathwayRule prule) {
                     surfSrc->make2D();
                 }
 
+                if ((surfSrc->interpretAs2D == false) && (surfSrc->openOrClosed == OPENANDCLOSED) && (prule.type == seed)) {
+                    disp(MSG_DETAIL,"Seed surfaces containing both open and closed components are not supported");
+                }
+
                 surfSrc->enablePointCheck(prule.surfaceDiscretizationRes);
                 surfSrc->calcNormalsOfFaces();
                 surf.back() = surfSrc;
@@ -651,51 +592,6 @@ bool NIBR::Pathway::add(PathwayRule prule) {
                 delete dataField;
                 dataField = NULL;
             }
-
-
-            // Check rule types
-            if ((surfSrc->openOrClosed == OPENANDCLOSED) && (prule.type == seed)) {
-                disp(MSG_DETAIL,"Seed surfaces containing both open and closed components are not supported");
-            }
-
-            if (surfSrc->interpretAs2D) {
-                switch (prule.type) {
-                    case undef_type:                {disp(MSG_ERROR,"Unacceptable rule type"); return cleanExit();}
-                    case seed:                      {break;}
-                    case discard_seed:              {break;}
-                    case req_entry:                 {break;}
-                    case req_exit:                  {disp(MSG_WARN, "Replacing require_exit with require_entry since surface is 2D."); break;}
-                    case req_end_inside:            {break;}
-                    case stop_before_entry:         {break;}
-                    case stop_at_entry:             {break;}
-                    case stop_after_entry:          {break;}
-                    case stop_before_exit:          {disp(MSG_WARN, "Replacing stop_before_exit with stop_before_entry since surface is 2D."); break;}
-                    case stop_at_exit:              {disp(MSG_WARN, "Replacing stop_at_exit with stop_at_entry since surface is 2D."); break;}
-                    case stop_after_exit:           {disp(MSG_WARN, "Replacing stop_after_exit with stop_after_entry since surface is 2D."); break;}
-                    case discard_if_enters:         {break;}
-                    case discard_if_exits:          {disp(MSG_WARN, "Replacing discard_if_exits with discard_if_entry since surface is 2D."); break;}
-                    case discard_if_ends_inside:    {break;}
-                }
-            } else {
-                switch (prule.type) {
-                    case undef_type:                {disp(MSG_ERROR,"Unacceptable rule type"); return cleanExit();}
-                    case seed:
-                    case discard_seed:
-                    case req_entry:
-                    case req_exit:
-                    case req_end_inside:
-                    case stop_before_entry:
-                    case stop_at_entry:
-                    case stop_after_entry:
-                    case stop_before_exit:
-                    case stop_at_exit:
-                    case stop_after_exit:
-                    case discard_if_enters:
-                    case discard_if_exits:
-                    case discard_if_ends_inside:    {break;}
-                }
-            }
-
 
             // Prepare if type is seed
             if ((prule.type == seed) && (isTracking == true)) {

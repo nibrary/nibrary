@@ -177,7 +177,7 @@ std::tuple<PathwayRule,bool> parseSphere(std::vector<std::string> inp, size_t& i
         rule.center[2]     = std::get<1>(sph).z;
         rule.radius        = std::get<2>(sph);
         
-        if ( (rule.center[0]==NAN) || (rule.center[1]==NAN) || (rule.center[2]==NAN) ) {
+        if ( isnan(rule.center[0]) || isnan(rule.center[1]) || isnan(rule.center[2]) ) {
             NIBR::disp(MSG_ERROR,"Sphere coordinates cannot be NAN.");
         } else if (rule.radius<0) {
             NIBR::disp(MSG_ERROR,"Sphere radius cannot be negative.");

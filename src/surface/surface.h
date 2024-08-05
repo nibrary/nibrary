@@ -192,9 +192,10 @@ namespace NIBR
         bool  isPointInside_basedOnWindingNumber(float* p); // This function might return true, also for open surfaces, if the winding_number > 0.5
         
         // Checks if a segment intersects the surface or not. 
-        // <isSegBegInside,isSegEndInside,distFromSegBegToMesh,intersectingFaceIndex,intersectionIsInsideToOutside>
-        // distFromBegToMesh is NAN if segment is not intersecting the mesh.
-        std::tuple<bool,bool,double,int,bool> intersectSegment(LineSegment* seg);
+        // <isSegBegInside,isSegEndInside,distFromSegBegToMesh,intersectingFaceIndex,intersectionIsInsideToOutside,boundaryTransitionDist>
+        // distFromBegToMesh      ≠ NAN if the segment is intersecting the mesh. Then intersectingFaceIndex and intersectionIsInsideToOutside are valid.
+        // boundaryTransitionDist ≠ NAN if the segment is transitioning through the boundary without intersection.
+        std::tuple<bool,bool,double,int,bool,double> intersectSegment(LineSegment* seg);
 
         // TODO: The following should be moved to surface_operators and they should generate new surfaces.
         // Because they modify vertices and/or faces of the surface

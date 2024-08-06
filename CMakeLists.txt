@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.15.0)
 
-PROJECT(nibrary VERSION 0.1 LANGUAGES CXX C)
+PROJECT(nibrary VERSION 0.1.0 LANGUAGES CXX C)
 
 set(nibrary "nibrary_v${nibrary_VERSION}")
 message(STATUS ">> Nibrary::Building ${nibrary}")

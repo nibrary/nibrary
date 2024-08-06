@@ -99,7 +99,7 @@ std::vector<std::vector<float>> NIBR::resampleStreamline_withStepSize(std::vecto
     int   N      = lenVec.back()/step;
     float res    = lenVec.back() - float(N) * step;
 
-    N = (res>(step*RESIDUALTHRES)) ? N+3 : N+2;
+    N = (res>(step*RESIDUALTHRES) && (res > EPS4)) ? N+3 : N+2;
 
     if (N<2)
         return std::vector<std::vector<float>>();

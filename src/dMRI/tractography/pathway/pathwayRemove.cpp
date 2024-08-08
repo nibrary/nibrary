@@ -63,10 +63,10 @@ bool NIBR::Pathway::remove(int ruleInd) {
 
     isVerified = false;
     if (verify()) {
-        disp(MSG_DETAIL, "Rule %d removed successfully", ruleInd);
+        disp(MSG_DETAIL, "Rule %d removed successfully", ruleInd+1);
         return true;
     } else {
-        disp(MSG_ERROR, "Rule %d removal failed", ruleInd);
+        disp(MSG_ERROR, "Rule %d removal failed", ruleInd+1);
         return false;
     }
 

@@ -43,8 +43,28 @@ bool NIBR::Pathway::addSurface(PathwayRule prule) {
         disp(MSG_DETAIL,"Seed surfaces containing both open and closed components are not supported");
     }
 
-    prule.surfSrc->enablePointCheck(prule.surfaceDiscretizationRes);
+    if (prule.surfSrc->interpretAs2D) {
+        switch (prule.type) {
+            case undef_type:             {disp(MSG_ERROR,"Unacceptable rule type"); return false;}
+            case seed:                   {break;}
+            case discard_seed:           {break;}
+            case req_entry:              {break;}
+            case req_exit:               {break;}
+            case req_end_inside:         {break;}
+            case stop_before_entry:      {break;}
+            case stop_at_entry:          {break;}
+            case stop_after_entry:       {disp(MSG_ERROR,"stop_after_entry option is not allowed for 2D-interpreted surfaces"); return false;}
+            case stop_before_exit:       {disp(MSG_ERROR,"stop_before_exit option is not allowed for 2D-interpreted surfaces"); return false;}
+            case stop_at_exit:           {break;}
+            case stop_after_exit:        {break;}
+            case discard_if_enters:      {break;}
+            case discard_if_exits:       {break;}
+            case discard_if_ends_inside: {disp(MSG_ERROR,"Unacceptable rule type"); return false;}
+        }
+    }
 
+    prule.surfSrc->enablePointCheck(prule.surfaceDiscretizationRes);
+    prule.surfSrc->calcNormalsOfFaces();
     surf.back() = prule.surfSrc;
 
     // Prepare if type is seed

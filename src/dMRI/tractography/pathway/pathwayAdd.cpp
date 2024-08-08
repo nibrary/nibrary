@@ -154,7 +154,7 @@ bool NIBR::Pathway::add(PathwayRule prule) {
 
         case sph_src: {
 
-            disp(MSG_DETAIL,"Rule %d: center=[%.2f,%.2f,%.2f] radius=%.2f (sphere)",ruleInd,prule.center[0],prule.center[1],prule.center[2],prule.radius);
+            disp(MSG_DETAIL,"Rule %d: center=[%.2f,%.2f,%.2f] radius=%.2f (sphere)",ruleInd+1,prule.center[0],prule.center[1],prule.center[2],prule.radius);
 
             if (prule.type == undef_type) {disp(MSG_ERROR,"Unacceptable rule type"); return cleanExit();}
 
@@ -182,7 +182,7 @@ bool NIBR::Pathway::add(PathwayRule prule) {
         // A mask image is made using all values above zero
         case img_mask_src: {
 
-            disp(MSG_DETAIL,"Rule %d: %s (mask image)",ruleInd,prule.imageMaskSource.c_str());
+            disp(MSG_DETAIL,"Rule %d: %s (mask image)",ruleInd+1,prule.imageMaskSource.c_str());
 
             if (prule.type == undef_type) {disp(MSG_ERROR,"Unacceptable rule type"); return cleanExit();}
 
@@ -233,7 +233,7 @@ bool NIBR::Pathway::add(PathwayRule prule) {
         // To save memory, label image content is shared among other rules but the label value can be different for each rule
         case img_label_src: {
 
-            disp(MSG_DETAIL,"Rule %d: %s (label image)",ruleInd,prule.imageLabelSource.c_str());
+            disp(MSG_DETAIL,"Rule %d: %s (label image)",ruleInd+1,prule.imageLabelSource.c_str());
 
             if (prule.type == undef_type) {disp(MSG_ERROR,"Unacceptable rule type"); return cleanExit();}
 
@@ -286,7 +286,7 @@ bool NIBR::Pathway::add(PathwayRule prule) {
         // PVF image always 4D. PVF must always define the volume index. It should be given in the label field, and useLabel must always be set to "true" for PVF input.
         case img_pvf_src: {
 
-            disp(MSG_DETAIL,"Rule %d: %s (partial volume image)",ruleInd,prule.imagePvfSource.c_str());
+            disp(MSG_DETAIL,"Rule %d: %s (partial volume image)",ruleInd+1,prule.imagePvfSource.c_str());
 
             if (prule.type == undef_type) {disp(MSG_ERROR,"Unacceptable rule type"); return cleanExit();}
 
@@ -344,7 +344,7 @@ bool NIBR::Pathway::add(PathwayRule prule) {
                 imgSrc->read();
                 img_pvf.back()          = imgSrc;
                 maxSegSizeScaler.back() = 1.0f/(imgSrc->smallestPixDim*SUB_VOXEL_RATIO);
-                disp(MSG_DETAIL,"Reading source for rule %d is completed",ruleInd);
+                disp(MSG_DETAIL,"Reading source for rule %d is completed",ruleInd+1);
             }
 
             if ((prule.type == seed) && (isTracking == true)) {
@@ -375,7 +375,7 @@ bool NIBR::Pathway::add(PathwayRule prule) {
 
         case surf_src: {
 
-            disp(MSG_DETAIL,"Rule %d: %s (surface)",ruleInd,prule.surfaceSource.c_str());
+            disp(MSG_DETAIL,"Rule %d: %s (surface)",ruleInd+1,prule.surfaceSource.c_str());
 
             if (prule.type == undef_type) {disp(MSG_ERROR,"Unacceptable rule type"); return cleanExit();}
 
@@ -581,6 +581,29 @@ bool NIBR::Pathway::add(PathwayRule prule) {
                 surfSrc->enablePointCheck(prule.surfaceDiscretizationRes);
                 surfSrc->calcNormalsOfFaces();
                 surf.back() = surfSrc;
+
+                if (surfSrc->interpretAs2D) {
+                    switch (prule.type) {
+                        case undef_type:             {disp(MSG_ERROR,"Unacceptable rule type"); return cleanExit();}
+                        case seed:                   {break;}
+                        case discard_seed:           {break;}
+                        case req_entry:              {break;}
+                        case req_exit:               {break;}
+                        case req_end_inside:         {break;}
+                        case stop_before_entry:      {break;}
+                        case stop_at_entry:          {break;}
+                        case stop_after_entry:       {disp(MSG_ERROR,"stop_after_entry option is not allowed for 2D-interpreted surfaces"); return cleanExit();}
+                        case stop_before_exit:       {disp(MSG_ERROR,"stop_before_exit option is not allowed for 2D-interpreted surfaces"); return cleanExit();}
+                        case stop_at_exit:           {break;}
+                        case stop_after_exit:        {break;}
+                        case discard_if_enters:      {break;}
+                        case discard_if_exits:       {break;}
+                        case discard_if_ends_inside: {disp(MSG_ERROR,"Unacceptable rule type"); return cleanExit();}
+                    }
+                }
+            
+
+
             }
 
             if (!dataDone) {
@@ -646,7 +669,7 @@ bool NIBR::Pathway::add(PathwayRule prule) {
 
     }
 
-    disp(MSG_DETAIL, "Rule %d added successfully", ruleInd);
+    disp(MSG_DETAIL, "Rule %d added successfully", ruleInd+1);
     return true;
 
 }

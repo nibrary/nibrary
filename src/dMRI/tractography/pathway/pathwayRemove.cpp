@@ -6,7 +6,7 @@ using namespace NIBR;
 
 bool NIBR::Pathway::remove(int ruleInd) {
 
-    disp(MSG_DETAIL,"Deleting rule: %d of %d.", ruleInd, ruleCnt);
+    disp(MSG_DETAIL,"Deleting rule: %d of %d.", ruleInd+1, ruleCnt);
 
     if (ruleInd >= ruleCnt) {
         disp(MSG_ERROR,"Rule index is out of bounds");

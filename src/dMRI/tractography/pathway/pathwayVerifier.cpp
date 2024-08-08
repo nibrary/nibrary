@@ -34,16 +34,16 @@ bool NIBR::Pathway::verify() {
 
     for(size_t i=0; i<prules.size(); ++i) {
 
-        disp(MSG_DETAIL,"Checking rule %d", i);
+        disp(MSG_DETAIL,"Checking rule %d", i+1);
 
         // Check whether sources can be used
         if (prules[i].src==undef_src) {
-            disp(MSG_ERROR,"Pathway rule source %d is undefined", i);
+            disp(MSG_ERROR,"Pathway rule source %d is undefined", i+1);
             return false;
         }
 
         if ((prules[i].src==res_pnt_src) && (prules[i].type!=seed) ) {
-            disp(MSG_ERROR,"Pathway rule source %d can't be set to reserved point unless pathway type seed", i);
+            disp(MSG_ERROR,"Pathway rule source %d can't be set to reserved point unless pathway type seed", i+1);
             return false;
         }
 
@@ -52,24 +52,24 @@ bool NIBR::Pathway::verify() {
                  isnan(prules[i].center[0]) ||
                  isnan(prules[i].center[1]) ||
                  isnan(prules[i].center[2]) ) {
-                    disp(MSG_ERROR,"Pathway rule %d has NAN in sphere source", i);
+                    disp(MSG_ERROR,"Pathway rule %d has NAN in sphere source", i+1);
                     return false;
                  }
             
             if (prules[i].radius<=0) {
-                disp(MSG_ERROR,"Pathway rule %d has negative sphere radius", i);
+                disp(MSG_ERROR,"Pathway rule %d has negative sphere radius", i+1);
                 return false;
             }
 
         } 
 
         if ((prules[i].src==img_mask_src) && (prules[i].imageMaskSource=="")) {
-            disp(MSG_ERROR,"Pathway rule %d is missing path to image", i);
+            disp(MSG_ERROR,"Pathway rule %d is missing path to image", i+1);
             return false;
         }
 
         if ((prules[i].src==img_label_src) && (prules[i].imageLabelSource=="")) {
-            disp(MSG_ERROR,"Pathway rule %d  is missing path to image", i);
+            disp(MSG_ERROR,"Pathway rule %d  is missing path to image", i+1);
             return false;
         }
 
@@ -78,18 +78,18 @@ bool NIBR::Pathway::verify() {
         }
 
         if ((prules[i].src==img_pvf_src) && (prules[i].imagePvfSource=="")) {
-            disp(MSG_ERROR,"Pathway rule %d is missing path to image", i);
+            disp(MSG_ERROR,"Pathway rule %d is missing path to image", i+1);
             return false;
         }
 
         if ((prules[i].src==surf_src) && (prules[i].surfaceSource=="")) {
-            disp(MSG_ERROR,"Pathway rule %d is missing path to surface", i);
+            disp(MSG_ERROR,"Pathway rule %d is missing path to surface", i+1);
             return false;
         }
 
         // Check types
         if (prules[i].type==undef_type) {
-            disp(MSG_ERROR,"Pathway rule %d type can't be undefined", i);
+            disp(MSG_ERROR,"Pathway rule %d type can't be undefined", i+1);
             return false;
         }
             

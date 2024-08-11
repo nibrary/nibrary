@@ -130,8 +130,6 @@ NIBR::Walker *NIBR::Pathway::tieRequireRules(NIBR::Walker *w)
 
 	}
 	
-
-	/*
 	for (int n = 0; n < ruleCnt; n++)
 	{
 		if (prules[n].type == req_end_inside)
@@ -158,7 +156,6 @@ NIBR::Walker *NIBR::Pathway::tieRequireRules(NIBR::Walker *w)
                 }
 		}
 	}
-	*/
 
 	return w;
 

@@ -68,6 +68,7 @@ namespace NIBR
         TractogramReader(const TractogramReader& obj);
         void copyFrom(const TractogramReader& obj);
         void destroyCopy();
+        void printInfo();
         
         bool     initReader(std::string _fileName);
         void     setThreadId (uint32_t _threadId) {threadId=_threadId;}

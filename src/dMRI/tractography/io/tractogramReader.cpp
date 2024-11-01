@@ -1,4 +1,5 @@
 #include "dMRI/tractography/io/tractogramReader.h"
+#include "tractogramField.h"
 #include <cstdint>
 #include <cstring>
 #include <iterator>
@@ -630,5 +631,59 @@ std::vector<std::vector<std::vector<float>>> NIBR::TractogramReader::read() {
 	NIBR::MT::MAXNUMBEROFTHREADS() = bakMaxThreads;
 
 	return out;
+
+}
+
+void NIBR::TractogramReader::printInfo() {
+
+	disp(MSG_INFO,"Tractogram info");
+	std::cout << "\033[32m";
+
+	std::cout << "File name: " << fileName << std::endl;
+
+	std::cout << "Format:                   ";
+	if (fileFormat==NIBR::TCK)              std::cout << "tck"          << std::endl << std::flush;
+	else if (fileFormat==NIBR::TRK)         std::cout << "trk"          << std::endl << std::flush;
+	else if (fileFormat==NIBR::VTK_ASCII)   std::cout << "vtk (ascii)"  << std::endl << std::flush;
+	else if (fileFormat==NIBR::VTK_BINARY)  std::cout << "vtk (binary)" << std::endl << std::flush;
+	else {
+		std::cout << "unknown"      << std::endl << std::flush;
+		return;
+	}
+
+	std::cout << "Description:              "  << fileDescription      << std::endl << std::flush;
+	std::cout << "Streamline count:         "  << numberOfStreamlines  << std::endl << std::flush;
+	std::cout << "Number of points:         "  << numberOfPoints       << std::endl << std::flush;
+
+	size_t total = 0;
+	for (size_t i=0; i<numberOfStreamlines; i++) {
+		total += len[i];
+	}
+	std::cout << "Number of points (check): "  << total << std::endl << std::flush;
+
+	if (fileFormat==NIBR::TRK) {
+
+		std::cout << "ijk2xyz: " << std::endl << std::flush;
+		
+		std::cout << "   " << ijk2xyz[0][0] << " " << ijk2xyz[0][1] << " " << ijk2xyz[0][2] << " " << ijk2xyz[0][3] << std::endl << std::flush;
+		std::cout << "   " << ijk2xyz[1][0] << " " << ijk2xyz[1][1] << " " << ijk2xyz[1][2] << " " << ijk2xyz[1][3] << std::endl << std::flush;
+		std::cout << "   " << ijk2xyz[2][0] << " " << ijk2xyz[2][1] << " " << ijk2xyz[2][2] << " " << ijk2xyz[2][3] << std::endl << std::flush;
+		std::cout << "   " << ijk2xyz[3][0] << " " << ijk2xyz[3][1] << " " << ijk2xyz[3][2] << " " << ijk2xyz[3][3] << std::endl << std::flush;
+
+	}
+
+	std::vector<NIBR::TractogramField> fields = findTractogramFields(*this);
+
+	std::cout << "Field count: " << fields.size() << std::endl << std::flush;
+
+	int i = 1;
+	for (auto f : fields) {
+		std::cout << "   " << i++ << ". " << f.name.c_str() << ": " << ((f.owner == POINT_OWNER) ? "Point" : "Streamline") << " field with dim " << f.dimension << std::endl << std::flush;
+	}
+
+	std::cout << "\033[0m";
+
+	return;
+
 
 }

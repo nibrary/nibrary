@@ -39,7 +39,6 @@ void NIBR::Image<T>::printInfo() {
     if (NIBR::VERBOSE()<VERBOSE_INFO)
         return;
 
-    std::cout << std::endl;
     disp(MSG_INFO,"Image info");
 
     std::cout << "\033[32m";

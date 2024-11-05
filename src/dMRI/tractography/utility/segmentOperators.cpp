@@ -28,7 +28,7 @@ float NIBR::segmentSphereIntersectionLength(NIBR::Segment& seg, float* sphere)
         
         // segment is exiting the sphere
         // return the portion that remains inside the sphere
-        float proj_h = dot(&b2c[0],&seg.dir[0]);
+        float proj_h = dot(b2c,seg.dir);
         float dd     = b2c_norm*b2c_norm - proj_h*proj_h;
         float dist   = proj_h + std::sqrt(rr - dd);
         return dist;
@@ -38,7 +38,7 @@ float NIBR::segmentSphereIntersectionLength(NIBR::Segment& seg, float* sphere)
     // beg is is outside the sphere
     if (b2c_norm>r) {
         
-        float proj_h = dot(&b2c[0],&seg.dir[0]);
+        float proj_h = dot(b2c,seg.dir);
 
         // segment can't intersect sphere
         if ( proj_h < 0.0 )

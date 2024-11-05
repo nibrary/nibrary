@@ -1,4 +1,37 @@
-#include "surface_operators.h"
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpedantic"
+#pragma GCC diagnostic ignored "-Wall"
+#pragma GCC diagnostic ignored "-Wextra"
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#pragma GCC diagnostic ignored "-Wunused-local-typedefs"
+#pragma GCC diagnostic ignored "-Wsign-compare"
+#pragma GCC diagnostic ignored "-Wstringop-overread"
+#pragma GCC diagnostic ignored "-Warray-bounds="
+#pragma GCC diagnostic ignored "-Wclass-memaccess"
+#pragma GCC diagnostic ignored "-Wtype-limits"
+#pragma GCC diagnostic ignored "-Wunused-variable"
+#pragma GCC diagnostic ignored "-Wreorder"
+#pragma GCC diagnostic ignored "-Wunknown-pragmas"
+#pragma GCC diagnostic ignored "-Wstringop-overflow="
+#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+#pragma GCC diagnostic ignored "-Wunused-result"
+#pragma GCC diagnostic ignored "-Wcomment"
+#pragma GCC diagnostic ignored "-Wfree-nonheap-object"
+#include <igl/AABB.h>
+#include <igl/fast_winding_number.h>
+#pragma GCC diagnostic pop
+
+#else
+
+#include <igl/AABB.h>
+#include <igl/fast_winding_number.h>
+
+#endif
+
+#include <Eigen/Core>
+#include <Eigen/Dense>
 
 #include <geogram/mesh/mesh.h>
 #include <geogram/mesh/mesh_geometry.h>
@@ -10,6 +43,7 @@
 #include <geogram/mesh/mesh_fill_holes.cpp>
 #include <geogram/mesh/mesh_repair.h>
 
+#include "surface_operators.h"
 // This file contains all the geogram function.
 // Geogram has its own thread handling mechanism.
 // In certain cases, it might delete all the running geogram threads, e.g., for remeshing

@@ -401,6 +401,29 @@ Surface NIBR::surfMoveVerticesAlongNormal(const Surface& surf, float shift) {
 
 }
 
+Surface NIBR::meanCurvatureFlow(const Surface& surf, float stepSize) {
+
+    if (surf.nv < 1) return surf;
+    if (stepSize == 0)  return surf;
+
+    Surface out(surf,true);
+    out.calcNormalsOfVertices();
+    out.calcMeanCurvature();
+
+    for (int n = 0; n < out.nv; n++) {
+        if (out.meanCurvature[n] > 0) {
+            out.vertices[n][0] -= out.normalsOfVertices[n][0]*out.meanCurvature[n]*stepSize;
+            out.vertices[n][1] -= out.normalsOfVertices[n][1]*out.meanCurvature[n]*stepSize;
+            out.vertices[n][2] -= out.normalsOfVertices[n][2]*out.meanCurvature[n]*stepSize;
+        }
+    }
+
+    return out;
+
+}
+
+Surface surfMoveVerticesAlongNormal(const Surface& surf, float* vertexShift);
+
 std::vector<float> NIBR::surfBbox(const Surface& surf)
 {
     
@@ -710,7 +733,7 @@ Surface NIBR::surfGlueBoundaries(const Surface& inp1, const Surface& inp2)
                 vec3sub(tmp2, surf.vertices[startIndex], surf.vertices[thirdVertexIndex]);
                 cross(newFaceDir,tmp1,tmp2);
 
-                if (dot(&faceDir[0],&newFaceDir[0]) > 0) {
+                if (dot(faceDir,newFaceDir) > 0) {
                     originalFace[0] = thirdVertexIndex;
                     originalFace[1] = newVertexIndex;
                     originalFace[2] = startIndex;
@@ -725,7 +748,7 @@ Surface NIBR::surfGlueBoundaries(const Surface& inp1, const Surface& inp2)
                 vec3sub(tmp2, surf.vertices[endIndex], surf.vertices[thirdVertexIndex]);
                 cross(newFaceDir,tmp1,tmp2);
 
-                if (dot(&faceDir[0],&newFaceDir[0]) > 0) {
+                if (dot(faceDir,newFaceDir) > 0) {
                     surf.faces[newFaceIndex][0] = thirdVertexIndex;
                     surf.faces[newFaceIndex][1] = newVertexIndex;
                     surf.faces[newFaceIndex][2] = endIndex;
@@ -918,7 +941,7 @@ std::tuple<Surface,Surface> NIBR::splitWithPlane(const Surface& surf, const floa
     
     cutSurf.calcNormalsOfFaces();
 
-    float D = -dot(&planePoint[0], &planeNormal[0]); // Plane equation constant in Ax+By+Cz+D=0
+    float D = -dot(planePoint, planeNormal); // Plane equation constant in Ax+By+Cz+D=0
 
     std::vector<std::array<float, 3>> newVertices;
     std::vector<std::array<int, 3>>   newFaces;
@@ -928,8 +951,8 @@ std::tuple<Surface,Surface> NIBR::splitWithPlane(const Surface& surf, const floa
     auto calculateEdgePlaneIntersection = [&](float* v1, float* v2, std::pair<std::array<float, 3>, int>& intersection)->bool {
 
         float edge[3]     = {v2[0] - v1[0], v2[1] - v1[1], v2[2] - v1[2]};
-        float numerator   = -dot(&planeNormal[0], &v1[0]) - D;
-        float denominator =  dot(&planeNormal[0], &edge[0]);
+        float numerator   = -dot(planeNormal, v1) - D;
+        float denominator =  dot(planeNormal, edge);
 
         if (denominator == 0) return false; // Edge is parallel to the plane, no intersection
 
@@ -958,7 +981,7 @@ std::tuple<Surface,Surface> NIBR::splitWithPlane(const Surface& surf, const floa
             float p2s[3];
             vec3sub(p2s,cutSurf.vertices[cutSurf.faces[n][i]],planePoint);
 
-            if (NIBR::dot(&p2s[0],&planeNormal[0]) >= 0) {
+            if (NIBR::dot(p2s,planeNormal) >= 0) {
                 frontOfPlane++;
             } else {
                 backOfPlane++;
@@ -1137,7 +1160,7 @@ std::tuple<Surface,Surface> NIBR::splitWithPlane(const Surface& surf, const floa
         float p2s[3];
         vec3sub(p2s,tmp.vertices[n],planePoint);
 
-        float side = NIBR::dot(&p2s[0],&planeNormal[0]);
+        float side = NIBR::dot(p2s,planeNormal);
 
         if (side >= 0) frontMask[n]  = true;
         if (side <= 0) behindMask[n] = true;

@@ -178,8 +178,8 @@ std::vector<double> NIBR::Surface::calcAreasOfConnectedComponents() {
                     v2[i] = p3[i] - p1[i]; 
                 }
                 
-                cross(&faceNormal[0],v1,v2);
-                cA += norm(&faceNormal[0])/2.0;
+                cross(faceNormal,v1,v2);
+                cA += norm(faceNormal)/2.0;
 
                 // if (isnan(cA) && !nanFlag) {
                 //     disp(MSG_DEBUG,"Face: %d", n);

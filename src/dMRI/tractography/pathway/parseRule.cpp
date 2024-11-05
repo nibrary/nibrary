@@ -122,8 +122,8 @@ std::tuple<bool, std::string, std::string, std::string, double> surfArgHasMaskFi
 {
     auto parseStringAndInteger = [](const std::string& str) -> std::tuple<bool, std::string, std::string, std::string, double> {
         
-        const std::regex pattern1("^([a-zA-Z]+),([0-9]+)$");
-        const std::regex pattern2("^([a-zA-Z]+),(VERT|FACE),(INT|FLOAT),([0-9.]+)$");
+        const std::regex pattern1("^([a-zA-Z]+),(-?[0-9]+)$");
+        const std::regex pattern2("^([a-zA-Z]+),(VERT|FACE),(INT|FLOAT),(-?[0-9.]+)$");
         std::smatch match;
 
         // Check if the string matches pattern1
@@ -270,14 +270,14 @@ std::tuple<PathwayRule,bool> parseImage(std::vector<std::string> inp, size_t& i)
 
 
 // <rule> surf.vtk
-// <rule> surf.vtk boundaryOnly
-// <rule> surf.vtk boundaryOnly 0.5
-// <rule> surf.vtk 0.5 boundaryOnly
+// <rule> surf.vtk 2D
+// <rule> surf.vtk 2D 0.5
+// <rule> surf.vtk 0.5 2D
 
 // <rule> surf.vtk 1.2,2.4,33,2,4
 
 
-// <rule> surf.vtk 0.5 boundaryOnly 1.2,2.4,33,2,4
+// <rule> surf.vtk 0.5 2D 1.2,2.4,33,2,4
 
 // <rule> surf.vtk maskField,4
 // <rule> surf.vtk maskFile,VERT,INT,4
@@ -401,13 +401,13 @@ std::tuple<PathwayRule,bool> parseSurface(std::vector<std::string> inp, size_t& 
 // Surface:
 // <rule> surf.vtk                          -> if surface is closed then the rule includes the interior of the surface, otherwise only the surface is used
 // <rule> surf.vtk 1.2,2.4,33,2,4           -> a disk is extract and used as an open surface
-// <rule> surf.vtk maskField 3              -> A mask is created using label 3 of SurfaceField maskField
-// <rule> surf.vtk maskFile VERT int 3      -> A mask is created using label 3 from a maskFile for VERTices that uses int datatype
+// <rule> surf.vtk maskField,3              -> A mask is created using label 3 of SurfaceField maskField
+// <rule> surf.vtk maskFile,VERT,int,3      -> A mask is created using label 3 from a maskFile for VERTices that uses int datatype
 
 // <rule> surf.vtk 0.5                      -> if surface is closed then the rule includes the interior of the surface, otherwise only the surface is used
 // <rule> surf.vtk 0.5 1.2,2.4,33,2,4       -> a disk is extract and used as an open surface
-// <rule> surf.vtk 0.5 maskField 3          -> A mask is created using label 3 of SurfaceField maskField
-// <rule> surf.vtk 0.5 maskFile VERT int 3  -> A mask is created using label 3 from a maskFile for VERTices that uses int datatype
+// <rule> surf.vtk 0.5 maskField,3          -> A mask is created using label 3 of SurfaceField maskField
+// <rule> surf.vtk 0.5 maskFile,VERT,int,3  -> A mask is created using label 3 from a maskFile for VERTices that uses int datatype
 
 std::vector<PathwayRule> NIBR::parsePathwayInput(std::vector<std::string> inp) {
 

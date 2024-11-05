@@ -17,8 +17,8 @@ double NIBR::findSegmentTriangleIntersection(NIBR::Surface* inpSurf, int faceInd
     
     // Determinant
     double tmp[3];
-    cross(&tmp[0],&dir[0],&v2[0]);
-    double det = dot(&tmp[0],&v1[0]);
+    cross(tmp,dir,v2);
+    double det = dot(tmp,v1);
     
     // Segment is parallel to the triangle
     if ( (det == 0.0) || (isnan(det))) return 0.0;
@@ -26,18 +26,18 @@ double NIBR::findSegmentTriangleIntersection(NIBR::Surface* inpSurf, int faceInd
     double T[3] = {p[0]-double(ref[0]),p[1]-double(ref[1]),p[2]-double(ref[2])};
     
     // Check if the first barycentric coordinate is within limits
-    double u = dot(&tmp[0],&T[0]);
+    double u = dot(tmp,T);
     if (( (det < 0.0) && ((u > 0.0) || (u < det)) ) ||
         ( (det > 0.0) && ((u < 0.0) || (u > det)) ) ) return 0.0;
 
     // Check if the second barycentric coordinate is within limits
-    cross(&tmp[0],&T[0],&v1[0]);
-    double v = dot(&tmp[0],&dir[0]);    
+    cross(tmp,T,v1);
+    double v = dot(tmp,dir);    
     if (( (det < 0.0) && ((v > 0.0) || ((u+v) < det)) ) ||
         ( (det > 0.0) && ((v < 0.0) || ((u+v) > det)) ) ) return 0.0;
     
     // Check if t is within range, i.e., segment crosses the triangle
-    double t  = dot(&tmp[0], &v2[0]);
+    double t  = dot(tmp, v2);
 
     // disp(MSG_DEBUG, "faceInd: %d, l: %.14f, det: %.14f, t: %.14f, t-f:%.14f", faceIndex, length, det, t, std::fabs(t)-length*std::fabs(det));
     // disp(MSG_DEBUG, "  beg: [%.8f , %.8f , %.8f]", p[0],p[1],p[2] );
@@ -57,7 +57,7 @@ double NIBR::findSegmentTriangleIntersection(NIBR::Surface* inpSurf, int faceInd
     t /= det;
     t  = std::clamp(t,0.0,length);
         
-    double angle  = M_PI_2 - std::acos(std::clamp(std::fabs(dot(&dir[0],&inpSurf->normalsOfFaces[faceIndex][0])),-1.0,1.0));
+    double angle  = M_PI_2 - std::acos(std::clamp(std::fabs(dot(dir,inpSurf->normalsOfFaces[faceIndex])),-1.0,1.0));
     angle *= (180.0/M_PI);
     
     if (pos!=NULL) {

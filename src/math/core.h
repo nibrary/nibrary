@@ -57,32 +57,36 @@ namespace NIBR
 
     // Implementation of a generalized signof
     template <typename T> inline constexpr
-    int getSign(T x, std::false_type) {
+    int getSign(const T& x, std::false_type) {
         return T(0) < x;
     }
 
     template <typename T> inline constexpr
-    int getSign(T x, std::true_type) {
+    int getSign(const T& x, std::true_type) {
         return (T(0) < x) - (x < T(0));
     }
 
     template <typename T> inline constexpr
-    int getSign(T x) {
+    int getSign(const T& x) {
         return getSign(x, std::is_signed<T>());
     }
     //-----
 
 
-    template<class T>
-    inline double norm(const T v) 
+    template<typename T> inline constexpr
+    double norm(const T& v) 
     { 
         return std::sqrt(double(v[0])*double(v[0])+double(v[1])*double(v[1])+double(v[2])*double(v[2]));
     }
 
+    template<typename T> inline constexpr
+    double norm(std::vector<T>& v) 
+    {
+        return std::sqrt(double(v[0])*double(v[0])+double(v[1])*double(v[1])+double(v[2])*double(v[2]));
+    }
 
-
-    template<class T>
-    inline void normalize(T* v) 
+    template<typename T> inline constexpr
+    void normalize(T& v) 
     {
         double scale  = 1.0/std::sqrt(double(v[0])*double(v[0])+double(v[1])*double(v[1])+double(v[2])*double(v[2]));
         v[0] *= scale;
@@ -90,8 +94,8 @@ namespace NIBR
         v[2] *= scale;
     }
 
-    template<class T>
-    inline void normalize(std::vector<T>& v) 
+    template<typename T> inline constexpr
+    void normalize(std::vector<T>& v) 
     {
         double scale  = 1.0/std::sqrt(double(v[0])*double(v[0])+double(v[1])*double(v[1])+double(v[2])*double(v[2]));
         v[0] *= scale;
@@ -100,16 +104,16 @@ namespace NIBR
     }
 
 
-    template<class T>
-    inline void verifyUnitRange(T* v) {
+    template<typename T> inline constexpr
+    void verifyUnitRange(T& v) {
         for (int i=0;i<3;i++){
             if (v[i] >  1) v[i]= 0.99999999999999999999999999999999999999;
             if (v[i] < -1) v[i]=-0.99999999999999999999999999999999999999;
         }
     }
 
-    template<class T>
-    inline void verifyUnitRange(std::vector<T>& v) 
+    template<typename T> inline constexpr
+    void verifyUnitRange(std::vector<T>& v) 
     {
         for (int i=0;i<3;i++){
             if (v[i] >  1) v[i]= 0.99999999999999999999999999999999999999;
@@ -117,31 +121,28 @@ namespace NIBR
         }
     }
 
-
-
-    template<class T1,class T2>
-    inline double dot(const T1 v1,const T2 v2) 
+    template<typename T1,typename T2> inline constexpr
+    double dot(const T1& v1, const T2& v2) 
     {
         return double(v1[0])*double(v2[0])+double(v1[1])*double(v2[1])+double(v1[2])*double(v2[2]);
     }
 
-    template<class T1,class T2>
-    inline double distS2(const T1 v1,const T2 v2) 
+    template<typename T1,typename T2> inline constexpr
+    double distS2(const T1& v1, const T2& v2) 
     {
-        return std::acos(std::clamp(dot(&v1[0],&v2[0]),-1.0,1.0));
+        return std::acos(std::clamp(dot(v1,v2),-1.0,1.0));
     }
 
-
-    template<class TOUT,class T1,class T2>
-    inline void cross(TOUT out, const T1 v1,const T2 v2)
+    template <typename TOUT, typename T1, typename T2> inline constexpr
+    void cross(TOUT& out, const T1& v1, const T2& v2)
     {
         out[0] = v1[1]*v2[2] - v1[2]*v2[1];
         out[1] = v1[2]*v2[0] - v1[0]*v2[2];
         out[2] = v1[0]*v2[1] - v1[1]*v2[0];
     }
 
-    template<class T1,class T2>
-    inline double dist(const T1 p1,const T2 p2)
+    template<typename T1,typename T2> inline constexpr
+    double dist(const T1& p1,const T2& p2)
     {
         return std::sqrt( (p1[0]-p2[0])*(p1[0]-p2[0]) + (p1[1]-p2[1])*(p1[1]-p2[1]) + (p1[2]-p2[2])*(p1[2]-p2[2]) );
     }
@@ -151,13 +152,13 @@ namespace NIBR
         return std::sqrt( (p1->x-p2->x)*(p1->x-p2->x) + (p1->y-p2->y)*(p1->y-p2->y) + (p1->z-p2->z)*(p1->z-p2->z) );
     }
 
-    inline double dist(const Point p1,const Point p2)
+    inline double dist(const Point& p1,const Point& p2)
     {
         return std::sqrt( (p1.x-p2.x)*(p1.x-p2.x) + (p1.y-p2.y)*(p1.y-p2.y) + (p1.z-p2.z)*(p1.z-p2.z) );
     }
 
-    template<class T1,class T2>
-    inline double squared_dist(const T1 p1,const T2 p2)
+    template<typename T1,typename T2> inline constexpr
+    double squared_dist(const T1& p1,const T2& p2)
     {
         return (p1[0]-p2[0])*(p1[0]-p2[0]) + (p1[1]-p2[1])*(p1[1]-p2[1]) + (p1[2]-p2[2])*(p1[2]-p2[2]);
     }
@@ -167,55 +168,55 @@ namespace NIBR
         return (p1->x-p2->x)*(p1->x-p2->x) + (p1->y-p2->y)*(p1->y-p2->y) + (p1->z-p2->z)*(p1->z-p2->z);
     }
 
-    inline double squared_dist(const Point p1,const Point p2)
+    inline double squared_dist(const Point& p1,const Point& p2)
     {
         return (p1.x-p2.x)*(p1.x-p2.x) + (p1.y-p2.y)*(p1.y-p2.y) + (p1.z-p2.z)*(p1.z-p2.z);
     }
 
 
 
-    template<class TOUT,class T1,class T2>
-    inline void vec3sub(TOUT out, const T1 v1,const T2 v2)
+    template<typename TOUT,typename T1,typename T2> inline constexpr
+    void vec3sub(TOUT& out, const T1& v1,const T2& v2)
     {
         out[0] = v1[0] - v2[0];
         out[1] = v1[1] - v2[1];
         out[2] = v1[2] - v2[2];
     }
 
-    template<class TOUT,class T1,class T2>
-    inline void vec3add(TOUT out, const T1 v1,const T2 v2)
+    template<typename TOUT,typename T1,typename T2> inline constexpr
+    void vec3add(TOUT& out, const T1& v1,const T2& v2)
     {
         out[0] = v1[0] + v2[0];
         out[1] = v1[1] + v2[1];
         out[2] = v1[2] + v2[2];
     }
 
-    template<class TOUT,class T1,class T2, class T3>
-    inline void vec3add(TOUT out, const T1 v1,const T2 v2, const T3 s)
+    template<typename TOUT,typename T1,typename T2, typename T3> inline constexpr
+    void vec3add(TOUT& out, const T1& v1,const T2& v2, const T3& s)
     {
         out[0] = v1[0] + s*v2[0];
         out[1] = v1[1] + s*v2[1];
         out[2] = v1[2] + s*v2[2];
     }
 
-    template<class T1,class T2>
-    inline void vec3scale(T1 v, const T2 s)
+    template<typename T1,typename T2> inline constexpr
+    void vec3scale(T1& v, const T2& s)
     {
         v[0] *= s;
         v[1] *= s;
         v[2] *= s;
     }
 
-    template<class T>
-    inline void vec3abs(T v)
+    template<typename T> inline constexpr
+    void vec3abs(T& v)
     {
         v[0] = std::fabs(v[0]);
         v[1] = std::fabs(v[1]);
         v[2] = std::fabs(v[2]);
     }
 
-    template<class TOUT>
-    inline void point2vec3(TOUT out, Point p, Point ref)
+    template<typename TOUT> inline constexpr
+    void point2vec3(TOUT& out, const Point& p, const Point& ref)
     {
         out[0] = p.x - ref.x;
         out[1] = p.y - ref.y;
@@ -223,8 +224,8 @@ namespace NIBR
     }
 
 
-    template<class T>
-    inline void applyTransform(Point p, T M)
+    template<typename T> inline constexpr
+    void applyTransform(Point& p, const T& M)
     {
         float x = p.x*M[0][0] + p.y*M[0][1] + p.z*M[0][2] + M[0][3];
         float y = p.x*M[1][0] + p.y*M[1][1] + p.z*M[1][2] + M[1][3];
@@ -234,8 +235,8 @@ namespace NIBR
         p.z = z;
     }
 
-    template<class T1,class T2>
-    inline void applyTransform(T1 v, T2 M)
+    template<typename T1,typename T2> inline constexpr
+    void applyTransform(T1& v, const T2& M)
     {
         double x = v[0]*M[0][0] + v[1]*M[0][1] + v[2]*M[0][2] + M[0][3];
         double y = v[0]*M[1][0] + v[1]*M[1][1] + v[2]*M[1][2] + M[1][3];
@@ -245,8 +246,8 @@ namespace NIBR
         v[2] = z;
     }
 
-    template<class T1,class T2>
-    inline void applyTransform(std::vector<T1>& v_arr, T2 M)
+    template<typename T1,typename T2> inline constexpr
+    void applyTransform(std::vector<T1>& v_arr, const T2& M)
     {
 
         for (auto v : v_arr) {
@@ -260,8 +261,8 @@ namespace NIBR
         
     }
 
-    template<class T1, class T2, class T3>
-    inline void applyTransform(T1 vout, T2 vinp, T3 M[][4])
+    template<typename T1, typename T2, typename T3> inline constexpr
+    void applyTransform(T1& vout, const T2& vinp, const T3& M)
     {
         vout[0] = vinp[0]*M[0][0] + vinp[1]*M[0][1] + vinp[2]*M[0][2] + M[0][3];
         vout[1] = vinp[0]*M[1][0] + vinp[1]*M[1][1] + vinp[2]*M[1][2] + M[1][3];
@@ -269,13 +270,13 @@ namespace NIBR
     }
 
 
-    template<class T>
-    T rad2deg(T rad) {
+    template<typename T>
+    T rad2deg(const T& rad) {
         return rad*N180OVERPI;
     }
 
-    template<class T>
-    T deg2rad(T deg) {
+    template<typename T>
+    T deg2rad(const T& deg) {
         return deg*PIOVERN180;
     }
 
@@ -308,8 +309,8 @@ namespace NIBR
     /* [ r21 r22 r23 v2 ] */
     /* [ r31 r32 r33 v3 ] */
     /* [  0   0   0   1 ] */
-    template<class T1,class T2>
-    bool inverseAffine(T1 R, T2 Q)
+    template<typename T1,typename T2>
+    bool inverseAffine(const T1& R, T2& Q)
     {
         double r11,r12,r13,r21,r22,r23,r31,r32,r33,v1,v2,v3 , deti ;
                                                     

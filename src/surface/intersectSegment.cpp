@@ -65,7 +65,7 @@ std::tuple<bool,bool,double,int,bool,double> NIBR::Surface::intersectSegment(Lin
                 intFaceInd    = faceInd;
                 doesIntersect = true;
                 
-                if (dot(&seg->dir[0],this->normalsOfFaces[faceInd])>0)
+                if (dot(seg->dir,this->normalsOfFaces[faceInd])>0)
                     towardsOutside = true;
                 else
                     towardsOutside = false;

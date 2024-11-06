@@ -34,6 +34,7 @@ namespace NIBR {
     Surface surfMakeItSingleClosed(const Surface& surf);
 
     Surface surfMoveVerticesAlongNormal(const Surface& surf, float shift);
+    Surface meanCurvatureFlow(const Surface& surf, float stepSize);
 
     std::vector<float> surfBbox(const Surface& surf);
     

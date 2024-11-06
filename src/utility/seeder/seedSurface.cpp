@@ -41,8 +41,8 @@ SeederOutputState SeedSurface::getSeed(float* p, float* dir, int t) {
         // So the generated points will be on side of the mesh opposite to where the normal is pointing
         // We will make sure that the points are not exactly on the mesh, i.e. dist != 0.0f,
         // but within surface border, i.e. (0.0 SURFTHICKNESS]
-        vec3sub(&T[0],a,p);
-        double dist = dot(Nf[f],&T[0]);
+        vec3sub(T,a,p);
+        double dist = dot(Nf[f],T);
 
         // Try and project the point inside if needed
         if (dist < 0.0f) {
@@ -50,8 +50,8 @@ SeederOutputState SeedSurface::getSeed(float* p, float* dir, int t) {
             p[0] -= 2.0 * dist * Nf[f][0];
             p[1] -= 2.0 * dist * Nf[f][1];
             p[2] -= 2.0 * dist * Nf[f][2];
-            vec3sub(&T[0],a,p);
-            dist = dot(Nf[f],&T[0]);
+            vec3sub(T,a,p);
+            dist = dot(Nf[f],T);
         }
 
         if (dist == 0.0f) {
@@ -59,8 +59,8 @@ SeederOutputState SeedSurface::getSeed(float* p, float* dir, int t) {
             p[0] -= EPS7 * Nf[f][0];
             p[1] -= EPS7 * Nf[f][1];
             p[2] -= EPS7 * Nf[f][2];
-            vec3sub(&T[0],a,p);
-            dist = dot(Nf[f],&T[0]);
+            vec3sub(T,a,p);
+            dist = dot(Nf[f],T);
         }
 
         // Make sure that the point is within border.

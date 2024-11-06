@@ -25,13 +25,13 @@ double NIBR::Surface::squaredDistToPoint(float *p, int& faceInd, float* closestP
 
 double NIBR::Surface::squaredDistToPoint(float *p, int& faceInd) {
     float closestPoint[3];
-    return squaredDistToPoint(p,faceInd,&closestPoint[0]);
+    return squaredDistToPoint(p,faceInd,closestPoint);
 }
 
 double NIBR::Surface::squaredDistToPoint(float *p) {
     int faceInd;
     float closestPoint[3];
-    return squaredDistToPoint(p,faceInd,&closestPoint[0]);
+    return squaredDistToPoint(p,faceInd,closestPoint);
 }
 
 
@@ -75,12 +75,12 @@ double NIBR::Surface::distToPoint(float *p, int& faceInd, float* closestPoint) {
 
 double NIBR::Surface::distToPoint(float *p, int& faceInd) {
     float closestPoint[3];
-    return distToPoint(p,faceInd,&closestPoint[0]);
+    return distToPoint(p,faceInd,closestPoint);
 }
 
 
 double NIBR::Surface::distToPoint(float *p) {
     int faceInd;
     float closestPoint[3];
-    return distToPoint(p,faceInd,&closestPoint[0]);
+    return distToPoint(p,faceInd,closestPoint);
 }

@@ -291,7 +291,7 @@ bool NIBR::Tractogram2ImageMapper<T1>::processStreamline(int streamlineId, uint1
             vec3sub(curr_T,kernel[0][l+1],kernel[0][l]);
             normalize(curr_T);
 
-            R_angle = std::acos(std::clamp(dot(&T[0],&curr_T[0]),-1.0,1.0));
+            R_angle = std::acos(std::clamp(dot(T,curr_T),-1.0,1.0));
 
             curr_T[0] += EPS4;  // for numerical stability reasons
             curr_T[1] += EPS4;

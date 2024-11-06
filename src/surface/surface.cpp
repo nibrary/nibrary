@@ -728,6 +728,7 @@ void NIBR::Surface::calcNormalsOfFaces() {
         normalsOfFaces[n] = new float[3];
         
         cross(normalsOfFaces[n],v1,v2);
+
         areasOfFaces[n] = norm(normalsOfFaces[n])/2.0;
         normalize(normalsOfFaces[n]);
         area += areasOfFaces[n];

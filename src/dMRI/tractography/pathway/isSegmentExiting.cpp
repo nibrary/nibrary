@@ -146,7 +146,7 @@ bool NIBR::Pathway::isSegmentExiting(NIBR::Walker* w, int ruleNo) {
                 return false;
 
             // segment is exiting the sphere
-            float proj_h = dot(&p2c[0], &w->segment.dir[0]);
+            float proj_h = dot(p2c, w->segment.dir);
             float dd     = p2c_norm*p2c_norm - proj_h*proj_h;
             float dist   = proj_h + std::sqrt(sphRadiusSquared[ruleNo] - dd);
 

@@ -137,7 +137,7 @@ bool NIBR::Pathway::isSegmentEntering(NIBR::Walker* w, int ruleNo) {
             }
 
             // segment can't intersect the sphere
-            float proj_h = dot(&p2c[0], &w->segment.dir[0]);
+            float proj_h = dot(p2c, w->segment.dir);
             if ( proj_h < 0.0 ) 
                 return false;
             

@@ -172,6 +172,7 @@ namespace NIBR
         std::vector<double> calcAreasOfHoles();
 
         void toEigen();
+        void fromEigen();
         void prepIglAABBTree();
 
         double squaredDistToPoint(float *p);

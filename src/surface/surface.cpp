@@ -655,6 +655,53 @@ void NIBR::Surface::toEigen() {
     // disp(MSG_DEBUG,"Done toEigen()");
 }
 
+void NIBR::Surface::fromEigen() {
+
+    // disp(MSG_DEBUG,"fromEigen()");
+
+    // Delete existing vertices
+    if (vertices != NULL) {
+        for (int n = 0; n < nv; n++) {
+            delete[] vertices[n];
+        }
+        delete[] vertices;
+        vertices = NULL;
+    }
+
+    nv = V.rows();
+
+    vertices = new float*[nv];
+    for (int i = 0; i < nv; i++) {
+        vertices[i]    = new float[3];
+        vertices[i][0] = V(i, 0);
+        vertices[i][1] = V(i, 1);
+        vertices[i][2] = V(i, 2);
+    }
+
+    // Delete existing faces
+    if (faces != NULL) {
+        for (int n = 0; n < nf; n++) {
+            delete[] faces[n]; // Delete each face array
+        }
+        delete[] faces; // Delete the array of face pointers
+        faces = NULL;
+    }
+
+    nf = F.rows();
+
+    faces = new int*[nf];
+    
+    for (int i = 0; i < nf; i++) {
+        faces[i]    = new int[3];
+        faces[i][0] = F(i, 0);
+        faces[i][1] = F(i, 1);
+        faces[i][2] = F(i, 2);
+    }
+    
+
+    // disp(MSG_DEBUG,"Done fromEigen()");
+}
+
 void NIBR::Surface::prepIglAABBTree() {
 
     // disp(MSG_DEBUG,"prepIglAABBTree()");
@@ -727,7 +774,9 @@ void NIBR::Surface::calcNormalsOfFaces() {
         
         normalsOfFaces[n] = new float[3];
         
-        cross(normalsOfFaces[n],v1,v2);
+        normalsOfFaces[n][0] = v1[1]*v2[2] - v1[2]*v2[1];
+        normalsOfFaces[n][1] = v1[2]*v2[0] - v1[0]*v2[2];
+        normalsOfFaces[n][2] = v1[0]*v2[1] - v1[1]*v2[0];
 
         areasOfFaces[n] = norm(normalsOfFaces[n])/2.0;
         normalize(normalsOfFaces[n]);

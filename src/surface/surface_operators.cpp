@@ -15,6 +15,10 @@
 #include <tuple>
 #include <queue>
 
+#include <igl/cotmatrix.h>
+#include <igl/massmatrix.h>
+#include <Eigen/SparseCholesky>
+
 using namespace NIBR;
 
 Surface NIBR::surfRemoveVerticesWithNAN(Surface& surf)
@@ -401,25 +405,51 @@ Surface NIBR::surfMoveVerticesAlongNormal(const Surface& surf, float shift) {
 
 }
 
-Surface NIBR::meanCurvatureFlow(const Surface& surf, float stepSize) {
+Surface NIBR::meanCurvatureFlow(const Surface& surf, float dt, int iterationCount) {
 
     if (surf.nv < 1) return surf;
-    if (stepSize == 0)  return surf;
+    if (dt == 0)  return surf;
 
-    Surface out(surf,true);
-    out.calcNormalsOfVertices();
-    out.calcMeanCurvature();
+    Surface out(surf, true);
+    out.toEigen();
 
-    for (int n = 0; n < out.nv; n++) {
-        if (out.meanCurvature[n] > 0) {
-            out.vertices[n][0] -= out.normalsOfVertices[n][0]*out.meanCurvature[n]*stepSize;
-            out.vertices[n][1] -= out.normalsOfVertices[n][1]*out.meanCurvature[n]*stepSize;
-            out.vertices[n][2] -= out.normalsOfVertices[n][2]*out.meanCurvature[n]*stepSize;
+    for (int i = 0; i < iterationCount; ++i) {
+
+        // Compute the cotangent Laplacian
+        Eigen::SparseMatrix<double> L;
+        igl::cotmatrix(out.V, out.F, L);
+
+        // Compute the mass matrix
+        Eigen::SparseMatrix<double> M;
+        igl::massmatrix(out.V, out.F, igl::MASSMATRIX_TYPE_VORONOI, M);
+
+        // Assemble the system matrix
+        Eigen::SparseMatrix<double> A = M - dt * L;
+
+        // Factorize the system matrix
+        Eigen::SimplicialLLT<Eigen::SparseMatrix<double>> solver;
+        solver.compute(A);
+
+        if (solver.info() != Eigen::Success) {
+            disp(MSG_FATAL,"Failed to factorize the system matrix.");
+            return out; // Handle error appropriately
         }
+
+        Eigen::MatrixXd B = M * out.V;
+
+        Eigen::MatrixXd V_new = solver.solve(B);
+
+        if (solver.info() != Eigen::Success) {
+            disp(MSG_FATAL,"Failed to solve the linear system.");
+            return out; // Handle error appropriately
+        }
+
+        out.V = V_new;
     }
 
-    return out;
+    out.fromEigen();
 
+    return out;
 }
 
 Surface surfMoveVerticesAlongNormal(const Surface& surf, float* vertexShift);

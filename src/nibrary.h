@@ -3,9 +3,6 @@
 #include "base/config.h"
 #include "base/stringOperations.h"
 
-// anat
-#include "anat/anatSurf.h"
-
 // dMRI
 #include "dMRI/gradient/dMRI_grad.h"
 #include "dMRI/imageTypes/fod_image.h"

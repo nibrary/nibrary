@@ -381,11 +381,14 @@ bool NIBR::Pathway::add(PathwayRule prule) {
 
             if (prule.surfSrc != NULL) {if (!addSurface(prule)) {return cleanExit();} break;}
 
+            disp(MSG_DETAIL,"Checking discretization");
+
             if (prule.surfaceDiscretizationRes<=0) {
                 disp(MSG_ERROR,"Surface discretization resolution can't be negative, which is currently %.2f", prule.surfaceDiscretizationRes);
                 return cleanExit();
             }
 
+            disp(MSG_DETAIL,"Checking previous copies");
             // If same source was used before then just copy the pointers, without allocating new memory
             bool srcDone  = false;
             bool dataDone = false;
@@ -429,17 +432,18 @@ bool NIBR::Pathway::add(PathwayRule prule) {
             // Surface can have a mask, density and data defined.
             // To handle all the various combinations, we will create a tmpSurf, then
             // create and add surfaceFields for each of the mask, density and data if they are defined.
-            // Mask field will be defined on VERT.
+            // Mask field will be defined on VERTEX.
             // Data and density will be defined on FACE.
             // After all the three fields are added, we will apply the mask. 
             // Application of the mask will will all the adjust the data and density constraint in the masked surface.
 
-
+            disp(MSG_DETAIL,"Checking temporary surface");
             // Creating tmpSurf from the input mesh
             NIBR::Surface *tmpSurf = new NIBR::Surface(prule.surfaceSource);
             tmpSurf->readMesh();
 
             // Creating data field
+            disp(MSG_DETAIL,"Checking data field");
             // Currently for multi-dimensional surface data only surface fields can be used
             SurfaceField* dataField = new SurfaceField;
             int m = (prule.surfaceFieldFile4FaceData!="")+(prule.surfaceFieldFile4VertData!="")+(prule.surfaceFieldName4Data!="");
@@ -451,14 +455,26 @@ bool NIBR::Pathway::add(PathwayRule prule) {
                 dataField = NULL;
                 return cleanExit();
             } else if (m==1) {
-                if (prule.surfaceFieldFile4FaceData!="")    *dataField = tmpSurf->makeFieldFromFile(prule.surfaceFieldFile4FaceData, "data", "FACE", prule.surfaceFieldFile4DataDtype, 1, "", false);
-                if (prule.surfaceFieldFile4VertData!="")    *dataField = tmpSurf->makeFieldFromFile(prule.surfaceFieldFile4VertData, "data", "VERT", prule.surfaceFieldFile4DataDtype, 1, "", false);
+                disp(MSG_DETAIL,"Creating field");
+                if ((prule.surfaceFieldFile4FaceData!="") && (prule.surfaceFieldFile4DataDtype == "int"))    *dataField = tmpSurf->makeFieldFromFile(prule.surfaceFieldFile4FaceData, "data", "FACE",    "int", 1, "", false);
+                else if ((prule.surfaceFieldFile4FaceData!="") && (prule.surfaceFieldFile4DataDtype == "float"))  *dataField = tmpSurf->makeFieldFromFile(prule.surfaceFieldFile4FaceData, "data", "FACE",  "float", 1, "", false);
+                else if ((prule.surfaceFieldFile4FaceData!="") && (prule.surfaceFieldFile4DataDtype == "ascii"))  *dataField = tmpSurf->makeFieldFromFile(prule.surfaceFieldFile4FaceData, "data", "FACE",  "float", 1, "", true);
+                else if (prule.surfaceFieldFile4FaceData!="") { disp(MSG_ERROR,"surface data face field file data type must be \"int\", \"float\" or \"ascii\""); return cleanExit();}
+                
+
+                if ((prule.surfaceFieldFile4VertData!="") && (prule.surfaceFieldFile4DataDtype == "int"))    *dataField = tmpSurf->makeFieldFromFile(prule.surfaceFieldFile4VertData, "data", "VERTEX",  "int", 1, "", false);
+                else if ((prule.surfaceFieldFile4VertData!="") && (prule.surfaceFieldFile4DataDtype == "float"))  *dataField = tmpSurf->makeFieldFromFile(prule.surfaceFieldFile4VertData, "data", "VERTEX","float", 1, "", false);
+                else if ((prule.surfaceFieldFile4VertData!="") && (prule.surfaceFieldFile4DataDtype == "ascii"))  *dataField = tmpSurf->makeFieldFromFile(prule.surfaceFieldFile4VertData, "data", "VERTEX","float", 1, "", true);
+                else if (prule.surfaceFieldFile4VertData!="") { disp(MSG_ERROR,"surface data vertex field file data type must be \"int\", \"float\" or \"ascii\""); return cleanExit();}
+
                 if (prule.surfaceFieldName4Data!="")        *dataField = tmpSurf->readField(prule.surfaceFieldName4Data);
                 dataField->name = "data";
+                disp(MSG_DETAIL,"Converting to face field");
                 tmpSurf->convert2FaceField(*dataField);
             }
 
             // Creating density field
+            disp(MSG_DETAIL,"Checking density field");
             SurfaceField densField;
             m = (prule.surfaceFieldFile4FaceDens!="")+(prule.surfaceFieldFile4VertDens!="")+(prule.surfaceFieldName4Dens!="");
             if (m>1) {
@@ -469,14 +485,25 @@ bool NIBR::Pathway::add(PathwayRule prule) {
                 delete tmpSurf;
                 return cleanExit();
             } else if (m==1) {
-                if (prule.surfaceFieldFile4FaceDens!="")    densField = tmpSurf->makeFieldFromFile(prule.surfaceFieldFile4FaceDens, "dens", "FACE", prule.surfaceFieldFile4DensDtype, 1, "", false);
-                if (prule.surfaceFieldFile4VertDens!="")    densField = tmpSurf->makeFieldFromFile(prule.surfaceFieldFile4VertDens, "dens", "VERT", prule.surfaceFieldFile4DensDtype, 1, "", false);
-                if (prule.surfaceFieldName4Dens!="")        densField = tmpSurf->readField(prule.surfaceFieldName4Dens);
+                disp(MSG_DETAIL,"Creating field");
+                if ((prule.surfaceFieldFile4FaceDens!="") && (prule.surfaceFieldFile4DensDtype == "int"))    densField = tmpSurf->makeFieldFromFile(prule.surfaceFieldFile4FaceDens, "dens", "FACE",    "int", 1, "", false);
+                else if ((prule.surfaceFieldFile4FaceDens!="") && (prule.surfaceFieldFile4DensDtype == "float"))  densField = tmpSurf->makeFieldFromFile(prule.surfaceFieldFile4FaceDens, "dens", "FACE",  "float", 1, "", false);
+                else if ((prule.surfaceFieldFile4FaceDens!="") && (prule.surfaceFieldFile4DensDtype == "ascii"))  densField = tmpSurf->makeFieldFromFile(prule.surfaceFieldFile4FaceDens, "dens", "FACE",  "float", 1, "",  true);
+                else if (prule.surfaceFieldFile4FaceDens!="") { disp(MSG_ERROR,"surface density face field file data type must be \"int\", \"float\" or \"ascii\""); return cleanExit();}
+                
+                if ((prule.surfaceFieldFile4VertDens!="") && (prule.surfaceFieldFile4DensDtype == "int"))    densField = tmpSurf->makeFieldFromFile(prule.surfaceFieldFile4VertDens, "dens", "VERTEX",  "int", 1, "", false);
+                else if ((prule.surfaceFieldFile4VertDens!="") && (prule.surfaceFieldFile4DensDtype == "float"))  densField = tmpSurf->makeFieldFromFile(prule.surfaceFieldFile4VertDens, "dens", "VERTEX","float", 1, "", false);
+                else if ((prule.surfaceFieldFile4VertDens!="") && (prule.surfaceFieldFile4DensDtype == "ascii"))  densField = tmpSurf->makeFieldFromFile(prule.surfaceFieldFile4VertDens, "dens", "VERTEX","float", 1, "",  true);
+                else if (prule.surfaceFieldFile4VertDens!="") { disp(MSG_ERROR,"surface density vertex field file data type must be \"int\", \"float\" or \"ascii\""); return cleanExit();}
+                
+                if ((prule.surfaceFieldName4Dens!=""))        densField = tmpSurf->readField(prule.surfaceFieldName4Dens);
                 densField.name = "dens";
+                disp(MSG_DETAIL,"Converting to face field");
                 tmpSurf->convert2FaceField(densField);
             }
 
             // Creating mask field
+            disp(MSG_DETAIL,"Checking mask field");
             SurfaceField maskField;
             m = (prule.surfaceFieldFile4FaceMask!="")+(prule.surfaceFieldFile4VertMask!="")+(prule.surfaceFieldName4Mask!="")+(prule.surfaceUseDisc==true);
             if (m>1) {
@@ -488,8 +515,17 @@ bool NIBR::Pathway::add(PathwayRule prule) {
                 delete tmpSurf;
                 return cleanExit();
             } else if (m==1) {
-                if (prule.surfaceFieldFile4FaceMask!="")    maskField = tmpSurf->makeFieldFromFile(prule.surfaceFieldFile4FaceMask, "mask", "FACE", prule.surfaceFieldFile4MaskDtype, 1, "", false);
-                if (prule.surfaceFieldFile4VertMask!="")    maskField = tmpSurf->makeFieldFromFile(prule.surfaceFieldFile4VertMask, "mask", "VERT", prule.surfaceFieldFile4MaskDtype, 1, "", false);
+                disp(MSG_DETAIL,"Creating field");
+                if ((prule.surfaceFieldFile4FaceMask!="") && (prule.surfaceFieldFile4MaskDtype == "int"))      maskField = tmpSurf->makeFieldFromFile(prule.surfaceFieldFile4FaceMask, "mask", "FACE",    "int", 1, "", false);
+                else if ((prule.surfaceFieldFile4FaceMask!="") && (prule.surfaceFieldFile4MaskDtype == "float"))    maskField = tmpSurf->makeFieldFromFile(prule.surfaceFieldFile4FaceMask, "mask", "FACE",  "float", 1, "", false);
+                else if ((prule.surfaceFieldFile4FaceMask!="") && (prule.surfaceFieldFile4MaskDtype == "ascii"))    maskField = tmpSurf->makeFieldFromFile(prule.surfaceFieldFile4FaceMask, "mask", "FACE",  "float", 1, "",  true);
+                else if (prule.surfaceFieldFile4FaceMask!="") { disp(MSG_ERROR,"surface mask face field file data type must be \"int\", \"float\" or \"ascii\""); return cleanExit();}
+                
+                if ((prule.surfaceFieldFile4VertMask!="") && (prule.surfaceFieldFile4MaskDtype == "int"))      maskField = tmpSurf->makeFieldFromFile(prule.surfaceFieldFile4VertMask, "mask", "VERTEX",  "int", 1, "", false);
+                else if ((prule.surfaceFieldFile4VertMask!="") && (prule.surfaceFieldFile4MaskDtype == "float"))    maskField = tmpSurf->makeFieldFromFile(prule.surfaceFieldFile4VertMask, "mask", "VERTEX","float", 1, "", false);
+                else if ((prule.surfaceFieldFile4VertMask!="") && (prule.surfaceFieldFile4MaskDtype == "ascii"))    maskField = tmpSurf->makeFieldFromFile(prule.surfaceFieldFile4VertMask, "mask", "VERTEX","float", 1, "",  true);
+                else if (prule.surfaceFieldFile4VertMask!="") { disp(MSG_ERROR,"surface mask vertex field file data type must be \"int\", \"float\" or \"ascii\""); return cleanExit();}
+                
                 if (prule.surfaceFieldName4Mask!="")        maskField = tmpSurf->readField(prule.surfaceFieldName4Mask);
                 if (prule.surfaceUseDisc)                   maskField = makeDiscMask(tmpSurf, prule.surfaceDiscCenter[0], prule.surfaceDiscCenter[1], prule.surfaceDiscCenter[2], prule.surfaceDiscRadius);
                 maskField.name = "mask";
@@ -500,6 +536,7 @@ bool NIBR::Pathway::add(PathwayRule prule) {
             }
 
             // Applying mask
+            disp(MSG_DETAIL,"Applying mask if needed");
             // Masking is done by marking vertices to select
             switch (maskField.owner) {
                 case NOTSET:
@@ -523,6 +560,7 @@ bool NIBR::Pathway::add(PathwayRule prule) {
 
 
             // Preparing surfSrc
+            disp(MSG_DETAIL,"Preparing pathway surface");
             Surface* surfSrc;
             
             // maskField is either NOTSET or VERTEX at this point
@@ -541,6 +579,7 @@ bool NIBR::Pathway::add(PathwayRule prule) {
             // At this point, surfSrc is ready. 
             // It is also masked with matching dataField and densField prepped as well.
 
+            disp(MSG_DETAIL,"Finalizing surface source");
             if (!srcDone) {
 
                 surfSrc->isClosed();
@@ -606,6 +645,7 @@ bool NIBR::Pathway::add(PathwayRule prule) {
 
             }
 
+            disp(MSG_DETAIL,"Cleaning data field if needed");
             if (!dataDone) {
                 if (dataField->owner != NOTSET) {
                     dataDone = true;
@@ -617,6 +657,7 @@ bool NIBR::Pathway::add(PathwayRule prule) {
             }
 
             // Prepare if type is seed
+            disp(MSG_DETAIL,"Setting surface as seed if needed");
             if ((prule.type == seed) && (isTracking == true)) {
 
                 Seeder* seedDef = NULL;
@@ -662,6 +703,7 @@ bool NIBR::Pathway::add(PathwayRule prule) {
 
             }
 
+            disp(MSG_DETAIL,"Clearing density field if needed");
             tmpSurf->clearField(densField);
             delete tmpSurf;
 

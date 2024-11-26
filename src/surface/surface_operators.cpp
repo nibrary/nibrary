@@ -1684,17 +1684,17 @@ SurfaceField NIBR::convert2FaceField(Surface* surf, SurfaceField* field) {
 
     } else {
 
-        surf->getNeighboringVertices();
-
         if (out.datatype=="int") {
             for (int n=0; n<surf->nf; n++) {
                 for (int d=0; d<out.dimension; d++) {
-                    int val = 0;
-                    for (int v : surf->neighboringVertices[n]) {
-                        val += field->idata[v][d];
-                    }
-                    val /= surf->neighboringVertices[n].size();
-                    out.idata[n][d] = val;
+
+                    float val = 0.0f;
+
+                    val += field->idata[surf->faces[n][0]][d];
+                    val += field->idata[surf->faces[n][1]][d];
+                    val += field->idata[surf->faces[n][2]][d];
+                    
+                    out.idata[n][d] = int(val / 3.0f);
                 }
             }
         }
@@ -1702,12 +1702,14 @@ SurfaceField NIBR::convert2FaceField(Surface* surf, SurfaceField* field) {
         if (out.datatype=="float") {
             for (int n=0; n<surf->nf; n++) {
                 for (int d=0; d<out.dimension; d++) {
-                    float val = 0;
-                    for (int v : surf->neighboringVertices[n]) {
-                        val += field->fdata[v][d];
-                    }
-                    val /= float(surf->neighboringVertices[n].size());
-                    out.fdata[n][d] = val;
+
+                    float val = 0.0f;
+
+                    val += field->fdata[surf->faces[n][0]][d];
+                    val += field->fdata[surf->faces[n][1]][d];
+                    val += field->fdata[surf->faces[n][2]][d];
+                
+                    out.fdata[n][d] = float(val / 3.0f);
                 }
             }
         }

@@ -275,17 +275,17 @@ void NIBR::Pathway::print() {
 
                 }
 
-                if (it->surfaceFieldFile4FaceMask != "") std::cout << ", mask file: "  << it->surfaceFieldFile4FaceMask << "(" << it->surfaceFieldFile4MaskDtype << ")" << ", label: " << it->label;
-                if (it->surfaceFieldFile4VertMask != "") std::cout << ", mask file: "  << it->surfaceFieldFile4VertMask << "(" << it->surfaceFieldFile4MaskDtype << ")" << ", label: " << it->label;
+                if (it->surfaceFieldFile4FaceMask != "") std::cout << ", mask file: "  << it->surfaceFieldFile4FaceMask << " (" << it->surfaceFieldFile4MaskDtype << ")" << ", label: " << it->label;
+                if (it->surfaceFieldFile4VertMask != "") std::cout << ", mask file: "  << it->surfaceFieldFile4VertMask << " (" << it->surfaceFieldFile4MaskDtype << ")" << ", label: " << it->label;
                 if (it->surfaceFieldName4Mask     != "") std::cout << ", mask field: " << it->surfaceFieldName4Mask << ", label: " << it->label;
                 if (it->surfaceUseDisc)                  std::cout << ", disc: [" << it->surfaceDiscCenter[0] << "," << it->surfaceDiscCenter[1] << "," << it->surfaceDiscCenter[2] << "," << it->surfaceDiscRadius << "]";
 
-                if (it->surfaceFieldFile4FaceDens != "") std::cout << ", density file: "  << it->surfaceFieldFile4FaceDens << "(" << it->surfaceFieldFile4DensDtype << ")";
-                if (it->surfaceFieldFile4VertDens != "") std::cout << ", density file: "  << it->surfaceFieldFile4VertDens << "(" << it->surfaceFieldFile4DensDtype << ")";
+                if (it->surfaceFieldFile4FaceDens != "") std::cout << ", density file: "  << it->surfaceFieldFile4FaceDens << " (" << it->surfaceFieldFile4DensDtype << ")";
+                if (it->surfaceFieldFile4VertDens != "") std::cout << ", density file: "  << it->surfaceFieldFile4VertDens << " (" << it->surfaceFieldFile4DensDtype << ")";
                 if (it->surfaceFieldName4Dens     != "") std::cout << ", density field: " << it->surfaceFieldName4Dens;
 
-                if (it->surfaceFieldFile4FaceData != "") std::cout << ", data file: "  << it->surfaceFieldFile4FaceData << "(" << it->surfaceFieldFile4DataDtype << ")";
-                if (it->surfaceFieldFile4VertData != "") std::cout << ", data file: "  << it->surfaceFieldFile4VertData << "(" << it->surfaceFieldFile4DataDtype << ")";
+                if (it->surfaceFieldFile4FaceData != "") std::cout << ", data file: "  << it->surfaceFieldFile4FaceData << " (" << it->surfaceFieldFile4DataDtype << ")";
+                if (it->surfaceFieldFile4VertData != "") std::cout << ", data file: "  << it->surfaceFieldFile4VertData << " (" << it->surfaceFieldFile4DataDtype << ")";
                 if (it->surfaceFieldName4Data     != "") std::cout << ", data field: " << it->surfaceFieldName4Data;
 
             }

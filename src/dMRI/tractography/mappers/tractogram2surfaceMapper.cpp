@@ -51,7 +51,7 @@ void NIBR::tractogram2surfaceMapper(NIBR::TractogramReader* _tractogram, NIBR::S
                 double pointOfIntersection[3];
                 double distanceToIntersection;
                 float angle = findSegmentTriangleIntersection(surf, f, seg.beg, seg.end, &pointOfIntersection[0], &distanceToIntersection);
-
+                
                 if (angle>0) {
                     streamline2faceMap tmp;
                     tmp.index  = seg.id;

@@ -62,7 +62,10 @@ namespace NIBR {
 
     bool shiftVerticesBetweenSurfaces(Surface* out, Surface* s1, Surface* s2, float shift);
 
+    // Use barycentric interpolation for assigning values from vertices to faces
     SurfaceField convert2FaceField(Surface* surf, SurfaceField* field);
+
+    // Averages data on faces with respect to their angular contribution at the center vertex
     SurfaceField convert2VertField(Surface* surf, SurfaceField* field);
 
     Surface applyMask(const Surface& surf, std::vector<bool>& mask);

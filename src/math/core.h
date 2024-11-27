@@ -280,6 +280,24 @@ namespace NIBR
         return deg*PIOVERN180;
     }
 
+    // abc triangle.
+    // angle is computed for a
+    template<typename T1,typename T2> inline constexpr
+    double angle(const T1& a, const T2& b, const T2& c) 
+    {
+        float ab[3]; vec3sub(ab,b,a);
+        float ac[3]; vec3sub(ac,c,a);
+
+        double dot_product  = dot(ac,ab);
+        double norm_ab      = norm(ab);
+        double norm_ac      = norm(ac);
+        double cos_angle    = dot_product / (norm_ab * norm_ac);
+
+        cos_angle    = std::max(-1.0, std::min(1.0, cos_angle));
+
+        return acos(cos_angle);
+    }
+
 
     // A: voxel indices, i.e. center of voxel in image space
     // p0: origin of ray

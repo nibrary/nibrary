@@ -185,8 +185,9 @@ NIBR::WalkerAction NIBR::Pathway::checkWalker(NIBR::Walker *w, int b, int e)
 
 
 	if (w->action == STOP) {
+		disp(MSG_DEBUG,"Shortened segment by %.12f%% and %.12f mm", w->segCrosLength, w->segment.len*(1.0f-w->segCrosLength));
 		w->segment.len   *= w->segCrosLength;
-		disp(MSG_DEBUG,"Shortened segment by %.12f", w->segCrosLength);
+		w->segCrosLength  = 1.0f;
 		// Don't modifying segment end unless tracking
 		if (isTracking) {
 			w->segment.end[0] = w->segment.beg[0] + w->segment.dir[0] * w->segment.len;
@@ -197,7 +198,12 @@ NIBR::WalkerAction NIBR::Pathway::checkWalker(NIBR::Walker *w, int b, int e)
 	
 	w->trackedLength += w->segment.len;
 
-	if (w->trackedLength > maxLength) {
+
+	// Check atMaxLength case
+	// Instead of the precise value of maxLength, we will use maxLength-EPS4
+	// This makes sure that if one runs discard atMaxLength at a later run with the same maxLength value, 
+	// this streamline will not be discarded in some cases due to floating point errors
+	if ( w->trackedLength > (maxLength-EPS4) ) {
 
 		if (atMaxLength == ATMAXLENGTH_DISCARD) {
 			w->action 			= DISCARD;
@@ -207,39 +213,37 @@ NIBR::WalkerAction NIBR::Pathway::checkWalker(NIBR::Walker *w, int b, int e)
 		}
 
 		// Handle ATMAXLENGTH_STOP
-
-		// We allow a margin of EPS3 to maxLength
-		// We will only crop the streamline if maxLength is out of margin
-		if ( (w->trackedLength-maxLength) > EPS3) {
+		else {			
 
 			if (w->side == side_A)
 				w->terminationReasonSideA = MAX_LENGTH_REACHED;
 			else
 				w->terminationReasonSideB = MAX_LENGTH_REACHED;
+
 			w->action = STOP;
 
-			// This will shorten the segment so it is EPS4 shorter than maxLength.
-			// This makes sure that if one runs discard at max length at a later run, this streamline will not be 50% discarded, 
-			// i.e. there is this risk if the streamline is cut exactly at maxLength
-			float shorten      = w->trackedLength-maxLength+EPS4;
-			
-			if (shorten > w->segment.len) { // This could happen but it is not possible to shorten more than the segment length.
+			float shorten = w->trackedLength - (maxLength-EPS4);
+
+			// This could happen but it is not possible to shorten more than the segment length.
+			if (shorten > w->segment.len) { 
 				w->action 			= DISCARD;
 				w->discardingReason = CANT_MEET_STOP_CONDITION;
 				disp(MSG_DEBUG,"Rule %d. Segment %d - %d. DISCARD - CANT_MEET_STOP_CONDITION (Segment too short)", ruleCnt, b, e);
 				return DISCARD;
 			}
 
-			w->segCrosLength   = 1.0 - shorten/w->segment.len;
+			w->segCrosLength   = 1.0f - shorten / w->segment.len;
 
-			w->segment.len    *= w->segCrosLength;
-			// Don't! Modifying segment end modifies streamline
-			// w->segment.end[0]  = w->segment.beg[0] + w->segment.dir[0]*w->segment.len;
-			// w->segment.end[1]  = w->segment.beg[1] + w->segment.dir[1]*w->segment.len;
-			// w->segment.end[2]  = w->segment.beg[2] + w->segment.dir[2]*w->segment.len;
-
-			w->trackedLength  -= shorten;
-			w->trackedLength  += w->segment.len;
+			// Don't modifying segment end unless tracking
+			if (isTracking) {
+				disp(MSG_DEBUG,"Shortened segment by %.12f%% and %.12f mm", w->segCrosLength, shorten);
+				w->segment.len    -= shorten;
+				w->segCrosLength   = 1.0f;
+				w->segment.end[0]  = w->segment.beg[0] + w->segment.dir[0]*w->segment.len;
+				w->segment.end[1]  = w->segment.beg[1] + w->segment.dir[1]*w->segment.len;
+				w->segment.end[2]  = w->segment.beg[2] + w->segment.dir[2]*w->segment.len;
+				w->trackedLength  -= shorten;
+			}
 
 		}
 

@@ -1644,6 +1644,7 @@ bool NIBR::shiftVerticesBetweenSurfaces(Surface* out, Surface* s1, Surface* s2, 
 
 }
 
+// Use barycentric interpolation for assigning values from vertices to faces
 SurfaceField NIBR::convert2FaceField(Surface* surf, SurfaceField* field) {
 
     SurfaceField out;
@@ -1684,17 +1685,25 @@ SurfaceField NIBR::convert2FaceField(Surface* surf, SurfaceField* field) {
 
     } else {
 
+        surf->calcCentersOfFaces();
+
         if (out.datatype=="int") {
             for (int n=0; n<surf->nf; n++) {
                 for (int d=0; d<out.dimension; d++) {
 
-                    float val = 0.0f;
+                    float* a = surf->vertices[surf->faces[n][0]];
+                    float* b = surf->vertices[surf->faces[n][1]];
+                    float* c = surf->vertices[surf->faces[n][2]];
 
-                    val += field->idata[surf->faces[n][0]][d];
-                    val += field->idata[surf->faces[n][1]][d];
-                    val += field->idata[surf->faces[n][2]][d];
+                    float va = field->idata[surf->faces[n][0]][d];
+                    float vb = field->idata[surf->faces[n][1]][d];
+                    float vc = field->idata[surf->faces[n][2]][d];
+
+                    float* v = barycentricInterp(surf->centersOfFaces[n], a, b, c, &va, &vb, &vc, 1);
                     
-                    out.idata[n][d] = int(val / 3.0f);
+                    out.idata[n][d] = int(*v);
+
+                    delete[] v;
                 }
             }
         }
@@ -1703,13 +1712,19 @@ SurfaceField NIBR::convert2FaceField(Surface* surf, SurfaceField* field) {
             for (int n=0; n<surf->nf; n++) {
                 for (int d=0; d<out.dimension; d++) {
 
-                    float val = 0.0f;
+                    float* a = surf->vertices[surf->faces[n][0]];
+                    float* b = surf->vertices[surf->faces[n][1]];
+                    float* c = surf->vertices[surf->faces[n][2]];
 
-                    val += field->fdata[surf->faces[n][0]][d];
-                    val += field->fdata[surf->faces[n][1]][d];
-                    val += field->fdata[surf->faces[n][2]][d];
-                
-                    out.fdata[n][d] = float(val / 3.0f);
+                    float va = field->fdata[surf->faces[n][0]][d];
+                    float vb = field->fdata[surf->faces[n][1]][d];
+                    float vc = field->fdata[surf->faces[n][2]][d];
+
+                    float* v = barycentricInterp(surf->centersOfFaces[n], a, b, c, &va, &vb, &vc, 1);
+                    
+                    out.fdata[n][d] = *v;
+
+                    delete[] v;
                 }
             }
         }
@@ -1719,7 +1734,7 @@ SurfaceField NIBR::convert2FaceField(Surface* surf, SurfaceField* field) {
     return out;
 }
 
-
+// Averages data on faces with respect to their angular contribution at the center vertex
 SurfaceField NIBR::convert2VertField(Surface* surf, SurfaceField* field) {
 
     SurfaceField out;
@@ -1765,12 +1780,45 @@ SurfaceField NIBR::convert2VertField(Surface* surf, SurfaceField* field) {
         if (out.datatype=="int") {
             for (int n=0; n<surf->nv; n++) {
                 for (int d=0; d<out.dimension; d++) {
-                    int val = 0;
+
+                    double val       = 0.0;
+                    double sum_theta = 0.0;
+
                     for (int v : surf->neighboringFaces[n]) {
-                        val += field->idata[v][d];
+                        
+                        int idx0 = surf->faces[v][0];
+                        int idx1 = surf->faces[v][1];
+                        int idx2 = surf->faces[v][2];
+
+                        // Find the 'n'th vertex in triangle
+                        int a_idx, b_idx, c_idx;
+                        if (idx0 == n) {
+                            a_idx = idx0; b_idx = idx1; c_idx = idx2;
+                        } else if (idx1 == n) {
+                            a_idx = idx1; b_idx = idx2; c_idx = idx0;
+                        } else if (idx2 == n) {
+                            a_idx = idx2; b_idx = idx0; c_idx = idx1;
+                        } else {
+                            disp(MSG_ERROR, "Can't find triangle vertex.");
+                            continue;
+                        }
+
+                        // Retrieve the coordinates of the vertices
+                        float* a = surf->vertices[a_idx]; // Vertex 'n'
+                        float* b = surf->vertices[b_idx];
+                        float* c = surf->vertices[c_idx];
+
+                        double theta  = angle(a,b,c);
+                        val          += theta * field->idata[v][d];
+                        sum_theta    += theta;
                     }
-                    val /= surf->neighboringFaces[n].size();
-                    out.idata[n][d] = val;
+
+                    if (sum_theta > 0.0) {
+                        out.idata[n][d] = int(val / sum_theta);
+                    } else {
+                        out.idata[n][d] = 0;
+                    }
+
                 }
             }
         }
@@ -1778,12 +1826,45 @@ SurfaceField NIBR::convert2VertField(Surface* surf, SurfaceField* field) {
         if (out.datatype=="float") {
             for (int n=0; n<surf->nv; n++) {
                 for (int d=0; d<out.dimension; d++) {
-                    float val = 0;
+
+                    double val       = 0.0;
+                    double sum_theta = 0.0;
+
                     for (int v : surf->neighboringFaces[n]) {
-                        val += field->fdata[v][d];
+                        
+                        int idx0 = surf->faces[v][0];
+                        int idx1 = surf->faces[v][1];
+                        int idx2 = surf->faces[v][2];
+
+                        // Find the 'n'th vertex in triangle
+                        int a_idx, b_idx, c_idx;
+                        if (idx0 == n) {
+                            a_idx = idx0; b_idx = idx1; c_idx = idx2;
+                        } else if (idx1 == n) {
+                            a_idx = idx1; b_idx = idx2; c_idx = idx0;
+                        } else if (idx2 == n) {
+                            a_idx = idx2; b_idx = idx0; c_idx = idx1;
+                        } else {
+                            disp(MSG_ERROR, "Can't find triangle vertex.");
+                            continue;
+                        }
+
+                        // Retrieve the coordinates of the vertices
+                        float* a = surf->vertices[a_idx]; // Vertex 'n'
+                        float* b = surf->vertices[b_idx];
+                        float* c = surf->vertices[c_idx];
+
+                        double theta  = angle(a,b,c);
+                        val          += theta * field->fdata[v][d];
+                        sum_theta    += theta;
                     }
-                    val /= float(surf->neighboringFaces[n].size());
-                    out.fdata[n][d] = val;
+
+                    if (sum_theta > 0.0) {
+                        out.fdata[n][d] = float(val / sum_theta);
+                    } else {
+                        out.fdata[n][d] = 0.0f;
+                    }
+
                 }
             }
         }

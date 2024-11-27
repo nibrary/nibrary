@@ -81,3 +81,4 @@ double NIBR::findSegmentTriangleIntersection(NIBR::Surface* inpSurf, int faceInd
 
     return NIBR::findSegmentTriangleIntersection(inpSurf, faceIndex, p, dir, length, pos, dist);
 }
+

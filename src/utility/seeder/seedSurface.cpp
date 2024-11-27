@@ -25,12 +25,12 @@ SeederOutputState SeedSurface::getSeed(float* p, float* dir, int t) {
 
     while (true) {
 
-        int f = doRandomThings[t].uniform_int();
-
-        // Always do rejection sampling because faces_vec_dens is scaled with face area
-        if (doRandomThings[t].uniform_01()*max4rs > faces_vec_dens[f])
-            continue;        
-
+        // Sampling using CDF
+        double rand_val = doRandomThings[t].uniform_01();
+        auto it = std::lower_bound(cdf.begin(), cdf.end(), rand_val);
+        int cdfInd = (it == cdf.end()) ? cdf.size() - 1 : std::distance(cdf.begin(), it);
+        int f = nonZeroFaces[cdfInd];
+   
         float* a = V[F[f][0]];
         float* b = V[F[f][1]];
         float* c = V[F[f][2]];
@@ -66,7 +66,11 @@ SeederOutputState SeedSurface::getSeed(float* p, float* dir, int t) {
         // Make sure that the point is within border.
         if ((float(dist) <= 0.0f ) || (float(dist) > (0.75*SURFTHICKNESS) ))
             continue;
-        
+
+        if (seed_surf->isPointInside(p) == false)
+            continue;
+
+            
         disp(MSG_DEBUG,"Seed dist is: %.12f", dist);
             
         if (surfNorm) {
@@ -83,6 +87,28 @@ SeederOutputState SeedSurface::getSeed(float* p, float* dir, int t) {
 
 }
 
+void SeedSurface::computeCDF() {
+    cdf.clear();
+    nonZeroFaces.clear();
+    totalDensity = 0.0;
+    
+    // Populate nonZeroFaces and compute cumulative densities
+    for (int n = 0; n < seed_surf->nf; ++n) {
+        float density = faces_vec_dens[n]*seed_surf->areasOfFaces[n];
+        if (density > 0.0f) {
+            totalDensity += density;
+            cdf.push_back(totalDensity);
+            nonZeroFaces.push_back(n);
+        }
+    }
+
+    // Normalize CDF to make the last element equal to 1
+    if (totalDensity > 0.0) {
+        for (auto& val : cdf) {
+            val /= totalDensity;
+        }
+    }
+}
 
 void SeedSurface::computeSeedCountAndDensity() {
 
@@ -97,20 +123,18 @@ void SeedSurface::computeSeedCountAndDensity() {
 
     if (!useDensInp) {
         faces_vec_dens.clear();
-        max4rs = 0;
-        for (int n=0; n<seed_surf->nf; n++) {
+        for (int n = 0; n < seed_surf->nf; n++) {
             faces_vec_dens.push_back(seed_surf->areasOfFaces[n]);
-            if (seed_surf->areasOfFaces[n]>max4rs)
-                max4rs = seed_surf->areasOfFaces[n];
         }
+        computeCDF();
     }
 
 }
 
 void SeedSurface::computeMaxPossibleSeedCount() {
-    if (seed_surf->nf==0) {
+    if (seed_surf->nf == 0) {
         maxPossibleSeedCount = 0;
-    } else if (max4rs==0) {
+    } else if (totalDensity == 0.0) {
         maxPossibleSeedCount = 0;
     } else {
         maxPossibleSeedCount = INT_MAX;
@@ -148,6 +172,7 @@ bool SeedSurface::setSeed(Surface *surf) {
     setNumberOfThreads(threadCount);
     computeSeedCountAndDensity();
     computeMaxPossibleSeedCount();
+    seed_surf->enablePointCheck( (surf->pointCheckGridRes > 0) ? surf->pointCheckGridRes : 1.0f );
 
     mode          = SEED_SURFACE_MASK;
     return true;
@@ -160,16 +185,10 @@ bool SeedSurface::useDensity(std::vector<float>& density_vec) {
         return false;
     }
 
-    // Compute relative densities per face if not already provided
-    faces_vec_dens.clear();
     faces_vec_dens = density_vec;
     useDensInp = true;
 
-    max4rs = 0;
-    for (float val : faces_vec_dens) {
-        if (val>max4rs)
-            max4rs = val;
-    }
+    computeCDF();
 
     if (mode==SEED_SURFACE_MASK)                    mode = SEED_SURFACE_RS;
     if (mode==SEED_SURFACE_MASK_WITH_DIRECTIONS)    mode = SEED_SURFACE_RS_WITH_DIRECTIONS;

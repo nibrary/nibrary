@@ -47,9 +47,13 @@ private:
 
     bool                 surfNorm;
     bool                 useDensInp;
-    float                max4rs;
 
 	RandomDoer          *doRandomThings{NULL};
+
+    std::vector<int>     nonZeroFaces;
+    std::vector<double>  cdf;
+    double               totalDensity;
+    void                 computeCDF();
     
 };
 

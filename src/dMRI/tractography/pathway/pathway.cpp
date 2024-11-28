@@ -287,6 +287,7 @@ void NIBR::Pathway::print() {
                 if (it->surfaceFieldFile4FaceData != "") std::cout << ", data file: "  << it->surfaceFieldFile4FaceData << " (" << it->surfaceFieldFile4DataDtype << ")";
                 if (it->surfaceFieldFile4VertData != "") std::cout << ", data file: "  << it->surfaceFieldFile4VertData << " (" << it->surfaceFieldFile4DataDtype << ")";
                 if (it->surfaceFieldName4Data     != "") std::cout << ", data field: " << it->surfaceFieldName4Data;
+                if (it->surfaceFlipNormals)              std::cout << ", with flipped normals";
 
             }
 

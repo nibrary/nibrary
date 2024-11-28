@@ -452,8 +452,6 @@ Surface NIBR::meanCurvatureFlow(const Surface& surf, float dt, int iterationCoun
     return out;
 }
 
-Surface surfMoveVerticesAlongNormal(const Surface& surf, float* vertexShift);
-
 std::vector<float> NIBR::surfBbox(const Surface& surf)
 {
     
@@ -1814,7 +1812,7 @@ SurfaceField NIBR::convert2VertField(Surface* surf, SurfaceField* field) {
                     }
 
                     if (sum_theta > 0.0) {
-                        out.idata[n][d] = int(val / sum_theta);
+                        out.idata[n][d] = static_cast<int>(std::round(val / sum_theta));
                     } else {
                         out.idata[n][d] = 0;
                     }

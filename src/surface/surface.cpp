@@ -778,9 +778,15 @@ void NIBR::Surface::calcNormalsOfFaces() {
         normalsOfFaces[n][1] = v1[2]*v2[0] - v1[0]*v2[2];
         normalsOfFaces[n][2] = v1[0]*v2[1] - v1[1]*v2[0];
 
-        areasOfFaces[n] = norm(normalsOfFaces[n])/2.0;
-        normalize(normalsOfFaces[n]);
+        double norm = std::sqrt(double(normalsOfFaces[n][0]*normalsOfFaces[n][0] + normalsOfFaces[n][1]*normalsOfFaces[n][1] + normalsOfFaces[n][2]*normalsOfFaces[n][2]));
+
+        areasOfFaces[n] = norm * 0.5;
         area += areasOfFaces[n];
+
+        normalsOfFaces[n][0] /= norm;
+        normalsOfFaces[n][1] /= norm;
+        normalsOfFaces[n][2] /= norm;
+        
     }
     
 }

@@ -85,6 +85,7 @@ namespace NIBR
 		std::string       				 surfaceFieldName4Data{""};
 		bool              				 surface4SeedUseNormForDir{false};
 		Surf_Dim              		     surfaceUseDim{surf_useDim_unknown};
+		bool                             surfaceFlipNormals{false};
 		std::vector<std::vector<float>>* data{NULL};
 		int                              uniqueId{0}; 						// This is assigned internally when rule is added using pathwayAdd
 		Surface*                         surfSrc{NULL};

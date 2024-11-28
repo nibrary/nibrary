@@ -43,7 +43,7 @@ public:
 private:
 
 	Surface             *seed_surf;
-    std::vector<float>   faces_vec_dens;
+    std::vector<double>  faces_vec_dens;
 
     bool                 surfNorm;
     bool                 useDensInp;

@@ -35,49 +35,59 @@ SeederOutputState SeedSurface::getSeed(float* p, float* dir, int t) {
         float* b = V[F[f][1]];
         float* c = V[F[f][2]];
 
-        doRandomThings[t].getARandomPointWithinTriangle(p, a, b, c);
+        bool seedFound = false;
 
-        // We will assume that the surface normals are pointing outwards.
-        // So the generated points will be on side of the mesh opposite to where the normal is pointing
-        // We will make sure that the points are not exactly on the mesh, i.e. dist != 0.0f,
-        // but within surface border, i.e. (0.0 SURFTHICKNESS]
-        vec3sub(T,a,p);
-        double dist = dot(Nf[f],T);
+        for (int trial = 0; trial < 100; trial++) {
 
-        // Try and project the point inside if needed
-        if (dist < 0.0f) {
-            disp(MSG_DEBUG,"Fixed negative dist while seeding");
-            p[0] -= 2.0 * dist * Nf[f][0];
-            p[1] -= 2.0 * dist * Nf[f][1];
-            p[2] -= 2.0 * dist * Nf[f][2];
+            doRandomThings[t].getARandomPointWithinTriangle(p, a, b, c);
+
+            // We will assume that the surface normals are pointing outwards.
+            // So the generated points will be on side of the mesh opposite to where the normal is pointing
+            // We will make sure that the points are not exactly on the mesh, i.e. dist != 0.0f,
+            // but within surface border, i.e. (0.0 SURFTHICKNESS]
             vec3sub(T,a,p);
-            dist = dot(Nf[f],T);
+            double dist = dot(Nf[f],T);
+
+            // Try and project the point inside if needed
+            if (dist < 0.0f) {
+                disp(MSG_DEBUG,"Fixed negative dist while seeding");
+                p[0] -= (dist - 0.2 * SURFTHICKNESS) * Nf[f][0];
+                p[1] -= (dist - 0.2 * SURFTHICKNESS) * Nf[f][1];
+                p[2] -= (dist - 0.2 * SURFTHICKNESS) * Nf[f][2];
+                vec3sub(T,a,p);
+                dist = dot(Nf[f],T);
+            }
+
+            if (dist == 0.0f) {
+                disp(MSG_DEBUG,"Fixed zero dist while seeding");
+                p[0] -= 0.2 * SURFTHICKNESS * Nf[f][0];
+                p[1] -= 0.2 * SURFTHICKNESS * Nf[f][1];
+                p[2] -= 0.2 * SURFTHICKNESS * Nf[f][2];
+                vec3sub(T,a,p);
+                dist = dot(Nf[f],T);
+            }
+
+            // Make sure that the point is within border.
+            if ((dist < (0.1*SURFTHICKNESS) ) || (dist > (0.9*SURFTHICKNESS) ))
+                continue;
+
+            if (seed_surf->isPointInside(p) == false)
+                continue;
+                
+            disp(MSG_DEBUG,"Seed dist is: %.12f", dist);
+
+            if (surfNorm) {
+                barycentricInterp(dir, p, a, b, c, Nv[F[f][0]], Nv[F[f][1]], Nv[F[f][2]]);
+                normalize(dir);
+            }
+
+            seedFound = true;
+            break;
+
         }
 
-        if (dist == 0.0f) {
-            disp(MSG_DEBUG,"Fixed zero dist while seeding");
-            p[0] -= EPS7 * Nf[f][0];
-            p[1] -= EPS7 * Nf[f][1];
-            p[2] -= EPS7 * Nf[f][2];
-            vec3sub(T,a,p);
-            dist = dot(Nf[f],T);
-        }
+        if (seedFound) break;
 
-        // Make sure that the point is within border.
-        if ((float(dist) <= 0.0f ) || (float(dist) > (0.75*SURFTHICKNESS) ))
-            continue;
-
-        if (seed_surf->isPointInside(p) == false)
-            continue;
-
-            
-        disp(MSG_DEBUG,"Seed dist is: %.12f", dist);
-            
-        if (surfNorm) {
-            barycentricInterp(dir, p, a, b, c, Nv[F[f][0]], Nv[F[f][1]], Nv[F[f][2]]);
-            normalize(dir);
-        }
-        break;
 
     }
 
@@ -94,9 +104,9 @@ void SeedSurface::computeCDF() {
     
     // Populate nonZeroFaces and compute cumulative densities
     for (int n = 0; n < seed_surf->nf; ++n) {
-        float density = faces_vec_dens[n]*seed_surf->areasOfFaces[n];
-        if (density > 0.0f) {
-            totalDensity += density;
+        double d = faces_vec_dens[n]*seed_surf->areasOfFaces[n];
+        if (d > 0.0f) {
+            totalDensity += d;
             cdf.push_back(totalDensity);
             nonZeroFaces.push_back(n);
         }
@@ -107,6 +117,10 @@ void SeedSurface::computeCDF() {
         for (auto& val : cdf) {
             val /= totalDensity;
         }
+    }
+
+    if (!cdf.empty()) {
+        cdf.back() = 1.0;
     }
 }
 
@@ -124,10 +138,11 @@ void SeedSurface::computeSeedCountAndDensity() {
     if (!useDensInp) {
         faces_vec_dens.clear();
         for (int n = 0; n < seed_surf->nf; n++) {
-            faces_vec_dens.push_back(seed_surf->areasOfFaces[n]);
+            faces_vec_dens.push_back(1.0f);
         }
-        computeCDF();
     }
+
+    computeCDF();
 
 }
 
@@ -185,7 +200,14 @@ bool SeedSurface::useDensity(std::vector<float>& density_vec) {
         return false;
     }
 
-    faces_vec_dens = density_vec;
+    faces_vec_dens.clear();
+    for (int n = 0; n < seed_surf->nf; n++) {
+        if (density_vec[n] < 0.0f) {
+            disp(MSG_ERROR, "Negative density values are not allowed.");
+            return false;
+        }
+        faces_vec_dens.push_back(density_vec[n]);
+    }
     useDensInp = true;
 
     computeCDF();

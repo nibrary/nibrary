@@ -90,6 +90,15 @@ std::tuple<bool,bool> surfArgIs2D(const std::vector<std::string>& inp, int q)
 
 }
 
+bool surfArgHasFlipNormals(const std::vector<std::string>& inp, int q) 
+{
+    for (int n = q; n < int(inp.size()); n++) {
+        if (isRule(inp,n))           {break;}
+        if (inp[n] == "flipNormals") {return true;}
+    }
+    return false;
+}
+
 std::tuple<bool,float> surfArgHasDiscRes(const std::vector<std::string>& inp, int q)
 {
     for (int n = q; n < int(inp.size()); n++) {
@@ -307,6 +316,13 @@ std::tuple<PathwayRule,bool> parseSurface(std::vector<std::string> inp, size_t& 
         std::tie(has2D3D,is2D)   = surfArgIs2D(inp,i);
         if (has2D3D) {
             rule.surfaceUseDim = (is2D) ? surf_useDim_2D : surf_useDim_3D;
+            foundArg++;
+        }
+
+        // Handle flip normals
+        bool flipNormals = surfArgHasFlipNormals(inp,i);
+        if (flipNormals) {
+            rule.surfaceFlipNormals = flipNormals;
             foundArg++;
         }
 

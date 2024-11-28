@@ -11,6 +11,9 @@ using namespace NIBR;
 
 bool NIBR::Pathway::addSurface(PathwayRule prule) {
 
+    if (prule.surfaceFlipNormals)
+        prule.surfSrc->flipNormalsOfFaces();
+
     prule.surfSrc->isClosed();
 
     if (prule.surfaceUseDim == surf_useDim_unknown) {

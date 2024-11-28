@@ -403,6 +403,7 @@ bool NIBR::Pathway::add(PathwayRule prule) {
                     (prules[j].label                      == prule.label)                      && 
                     (prules[j].surfaceUseDisc             == prule.surfaceUseDisc)             &&
                     (prules[j].surfaceUseDim              == prule.surfaceUseDim)              &&
+                    (prules[j].surfaceFlipNormals         == prule.surfaceFlipNormals)         &&
                     ( (prules[j].surfaceDiscCenter[0] == prule.surfaceDiscCenter[0]) || (isnan(prules[j].surfaceDiscCenter[0]) && isnan(prule.surfaceDiscCenter[0])) ) &&
                     ( (prules[j].surfaceDiscCenter[1] == prule.surfaceDiscCenter[1]) || (isnan(prules[j].surfaceDiscCenter[1]) && isnan(prule.surfaceDiscCenter[1])) ) &&
                     ( (prules[j].surfaceDiscCenter[2] == prule.surfaceDiscCenter[2]) || (isnan(prules[j].surfaceDiscCenter[2]) && isnan(prule.surfaceDiscCenter[2])) ) &&
@@ -441,6 +442,9 @@ bool NIBR::Pathway::add(PathwayRule prule) {
             // Creating tmpSurf from the input mesh
             NIBR::Surface *tmpSurf = new NIBR::Surface(prule.surfaceSource);
             tmpSurf->readMesh();
+            
+            if (prule.surfaceFlipNormals)
+                tmpSurf->flipNormalsOfFaces();
 
             // Creating data field
             disp(MSG_DETAIL,"Checking data field");

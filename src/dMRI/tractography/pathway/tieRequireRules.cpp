@@ -22,8 +22,8 @@ NIBR::Walker *NIBR::Pathway::tieRequireRules(NIBR::Walker *w)
 			if ((it->side == side_A) && (it->type == req_end_inside))
 			{
 
-				// if (!isPointInsideRule(w->segment.end,it->uniqueId) && !isPointAtEdgeOfRule(w->segment.end,it->uniqueId,EPS2))
-				if (!isPointInsideRule(w->segment.end,it->uniqueId))
+				if (!isPointInsideRule(w->segment.end,it->uniqueId) && !isPointAtEdgeOfRule(w->segment.end,it->uniqueId,EPS2))
+				// if (!isPointInsideRule(w->segment.end,it->uniqueId))
 				{
 					disp(MSG_DEBUG,"End point is not inside the required region");
 					w->action = DISCARD;
@@ -59,8 +59,8 @@ NIBR::Walker *NIBR::Pathway::tieRequireRules(NIBR::Walker *w)
 
 			if ((it->side == side_B) && (it->type == req_end_inside))
 			{
-				// if (!isPointInsideRule(w->segment.end,it->uniqueId) && !isPointAtEdgeOfRule(w->segment.end,it->uniqueId,EPS2))
-				if (!isPointInsideRule(w->segment.end,it->uniqueId))
+				if (!isPointInsideRule(w->segment.end,it->uniqueId) && !isPointAtEdgeOfRule(w->segment.end,it->uniqueId,EPS2))
+				// if (!isPointInsideRule(w->segment.end,it->uniqueId))
 				{
 					disp(MSG_DEBUG,"End point is not inside the required region");
 					w->action = DISCARD;
@@ -83,8 +83,8 @@ NIBR::Walker *NIBR::Pathway::tieRequireRules(NIBR::Walker *w)
 
 		for (int n = 0; n < ruleCnt; n++)
 		{
-			// if ((prules[n].type == req_end_inside) && (isPointInsideRule(w->segment.end,n) || isPointAtEdgeOfRule(w->segment.end,n,EPS2)))
-			if ((prules[n].type == req_end_inside) && isPointInsideRule(w->segment.end,n))
+			if ((prules[n].type == req_end_inside) && (isPointInsideRule(w->segment.end,n) || isPointAtEdgeOfRule(w->segment.end,n,EPS2)))
+			// if ((prules[n].type == req_end_inside) && isPointInsideRule(w->segment.end,n))
 			{
 
 				if (prules[n].side == either) {
@@ -142,8 +142,8 @@ NIBR::Walker *NIBR::Pathway::tieRequireRules(NIBR::Walker *w)
 				   	  ((w->side == side_B) && (prules[n].side == side_B))))
 				{
 
-                    // if (!isPointInsideRule(w->segment.end,n) && !isPointAtEdgeOfRule(w->segment.end,n,EPS4)) {
-					if (!isPointInsideRule(w->segment.end,n)) {
+                    if (!isPointInsideRule(w->segment.end,n) && !isPointAtEdgeOfRule(w->segment.end,n,EPS4)) {
+					// if (!isPointInsideRule(w->segment.end,n)) {
                         disp(MSG_DEBUG,"End point is not inside the required region");
 						w->action = DISCARD;
 						w->discardingReason = REQUIRED_ROI_NOT_MET;

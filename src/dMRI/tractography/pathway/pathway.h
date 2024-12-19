@@ -173,7 +173,7 @@ private:
         bool                        getSeedInd(Walker* walker);
         float                       getStreamlineLength(Walker* walker);
 
-        // bool                        isPointAtEdgeOfRule(float*  p, int ruleNo, float distThresh);
+        bool                        isPointAtEdgeOfRule(float*  p, int ruleNo, float distThresh);
         bool                        isPointInsideRule(float*  p, int ruleNo);
         bool                        isSegmentEntering(Walker* w, int ruleNo);
         bool                        isSegmentExiting(Walker* w, int ruleNo);

@@ -26,8 +26,8 @@ NIBR::WalkerAction NIBR::Pathway::checkSeed(NIBR::Walker *w, NIBR::Tracking_Side
 
 		// disp(MSG_DEBUG,"checkSeed for prule: %d, side: %d",n,prules[n].side);
 
-		// // If seeds points are not allowed on edges, then discard, 
-		// // when the seed point is on the edge of the seed region
+		// If seeds points are not allowed on edges, then discard, 
+		// when the seed point is on the edge of the seed region
 		// if ( noEdgeSeeds &&  
 		// 	 hasOneSeed() && 
 		// 	 (n == theOneSeed) && 
@@ -39,6 +39,14 @@ NIBR::WalkerAction NIBR::Pathway::checkSeed(NIBR::Walker *w, NIBR::Tracking_Side
 		// 	// disp(MSG_DEBUG,"Found edge seed");
 		// 	return DISCARD;
 		// }
+
+		if (hasOneSeed() && (n == theOneSeed) && isPointAtEdgeOfRule(&(w->streamline->at(w->seedInd).x),n,EPS3)) 
+		{
+			w->action = DISCARD;
+			w->discardingReason = IMPROPER_SEED;
+			// disp(MSG_DEBUG,"Found edge seed");
+			return DISCARD;
+		}
 
 		if ((prules[n].type) == seed) continue;
 
@@ -210,6 +218,14 @@ NIBR::WalkerAction NIBR::Pathway::checkSeed(NIBR::Walker *w)
 		// 	return DISCARD;
 
 		// }
+
+		if (hasOneSeed() && (n == theOneSeed) && isPointAtEdgeOfRule(&(w->streamline->at(w->seedInd).x),n,EPS3)) 
+		{
+			w->action = DISCARD;
+			w->discardingReason = IMPROPER_SEED;
+			// disp(MSG_DEBUG,"Found edge seed");
+			return DISCARD;
+		}
 
 		if ((prules[n].type) == seed) continue;
 

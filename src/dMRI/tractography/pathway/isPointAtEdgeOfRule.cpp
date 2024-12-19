@@ -1,6 +1,6 @@
 #include "pathway.h"
 #include "math/sphere.h"
-/*
+
 bool NIBR::Pathway::isPointAtEdgeOfRule(float* p, int ruleNo, float distThresh) {
 
     switch (srcType[ruleNo]) {
@@ -55,8 +55,12 @@ bool NIBR::Pathway::isPointAtEdgeOfRule(float* p, int ruleNo, float distThresh) 
         // Surfaces
         case surf_src: {
 
-            if (surf[ruleNo]->squaredDistToPoint(p) < (distThresh*distThresh))
-                return true;
+            if (surf[ruleNo]->interpretAs2D) {
+                return false;
+            } else {
+                if (surf[ruleNo]->squaredDistToPoint(p) < (distThresh*distThresh))
+                    return true;
+            }
 
             break;
         }
@@ -66,4 +70,3 @@ bool NIBR::Pathway::isPointAtEdgeOfRule(float* p, int ruleNo, float distThresh) 
     return false;
 
 }
-*/

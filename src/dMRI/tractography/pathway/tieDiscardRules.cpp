@@ -18,9 +18,8 @@ NIBR::Walker *NIBR::Pathway::tieDiscardRules(NIBR::Walker *w)
 				   	  ((w->side == side_B) && (prules[n].side == side_B))))
 				{
 
-                    // if (isPointInsideRule(w->segment.end,n) || isPointAtEdgeOfRule(w->segment.end,n,EPS4)) {
-                    
-                    if (isPointInsideRule(w->segment.end,n)) {
+                    if (isPointInsideRule(w->segment.end,n) || isPointAtEdgeOfRule(w->segment.end,n,EPS4)) {
+                    // if (isPointInsideRule(w->segment.end,n)) {
                         disp(MSG_DEBUG,"End point is inside the discard region");
                         w->action = DISCARD;
                         w->discardingReason = ENDED_INSIDE_DISCARD_ROI;

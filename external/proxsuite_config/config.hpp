@@ -8,10 +8,10 @@
 
 // Package version (header).
 # define PROXSUITE_VERSION_UNKNOWN_TAG 0 // Used to mention that the current version is unknown.
-# define PROXSUITE_VERSION "0.6.1"
+# define PROXSUITE_VERSION "0.6.7"
 # define PROXSUITE_MAJOR_VERSION 0
 # define PROXSUITE_MINOR_VERSION 6
-# define PROXSUITE_PATCH_VERSION 1
+# define PROXSUITE_PATCH_VERSION 7
 
 #define PROXSUITE_VERSION_AT_LEAST(major, minor, patch) (PROXSUITE_MAJOR_VERSION>major || (PROXSUITE_MAJOR_VERSION>=major && \
                                                              (PROXSUITE_MINOR_VERSION>minor || (PROXSUITE_MINOR_VERSION>=minor && \

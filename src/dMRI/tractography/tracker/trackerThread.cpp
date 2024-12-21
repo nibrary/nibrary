@@ -28,6 +28,8 @@ void TrackingThread::reset()
 
 void TrackingThread::init()
 {
+	method = NULL;
+
 	switch (TRACKER::algorithm) {
 	case PTT:
 		method	= new TrackWith_PTT();

@@ -1,6 +1,6 @@
 # GEOGRAM
 
-SET(GEOGRAM_MIN_VERSION "1.8.6") 
+SET(GEOGRAM_MIN_VERSION "1.9.2") 
 
 # Try to use the system library if exists
 if (USE_SYSTEM_GEOGRAM)

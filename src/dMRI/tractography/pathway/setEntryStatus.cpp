@@ -65,10 +65,12 @@ bool NIBR::Pathway::setEntryStatus(NIBR::Walker* w, int ruleNo) {
                 return true;
             }
 
-            // Surface case
             // Move 1 micrometer before the stop rule
             case sph_src: 
-            case surf_src: {
+            case surf_src:
+            case img_mask_src:
+            case img_label_src:
+            case img_pvf_src: {
 
                 disp(MSG_DEBUG,"  Stopping before exit/entry (by %.12f)", w->segCrosLength);
                 w->segCrosLength -= EPS3 / w->segment.len;
@@ -94,28 +96,8 @@ bool NIBR::Pathway::setEntryStatus(NIBR::Walker* w, int ruleNo) {
                 break;
 
             }
-            
-            // Image case
-            // Move one downsampleFactor before the stop rule
-            case img_mask_src:
-            case img_label_src:
-            case img_pvf_src: {
 
-                // disp(MSG_DEBUG,"  Stopping streamline");
-                float downsampleFactor = w->segment.len * maxSegSizeScaler[ruleNo];
-
-                if (downsampleFactor > 1) {
-                    float s = w->segment.len / float(std::ceil(downsampleFactor));
-                    w->segCrosLength -= s/w->segment.len;
-                } else {
-                    w->segCrosLength  = 0.0;
-                }
-
-                break;
-          
-            }
-
-        }
+        }            
 
         return true;
 
@@ -134,10 +116,12 @@ bool NIBR::Pathway::setEntryStatus(NIBR::Walker* w, int ruleNo) {
                 return true;
             }
 
-            // Surface case
             // Move 1 micrometer after the stop rule
             case sph_src: 
-            case surf_src: {
+            case surf_src:
+            case img_mask_src:
+            case img_label_src:
+            case img_pvf_src: {
 
                 disp(MSG_DEBUG,"  Stopping after exit/entry (by %.12f)", w->segCrosLength);
                 w->segCrosLength += EPS3 / w->segment.len; 
@@ -162,15 +146,6 @@ bool NIBR::Pathway::setEntryStatus(NIBR::Walker* w, int ruleNo) {
 
                 break;
 
-            }
-            
-            // Image case
-            // Nothing needed since the end point is very likely to be not exactly on the border but already beyond the stop rule
-            // i.e. when the last point is checked, it will always show to be beyond the stopping rule - it will not appear 50% inside/outside
-            case img_mask_src:
-            case img_label_src:
-            case img_pvf_src: {
-                break;
             }
 
         }

@@ -74,13 +74,13 @@ std::vector<NIBR::TractogramField> NIBR::findTractogramFields(TractogramReader& 
             disp(MSG_DEBUG,"Found field %s", name);
 
             if (cellDataFound==true) {
-                TractogramField f = {STREAMLINE_OWNER,std::string(name),NIBR::datatype(toUpperCase(std::string(type))),dimension,NULL};
+                TractogramField f = {STREAMLINE_OWNER,std::string(name),NIBR::getTypeId(toUpperCase(std::string(type))),dimension,NULL};
                 fieldList.push_back(f);
                 if (std::string(type)=="float") std::fseek(input,sizeof(float)*tractogram.numberOfStreamlines*dimension,SEEK_CUR);
                 if (std::string(type)=="int")   std::fseek(input,sizeof(int)*tractogram.numberOfStreamlines*dimension,SEEK_CUR);
             }
             if (pointDataFound==true) {
-                TractogramField f = {POINT_OWNER,std::string(name),NIBR::datatype(toUpperCase(std::string(type))),dimension,NULL};
+                TractogramField f = {POINT_OWNER,std::string(name),NIBR::getTypeId(toUpperCase(std::string(type))),dimension,NULL};
                 fieldList.push_back(f);
                 if (std::string(type)=="float") std::fseek(input,sizeof(float)*tractogram.numberOfPoints*dimension,SEEK_CUR);
                 if (std::string(type)=="int")   std::fseek(input,sizeof(int)*tractogram.numberOfPoints*dimension,SEEK_CUR);
@@ -460,14 +460,14 @@ TractogramField NIBR::makeTractogramFieldFromFile(TractogramReader& tractogram, 
         return field;
     }
 
-    if (datatype(toUpperCase(dataType)) == UNKNOWN_DT) {
+    if (getTypeId(toUpperCase(dataType)) == UNKNOWN_DT) {
         disp(MSG_ERROR,"Unknown data type. Data type can be either \"float\" or \"int\"");
         return field;
     }
 
     field.name      = name;
     field.dimension = dimension;
-    field.datatype  = datatype(toUpperCase(dataType));
+    field.datatype  = getTypeId(toUpperCase(dataType));
 
     // Read field values
     FILE *input;

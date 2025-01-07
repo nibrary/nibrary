@@ -8,6 +8,7 @@
 #include <iomanip>
 #include <assert.h>
 
+#include "base/nibr.h"
 #include "image/image.h"
 #include "math/core.h"
 
@@ -39,6 +40,7 @@ extern "C" {
 #pragma GCC diagnostic ignored "-Wunused-result"
 #pragma GCC diagnostic ignored "-Wcomment"
 #pragma GCC diagnostic ignored "-Wfree-nonheap-object"
+
 #include <igl/AABB.h>
 #include <igl/fast_winding_number.h>
 #pragma GCC diagnostic pop

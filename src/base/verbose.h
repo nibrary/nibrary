@@ -1,5 +1,6 @@
 #pragma once
 
+#include "base/nibr.h"
 #include <iostream>
 #include <string>
 #include <sstream>
@@ -65,6 +66,10 @@ namespace NIBR
             funcName    = _funcName;
             lineNo      = _lineNo;
         };
+
+        // ~MESSAGE() {
+        //     std::cerr << "Message destroyed." << std::endl;
+        // }
     };
 
     void disableTerminalOutput();

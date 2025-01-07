@@ -1,6 +1,8 @@
 #pragma once
 
+#include "base/nibr.h"
 #include "pathway.h"
+#include "pathwayRule.h"
 
 
 // Handles following cases, otherwise returns false.

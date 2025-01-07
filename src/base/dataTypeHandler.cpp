@@ -2,61 +2,51 @@
 
 using namespace NIBR;
 
-std::unordered_map<DATATYPE, TypeInfoRef> NIBR::TYPE = {
-    {BOOL_DT,      typeid(bool)                        },
-    {INT8_DT,      typeid(int8_t)                      },
-    {UINT8_DT,     typeid(uint8_t)                     },
-    {INT16_DT,     typeid(int16_t)                     },
-    {UINT16_DT,    typeid(uint16_t)                    },
-    {INT32_DT,     typeid(int32_t)                     },
-    {UINT32_DT,    typeid(uint32_t)                    },
-    {INT64_DT,     typeid(int64_t)                     },
-    {UINT64_DT,    typeid(uint64_t)                    },
-    {FLOAT32_DT,   typeid(float)                       },
-    {FLOAT64_DT,   typeid(double)                      },
-    {FLOAT128_DT,  typeid(long double)                 },
-    {COMPLEX64_DT, typeid(std::complex<float>)         },
-    {COMPLEX128_DT,typeid(std::complex<double>)        },
-    {COMPLEX256_DT,typeid(std::complex<long double>)   }
-};
+std::string NIBR::getTypeName(const std::type_info& T) {
 
-std::unordered_map<TypeInfoRef, DATATYPE, Hasher, EqualTo> NIBR::TYPEIDS = {
-    {typeid(bool),                          BOOL_DT},
-    {typeid(int8_t),                        INT8_DT},
-    {typeid(uint8_t),                       UINT8_DT},
-    {typeid(int16_t),                       INT16_DT},
-    {typeid(uint16_t),                      UINT16_DT},
-    {typeid(int32_t),                       INT32_DT},
-    {typeid(uint32_t),                      UINT32_DT},
-    {typeid(int64_t),                       INT64_DT},
-    {typeid(uint64_t),                      UINT64_DT},
-    {typeid(float),                         FLOAT32_DT},
-    {typeid(double),                        FLOAT64_DT},
-    {typeid(long double),                   FLOAT128_DT},
-    {typeid(std::complex<float>),           COMPLEX64_DT},
-    {typeid(std::complex<double>),          COMPLEX128_DT},
-    {typeid(std::complex<long double>),     COMPLEX256_DT}
-};
+    if (T == typeid(bool))                          return "BOOL";
+    if (T == typeid(int8_t))                        return "INT8";
+    if (T == typeid(uint8_t))                       return "UINT8";
+    if (T == typeid(int16_t))                       return "INT16";
+    if (T == typeid(uint16_t))                      return "UINT16";
+    if (T == typeid(int32_t))                       return "INT32";
+    if (T == typeid(uint32_t))                      return "UINT32";
+    if (T == typeid(int64_t))                       return "INT64";
+    if (T == typeid(uint64_t))                      return "UINT64";
+    if (T == typeid(float))                         return "FLOAT32";
+    if (T == typeid(double))                        return "FLOAT64";
+    if (T == typeid(long double))                   return "FLOAT128";
+    if (T == typeid(std::complex<float>))           return "COMPLEX64";
+    if (T == typeid(std::complex<double>))          return "COMPLEX128";
+    if (T == typeid(std::complex<long double>))     return "COMPLEX256";
 
-std::unordered_map<TypeInfoRef, std::string, Hasher, EqualTo> NIBR::TYPENAMES = {
-    {typeid(bool),                          "BOOL"},
-    {typeid(int8_t),                        "INT8"},
-    {typeid(uint8_t),                       "UINT8"},
-    {typeid(int16_t),                       "INT16"},
-    {typeid(uint16_t),                      "UINT16"},
-    {typeid(int32_t),                       "INT32"},
-    {typeid(uint32_t),                      "UINT32"},
-    {typeid(int64_t),                       "INT64"},
-    {typeid(uint64_t),                      "UINT64"},
-    {typeid(float),                         "FLOAT32"},
-    {typeid(double),                        "FLOAT64"},
-    {typeid(long double),                   "FLOAT128"},
-    {typeid(std::complex<float>),           "COMPLEX64"},
-    {typeid(std::complex<double>),          "COMPLEX128"},
-    {typeid(std::complex<long double>),     "COMPLEX256"}
-};
+    return "UNKNOWN";
 
-DATATYPE NIBR::datatype(std::string type)
+}
+
+DATATYPE NIBR::getTypeId(const std::type_info& T) {
+
+    if (T == typeid(bool))                          return BOOL_DT;
+    if (T == typeid(int8_t))                        return INT8_DT;
+    if (T == typeid(uint8_t))                       return UINT8_DT;
+    if (T == typeid(int16_t))                       return INT16_DT;
+    if (T == typeid(uint16_t))                      return UINT16_DT;
+    if (T == typeid(int32_t))                       return INT32_DT;
+    if (T == typeid(uint32_t))                      return UINT32_DT;
+    if (T == typeid(int64_t))                       return INT64_DT;
+    if (T == typeid(uint64_t))                      return UINT64_DT;
+    if (T == typeid(float))                         return FLOAT32_DT;
+    if (T == typeid(double))                        return FLOAT64_DT;
+    if (T == typeid(long double))                   return FLOAT128_DT;
+    if (T == typeid(std::complex<float>))           return COMPLEX64_DT;
+    if (T == typeid(std::complex<double>))          return COMPLEX128_DT;
+    if (T == typeid(std::complex<long double>))     return COMPLEX256_DT;
+
+    return UNKNOWN_DT;
+
+}
+
+DATATYPE NIBR::getTypeId(std::string type)
 {
     if (type=="BOOL")         return BOOL_DT;
     if (type=="INT8")         return INT8_DT;

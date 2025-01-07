@@ -1,8 +1,9 @@
 #pragma once
 
-#include "image.h"
-#include "image_math.h"
-#include "image_morphological.h"
+#include "base/nibr.h"
+#include "image/image.h"
+#include "image/image_math.h"
+#include "image/image_morphological.h"
 #include "surface/surface.h"
 #include "surface/surface_operators.h"
 

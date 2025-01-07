@@ -1,5 +1,6 @@
 #include "../../tracker/tracker.h"
 #include "algorithm_ptt.h"
+#include "ptf.h"
 
 using namespace NIBR;
 
@@ -14,7 +15,7 @@ Propagation_Decision TrackWith_PTT::initialize() {
 	// Initial max estimate
 	posteriorMax 	= 0;
 
-	for (tries=0; tries < TRACKER::params_ptt.initMaxEstTrials; tries++) {
+	for (tries=0; tries < initMaxEstTrials; tries++) {
 		curve->getInitCandidate(thread->seed_init_direction);
 		if (curve->likelihood > posteriorMax) {
 			posteriorMax = curve->likelihood;
@@ -22,15 +23,15 @@ Propagation_Decision TrackWith_PTT::initialize() {
 		}
 	}
 
-	posteriorMax = std::pow(posteriorMax*DEFAULT_PTT_MAXPOSTESTCOMPENS,TRACKER::params_ptt.dataSupportExponent);
+	posteriorMax = std::pow(posteriorMax*DEFAULT_PTT_MAXPOSTESTCOMPENS,dataSupportExponent);
 	// disp(MSG_DEBUG,"posteriorMax: %f", posteriorMax);
 
 	if (TRACKER::params_ptt.useBestAtInit) {
 
-		dataSupport = std::pow(initial_curve->likelihood,TRACKER::params_ptt.dataSupportExponent);
+		dataSupport = std::pow(initial_curve->likelihood,dataSupportExponent);
 
 		// Skip rejection sampling for initialization
-		if (dataSupport < TRACKER::params_ptt.modMinDataSupport) {
+		if (dataSupport < modMinDataSupport) {
 			failed = true;
 		} else {
 			// curve is selected, and next it will be propagated-first value can be reset here
@@ -40,16 +41,16 @@ Propagation_Decision TrackWith_PTT::initialize() {
 	} else {
 
 		// Do rejection sampling for initialization
-		for (tries=0; tries<TRACKER::params_ptt.triesPerRejectionSampling; tries++) {
+		for (tries=0; tries<triesPerRejectionSampling; tries++) {
 
 			curve->getInitCandidate(thread->seed_init_direction);
 
-			dataSupport = std::pow(curve->likelihood,TRACKER::params_ptt.dataSupportExponent);
+			dataSupport = std::pow(curve->likelihood,dataSupportExponent);
 
 			if (dataSupport > posteriorMax) {
 				failed = true;
 				break;
-			} else if ((TRACKER::params_ptt.modMinDataSupport<=dataSupport) && (curve->doRandomThings.uniform_01()*posteriorMax <= dataSupport )) { // Equal helps to sample extrema
+			} else if ((modMinDataSupport<=dataSupport) && (curve->doRandomThings.uniform_01()*posteriorMax <= dataSupport )) { // Equal helps to sample extrema
                 // This candidate is now selected and it will be propagated
 				initial_curve->copy(curve);
 				// curve is selected, and next it will be propagated-first value can be reset here
@@ -59,7 +60,7 @@ Propagation_Decision TrackWith_PTT::initialize() {
 
 		}
 		
-        if (tries==TRACKER::params_ptt.triesPerRejectionSampling)
+        if (tries==triesPerRejectionSampling)
             return PROP_STOP;
 
 	}

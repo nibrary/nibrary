@@ -1,5 +1,6 @@
 #pragma once
 
+#include "base/nibr.h"
 #include <stdio.h>
 #include "dMRI/tractography/mappers/tractogram2imageMapper.h"
 

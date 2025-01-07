@@ -1,5 +1,6 @@
 #pragma once
 
+#include "base/nibr.h"
 #include "pathwayRule.h"
 #include "../../../utility/seeder/seedingMethods.h"
 #include "math/core.h"

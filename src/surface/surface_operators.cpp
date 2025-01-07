@@ -485,7 +485,6 @@ Surface NIBR::surfGrow(const Surface& surf, float discretizationResolution, floa
 
     Image<float> bboxImg;
     surfBbox2Img(bboxImg,surf,discretizationResolution);
-    bboxImg.allocData();
     
     int pad = shift*discretizationResolution*1.1f;
 

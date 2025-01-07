@@ -1,13 +1,11 @@
 #pragma once
 
-#include "surface.h"
-
-using namespace NIBR;
+#include "base/nibr.h"
+#include "surface/surface.h"
 
 namespace NIBR 
 {
 
 Surface surfMakeBox(const std::vector<float>& bbox);
-
 
 }

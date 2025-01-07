@@ -31,7 +31,7 @@ NIBR::Pathway::Pathway() {
 
 NIBR::Pathway::~Pathway() {
 
-    // disp(MSG_DEBUG,"Deconstructing pathway");
+    disp(MSG_DEBUG,"Deconstructing pathway");
 
     // Set here the default values so verify() calls when removing rules don't pop up
     satisfy_requirements_in_order = NO_ORDER;
@@ -43,7 +43,7 @@ NIBR::Pathway::~Pathway() {
     // noEdgeSeeds                   = false;
     seedTrials                    = 0;
 
-    // disp(MSG_DEBUG,"Deleting interval variables");
+    disp(MSG_DEBUG,"Deleting interval variables");
 
     for(int i=(prules.size()-1); i>=0; --i) {
         remove(i);
@@ -53,22 +53,22 @@ NIBR::Pathway::~Pathway() {
     for (auto it = seeds.begin(); it != seeds.end(); ++it) {
         if (*it != NULL) delete *it;
     }
-    // disp(MSG_DEBUG,"seeds deleted");
+    disp(MSG_DEBUG,"seeds deleted");
 
     for (auto it = img_mask.begin(); it != img_mask.end(); ++it) {
         if (*it != NULL) delete *it;
     }
-    // disp(MSG_DEBUG,"img_mask deleted");
+    disp(MSG_DEBUG,"img_mask deleted");
     
     for (auto it = img_label.begin(); it != img_label.end(); ++it) {
         if (*it != NULL) delete *it;
     }
-    // disp(MSG_DEBUG,"img_label deleted");
+    disp(MSG_DEBUG,"img_label deleted");
     
     for (auto it = img_pvf.begin(); it != img_pvf.end(); ++it) {
         if (*it != NULL) delete *it;
     }
-    // disp(MSG_DEBUG,"img_pvf deleted");
+    disp(MSG_DEBUG,"img_pvf deleted");
     
     for (int i=0; i<int(surfData.size()); i++) {
         if (surfData[i]!=NULL) { 
@@ -76,32 +76,32 @@ NIBR::Pathway::~Pathway() {
             delete surfData[i];
         }
     }
-    // disp(MSG_DEBUG,"surfData deleted");
+    disp(MSG_DEBUG,"surfData deleted");
 
 	for (auto it = surf.begin(); it != surf.end(); ++it) {
         if (*it != NULL) delete *it;
     }
-    // disp(MSG_DEBUG,"surf deleted");
+    disp(MSG_DEBUG,"surf deleted");
 
     for (auto it = sphCenter.begin(); it != sphCenter.end(); ++it) {
         if (*it != NULL) delete[] *it;
     }
-    // disp(MSG_DEBUG,"sphCenter deleted");
+    disp(MSG_DEBUG,"sphCenter deleted");
 
     for (auto it = pntLists.begin(); it != pntLists.end(); ++it) {
         if (*it != NULL) delete *it;
     }
-    // disp(MSG_DEBUG,"pntLists deleted");
+    disp(MSG_DEBUG,"pntLists deleted");
 
     for (auto it = dirLists.begin(); it != dirLists.end(); ++it) {
         if (*it != NULL) delete *it;
     }
-    // disp(MSG_DEBUG,"dirLists deleted");
+    disp(MSG_DEBUG,"dirLists deleted");
 
     for (int i=0; i<int(data.size()); i++) {
         data[i] = NULL;
     }
-    // disp(MSG_DEBUG,"data deleted");
+    disp(MSG_DEBUG,"data deleted");
 
     srcType.clear();
     seeds.clear();
@@ -120,7 +120,7 @@ NIBR::Pathway::~Pathway() {
     dirLists.clear();
     data.clear();
 
-    // disp(MSG_DEBUG,"Internal source vectors cleared");
+    disp(MSG_DEBUG,"Internal source vectors cleared");
 
     isVerified = false;
     isTracking = false;
@@ -132,17 +132,17 @@ NIBR::Pathway::~Pathway() {
     order_of_side_A_prules.clear();
     order_of_side_B_prules.clear();
     B_pulled = false;
-    // disp(MSG_DEBUG,"Internal variables cleared");
+    disp(MSG_DEBUG,"Internal variables cleared");
 
     // User adjustable variables
     prules.clear();
 
-    // disp(MSG_DEBUG,"User inputs cleared");
+    disp(MSG_DEBUG,"User inputs cleared");
 
     ruleCnt = 0; // internal but has to be set to 0 here because resets should not do it
 
 
-    // disp(MSG_DEBUG,"Pathway deconstructed");
+    disp(MSG_DEBUG,"Pathway deconstructed");
 
 }
 

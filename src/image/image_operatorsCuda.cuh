@@ -1,5 +1,7 @@
 #pragma once
 
+#include "base/nibr.h"
+
 #ifdef HAVE_CUDA
 
 typedef unsigned int uint;

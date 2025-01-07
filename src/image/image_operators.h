@@ -1,7 +1,8 @@
 #pragma once
 
-#include "image.h"
-#include "image_math.h"
+#include "base/nibr.h"
+#include "image/image.h"
+#include "image/image_math.h"
 #include "math/sphericalFunctions.h"
 #include "math/sphericalHarmonics.h"
 #include "math/reorient.h"

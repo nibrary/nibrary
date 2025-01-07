@@ -54,6 +54,10 @@ void NIBR::Image<T>::printInfo() {
     }
     std::cout << "]" << std::endl;
     std::cout << "Pixdim:                 [" << pixDims[0] << " x " << pixDims[1] << " x " << pixDims[2] << "]" << std::endl;
+    // std::cout << "Index order:            [" << indexOrder[0] << "," << indexOrder[1] << "," << indexOrder[2] << "," << indexOrder[3] << "," << indexOrder[4] << "," << indexOrder[5] << "," << indexOrder[6] << "]" << std::endl;
+    // std::cout << "voxCnt, valCnt, numel:  [" << voxCnt << "," << valCnt << "," << numel << "]" << std::endl;
+    // std::cout << "dataScaler, dataOffset: [" << dataScaler << "," << dataOffset << "]" << std::endl;
+
     std::cout << "Unit of pixdim:         " << getSpaceUnit() << std::endl;
 
     auto imgOr = getOrientation();
@@ -83,7 +87,7 @@ void NIBR::Image<T>::printInfo() {
 
     std::cout << std::endl;
 
-    std::cout << "Datatype (internal use):" << TYPENAMES[typeid(T)] << std::endl;
+    std::cout << "Datatype (internal use):" << getTypeName(typeid(T)) << std::endl;
 
     std::cout << std::setprecision(4) << "ijk2xyz:                " << std::endl;
     std::cout << std::setprecision(4) << "                        " << ijk2xyz[0][0] << " " << ijk2xyz[0][1] << " " << ijk2xyz[0][2] << " " << ijk2xyz[0][3] << std::endl;

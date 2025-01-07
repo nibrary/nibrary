@@ -1,5 +1,6 @@
 #pragma once
 
+#include "base/nibr.h"
 #include "base/config.h"
 #include "base/fileOperations.h"
 #include "base/stringOperations.h"
@@ -355,10 +356,12 @@ namespace NIBR
     void NIBR::Image<T>::createFromTemplate(const Image<INP_T>& img, float pixDimScaler, bool allocateData)
     {
 
-        if (pixDimScaler==1.0) {
+        if (pixDimScaler == 1.0f) {
             create(img.numberOfDimensions, img.imgDims, img.pixDims, img.ijk2xyz, allocateData);
             return;
         }
+
+        // disp(MSG_DEBUG,"pixDimScaler = %.6f", pixDimScaler);
 
         float range[3];
         float scale[3];
@@ -368,10 +371,13 @@ namespace NIBR
 
         for (int i=0; i<3; i++) {
             range[i]   = img.pixDims[i] * img.imgDims[i];
-            imgDims[i] = range[i] / (img.pixDims[i] / pixDimScaler);
-            pixDims[i] = range[i] / imgDims[i];
+            pixDims[i] = img.pixDims[i] / pixDimScaler;
+            imgDims[i] = std::ceil(range[i] / pixDims[i]);
             scale[i]   = pixDims[i] / img.pixDims[i];
         }
+
+        // disp(MSG_DEBUG,"pixDims = [%.6f, %.6f, %.6f]", img.pixDims[0], img.pixDims[1], img.pixDims[2]);
+        // disp(MSG_DEBUG,"pixDims = [%.6f, %.6f, %.6f]", pixDims[0],         pixDims[1],     pixDims[2]);
 
         memcpy(ijk2xyz, img.ijk2xyz, 12*sizeof(float));
         for (int i=0; i<3; i++)

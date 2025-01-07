@@ -1,5 +1,7 @@
 #pragma once
 
+#include "base/nibr.h"
+
 namespace NIBR {
 	
 	const float HALFSPHEREVERTAREA = 0.0123;

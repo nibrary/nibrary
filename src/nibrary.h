@@ -1,5 +1,6 @@
 #pragma once
 
+#include "base/nibr.h"
 #include "base/config.h"
 #include "base/stringOperations.h"
 
@@ -69,6 +70,7 @@
 #include "math/randomThings.h"
 #include "math/gaussian.h"
 #include "math/reorient.h"
+#include "math/PDE/FDM.h"
 
 // surface
 #include "surface/findSegmentTriangleIntersection.h"

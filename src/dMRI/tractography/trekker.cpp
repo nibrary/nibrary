@@ -1,5 +1,5 @@
 #include "trekker.h"
-#include "algorithms/ptt/algorithm_ptt_params.h"
+// #include "algorithms/ptt/algorithm_ptt_params.h"
 #include "pathway/pathway.h"
 #include "pathway/parseRule.h"
 #include "tracker/tracker.h"
@@ -32,8 +32,11 @@ Trekker::Trekker(std::string a)
 
 Trekker::~Trekker()
 {
+    disp(MSG_DEBUG,"Cleaning up trekker");
     seed_clear();
+    disp(MSG_DEBUG,"Seed cleaned");
     algorithm_clear();
+    disp(MSG_DEBUG,"Algorithm cleaned");
 }
 
 // General options
@@ -170,10 +173,84 @@ void Trekker::orderOfDirections(std::string orderOfDirectionsTextInput) {
 
 
 // Tracking options
+
+std::pair<double, std::string> parseParamStr(std::string paramStr) {
+
+    std::vector<std::string> val = splitString(paramStr,',');
+
+    if ( (val.size() < 1) && (val.size() > 2) ) {
+        disp(MSG_FATAL, "Unexpected tracking parameter: %s", paramStr.c_str());
+        return std::make_pair(std::numeric_limits<double>::quiet_NaN(), "");
+    }
+
+    double v = NIBR::isNumber(val[0]);
+
+    if ((val.size() == 2) && (isnan(v)) ) {
+        disp(MSG_FATAL, "First value is not numeric: %s", paramStr.c_str());
+        return std::make_pair(std::numeric_limits<double>::quiet_NaN(), "");
+    }
+
+    if (val.size() == 2) 
+        return std::make_pair(v,val[1]);
+
+    if ( (val.size() == 1) && (!isnan(v)) )
+        return std::make_pair(v,"");
+    
+    // if ( (val.size() == 1) &&  (isnan(v)) )
+    
+    return std::make_pair(v,val[0]);
+
+}
+
+void Trekker::writeStepSize(float _writeStepSize) {
+    switch (TRACKER::algorithm) {
+        case PTT:
+            TRACKER::params_ptt.outputStep_global = _writeStepSize;
+            TRACKER::params_ptt.needsUpdate();
+            break;
+
+        default:
+            break;
+    }
+}
+
+void Trekker::writeStepSize(std::string paramStr) {
+
+    auto pp = parseParamStr(paramStr);
+
+    switch (TRACKER::algorithm) {
+        case PTT:
+            if (!isnan(pp.first)) TRACKER::params_ptt.outputStep_global = pp.first;
+            TRACKER::params_ptt.outputStep_img_path = pp.second;
+            TRACKER::params_ptt.needsUpdate();
+            break;
+
+        default:
+            break;
+    }
+
+}
+
 void Trekker::stepSize(double stepSize) {
     switch (TRACKER::algorithm) {
         case PTT:
-            TRACKER::params_ptt.stepSize = stepSize;
+            TRACKER::params_ptt.stepSize_global = stepSize;
+            TRACKER::params_ptt.needsUpdate();
+            break;
+
+        default:
+            break;
+    }
+}
+
+void Trekker::stepSize(std::string paramStr) {
+
+    auto pp = parseParamStr(paramStr);
+
+    switch (TRACKER::algorithm) {
+        case PTT:
+            if (!isnan(pp.first)) TRACKER::params_ptt.stepSize_global = pp.first;
+            TRACKER::params_ptt.stepSize_img_path = pp.second;
             TRACKER::params_ptt.needsUpdate();
             break;
 
@@ -186,7 +263,23 @@ void Trekker::stepSize(double stepSize) {
 void Trekker::minRadiusOfCurvature(double minRadiusOfCurvature) {
     switch (TRACKER::algorithm) {
         case PTT:
-            TRACKER::params_ptt.minRadiusOfCurvature = minRadiusOfCurvature;
+            TRACKER::params_ptt.minRadiusOfCurvature_global = minRadiusOfCurvature;
+            TRACKER::params_ptt.needsUpdate();
+            break;
+
+        default:
+            break;
+    }
+}
+
+void Trekker::minRadiusOfCurvature(std::string paramStr) {
+
+    auto pp = parseParamStr(paramStr);
+
+    switch (TRACKER::algorithm) {
+        case PTT:
+            if (!isnan(pp.first)) TRACKER::params_ptt.minRadiusOfCurvature_global = pp.first;
+            TRACKER::params_ptt.minRadiusOfCurvature_img_path = pp.second;
             TRACKER::params_ptt.needsUpdate();
             break;
 
@@ -199,7 +292,7 @@ void Trekker::minRadiusOfCurvature(double minRadiusOfCurvature) {
 void Trekker::minDataSupport(double minDataSupport) {
     switch (TRACKER::algorithm) {
         case PTT:
-            TRACKER::params_ptt.minDataSupport = minDataSupport;
+            TRACKER::params_ptt.minDataSupport_global = minDataSupport;
             TRACKER::params_ptt.needsUpdate();
             break;
 
@@ -208,17 +301,51 @@ void Trekker::minDataSupport(double minDataSupport) {
     }
 }
 
+void Trekker::minDataSupport(std::string paramStr) {
 
-void Trekker::dataSupportExponent(double dataSupportExponent) {
+    auto pp = parseParamStr(paramStr);
+
     switch (TRACKER::algorithm) {
         case PTT:
-            TRACKER::params_ptt.dataSupportExponent = dataSupportExponent;
+            if (!isnan(pp.first)) TRACKER::params_ptt.minDataSupport_global = pp.first;
+            TRACKER::params_ptt.minDataSupport_img_path = pp.second;
             TRACKER::params_ptt.needsUpdate();
             break;
 
         default:
             break;
     }
+
+}
+
+
+void Trekker::dataSupportExponent(double dataSupportExponent) {
+    switch (TRACKER::algorithm) {
+        case PTT:
+            TRACKER::params_ptt.dataSupportExponent_global = dataSupportExponent;
+            TRACKER::params_ptt.needsUpdate();
+            break;
+
+        default:
+            break;
+    }
+}
+
+void Trekker::dataSupportExponent(std::string paramStr) {
+    
+    auto pp = parseParamStr(paramStr);
+
+    switch (TRACKER::algorithm) {
+        case PTT:
+            if (!isnan(pp.first)) TRACKER::params_ptt.dataSupportExponent_global = pp.first;
+            TRACKER::params_ptt.dataSupportExponent_img_path = pp.second;
+            TRACKER::params_ptt.needsUpdate();
+            break;
+
+        default:
+            break;
+    }
+
 }
 
 
@@ -234,59 +361,20 @@ void Trekker::ignoreWeakLinks(double weakLinkThresh) {
     }
 }
 
+void Trekker::paramImgMask(std::string param_mask_fname) {
+    switch (TRACKER::algorithm) {
+        case PTT:
+            TRACKER::params_ptt.img_param_mask_path = param_mask_fname;
+            TRACKER::params_ptt.needsUpdate();
+            break;
+
+        default:
+            break;
+    }
+}
+
 
 // Sampling options
-void Trekker::maxEstInterval(int maxEstInterval) {
-    switch (TRACKER::algorithm) {
-        case PTT:
-            TRACKER::params_ptt.maxEstInterval = maxEstInterval;
-            TRACKER::params_ptt.needsUpdate();
-            break;
-
-        default:
-            break;
-    }
-}
-
-
-void Trekker::initMaxEstTrials(int initMaxEstTrials) {
-    switch (TRACKER::algorithm) {
-        case PTT:
-            TRACKER::params_ptt.initMaxEstTrials = initMaxEstTrials;
-            TRACKER::params_ptt.needsUpdate();
-            break;
-
-        default:
-            break;
-    }
-}
-
-
-void Trekker::propMaxEstTrials(int propMaxEstTrials) {
-    switch (TRACKER::algorithm) {
-        case PTT:
-            TRACKER::params_ptt.propMaxEstTrials = propMaxEstTrials;
-            TRACKER::params_ptt.needsUpdate();
-            break;
-
-        default:
-            break;
-    }
-}
-
-void Trekker::maxSamplingPerStep(int triesPerRejectionSampling) {
-    switch (TRACKER::algorithm) {
-        case PTT:
-            TRACKER::params_ptt.triesPerRejectionSampling = triesPerRejectionSampling;
-            TRACKER::params_ptt.needsUpdate();
-            break;
-
-        default:
-            break;
-    }
-}
-
-
 void Trekker::useBestAtInit(bool useBestAtInit) {
     switch (TRACKER::algorithm) {
         case PTT:
@@ -323,50 +411,220 @@ void Trekker::samplingQuality(int samplingQuality) {
     }
 }
 
-// Probe options
-void Trekker::probeCount(int probeCount) {
+
+void Trekker::maxEstInterval(int maxEstInterval) {
     switch (TRACKER::algorithm) {
         case PTT:
-            TRACKER::params_ptt.probeCount = probeCount;
+            TRACKER::params_ptt.maxEstInterval_global = maxEstInterval;
             TRACKER::params_ptt.needsUpdate();
             break;
 
         default:
             break;
     }
+}
+
+void Trekker::maxEstInterval(std::string paramStr) {
+    
+    auto pp = parseParamStr(paramStr);
+
+    switch (TRACKER::algorithm) {
+        case PTT:
+            if (!isnan(pp.first)) TRACKER::params_ptt.maxEstInterval_global = pp.first;
+            TRACKER::params_ptt.maxEstInterval_img_path = pp.second;
+            TRACKER::params_ptt.needsUpdate();
+            break;
+
+        default:
+            break;
+    }
+
+}
+
+
+void Trekker::initMaxEstTrials(int initMaxEstTrials) {
+    switch (TRACKER::algorithm) {
+        case PTT:
+            TRACKER::params_ptt.initMaxEstTrials_global = initMaxEstTrials;
+            TRACKER::params_ptt.needsUpdate();
+            break;
+
+        default:
+            break;
+    }
+}
+
+void Trekker::initMaxEstTrials(std::string paramStr) {
+    
+    auto pp = parseParamStr(paramStr);
+
+    switch (TRACKER::algorithm) {
+        case PTT:
+            if (!isnan(pp.first)) TRACKER::params_ptt.initMaxEstTrials_global = pp.first;
+            TRACKER::params_ptt.initMaxEstTrials_img_path = pp.second;
+            TRACKER::params_ptt.needsUpdate();
+            break;
+
+        default:
+            break;
+    }
+
+}
+
+
+void Trekker::propMaxEstTrials(int propMaxEstTrials) {
+    switch (TRACKER::algorithm) {
+        case PTT:
+            TRACKER::params_ptt.propMaxEstTrials_global = propMaxEstTrials;
+            TRACKER::params_ptt.needsUpdate();
+            break;
+
+        default:
+            break;
+    }
+}
+
+void Trekker::propMaxEstTrials(std::string paramStr) {
+
+    auto pp = parseParamStr(paramStr);
+
+    switch (TRACKER::algorithm) {
+        case PTT:
+            if (!isnan(pp.first)) TRACKER::params_ptt.propMaxEstTrials_global = pp.first;
+            TRACKER::params_ptt.propMaxEstTrials_img_path = pp.second;
+            TRACKER::params_ptt.needsUpdate();
+            break;
+
+        default:
+            break;
+    }
+
+}
+
+void Trekker::maxSamplingPerStep(int triesPerRejectionSampling) {
+    switch (TRACKER::algorithm) {
+        case PTT:
+            TRACKER::params_ptt.triesPerRejectionSampling_global = triesPerRejectionSampling;
+            TRACKER::params_ptt.needsUpdate();
+            break;
+
+        default:
+            break;
+    }
+}
+
+void Trekker::maxSamplingPerStep(std::string paramStr) {
+    
+    auto pp = parseParamStr(paramStr);
+
+    switch (TRACKER::algorithm) {
+        case PTT:
+            if (!isnan(pp.first)) TRACKER::params_ptt.triesPerRejectionSampling_global = pp.first;
+            TRACKER::params_ptt.triesPerRejectionSampling_img_path = pp.second;
+            TRACKER::params_ptt.needsUpdate();
+            break;
+
+        default:
+            break;
+    }
+
+}
+
+// Probe options
+void Trekker::probeCount(int probeCount) {
+    switch (TRACKER::algorithm) {
+        case PTT:
+            TRACKER::params_ptt.probeCount_global = probeCount;
+            TRACKER::params_ptt.needsUpdate();
+            break;
+
+        default:
+            break;
+    }
+}
+
+void Trekker::probeCount(std::string paramStr) {
+    
+    auto pp = parseParamStr(paramStr);
+
+    switch (TRACKER::algorithm) {
+        case PTT:
+            if (!isnan(pp.first)) TRACKER::params_ptt.probeCount_global = pp.first;
+            TRACKER::params_ptt.probeCount_img_path = pp.second;
+            TRACKER::params_ptt.needsUpdate();
+            break;
+
+        default:
+            break;
+    }
+
 }
 
 
 void Trekker::probeRadius(double probeRadius) {
     switch (TRACKER::algorithm) {
         case PTT:
-            TRACKER::params_ptt.probeRadius = probeRadius;
+            TRACKER::params_ptt.probeRadius_global = probeRadius;
             TRACKER::params_ptt.needsUpdate();
             break;
 
         default:
             break;
     }
+}
+
+void Trekker::probeRadius(std::string paramStr) {
+    
+    auto pp = parseParamStr(paramStr);
+
+    switch (TRACKER::algorithm) {
+        case PTT:
+            if (!isnan(pp.first)) TRACKER::params_ptt.probeRadius_global = pp.first;
+            TRACKER::params_ptt.probeRadius_img_path = pp.second;
+            TRACKER::params_ptt.needsUpdate();
+            break;
+
+        default:
+            break;
+    }
+
 }
 
 
 void Trekker::probeLength(double probeLength) {
     switch (TRACKER::algorithm) {
         case PTT:
-            TRACKER::params_ptt.probeLength = probeLength;
+            TRACKER::params_ptt.probeLength_global = probeLength;
             TRACKER::params_ptt.needsUpdate();
             break;
 
         default:
             break;
     }
+}
+
+void Trekker::probeLength(std::string paramStr) {
+    
+    auto pp = parseParamStr(paramStr);
+
+    switch (TRACKER::algorithm) {
+        case PTT:
+            if (!isnan(pp.first)) TRACKER::params_ptt.probeLength_global = pp.first;
+            TRACKER::params_ptt.probeLength_img_path = pp.second;
+            TRACKER::params_ptt.needsUpdate();
+            break;
+
+        default:
+            break;
+    }
+
 }
 
 
 void Trekker::probeQuality(int probeQuality) {
     switch (TRACKER::algorithm) {
         case PTT:
-            TRACKER::params_ptt.probeQuality = probeQuality;
+            TRACKER::params_ptt.probeQuality_global = probeQuality;
             TRACKER::params_ptt.needsUpdate();
             break;
 
@@ -375,33 +633,22 @@ void Trekker::probeQuality(int probeQuality) {
     }
 }
 
-// Output options
-void Trekker::saveFrame(bool saveFrame) {
+void Trekker::probeQuality(std::string paramStr) {
+    
+    auto pp = parseParamStr(paramStr);
+
     switch (TRACKER::algorithm) {
         case PTT:
-            TRACKER::params_ptt.saveFrame = saveFrame;
+            if (!isnan(pp.first)) TRACKER::params_ptt.probeQuality_global = pp.first;
+            TRACKER::params_ptt.probeQuality_img_path = pp.second;
             TRACKER::params_ptt.needsUpdate();
             break;
 
         default:
             break;
     }
+
 }
-
-
-void Trekker::writeStepSize(float _writeStepSize) {
-    switch (TRACKER::algorithm) {
-        case PTT:
-            TRACKER::params_ptt.outputStep = _writeStepSize;
-            TRACKER::params_ptt.needsUpdate();
-            break;
-
-        default:
-            break;
-    }
-}
-
-
 
 // Reset
 void Trekker::reset() { TRACKER::reset();}

@@ -321,27 +321,36 @@ std::unordered_map<int,std::unordered_map<int, float>> NIBR::readSurfaceIndexing
         surfIdx[streamlineIndices[n]] = std::unordered_map<int, float>();
     }
 
+    std::vector<std::ifstream> idxFile;
+    idxFile.resize(MT::MAXNUMBEROFTHREADS());
+    
+    for (int n = 0; n < MT::MAXNUMBEROFTHREADS(); n++) {
+        idxFile[n].open(indexFilePrefix + "_idx.bin", std::ios::binary | std::ios::in);
+    }
+
     auto runReader = [&](MT::TASK task)->void {
 
         int streamlineIndex = streamlineIndices[task.no];
-        
-        std::ifstream idxFile(indexFilePrefix + "_idx.bin", std::ios::binary | std::ios::in);
-        idxFile.seekg(positions[streamlineIndex]);
 
-        while (idxFile.tellg() < positions[streamlineIndex+1]) {
+        idxFile[task.threadId].seekg(positions[streamlineIndex]);
+
+        while (idxFile[task.threadId].tellg() < positions[streamlineIndex+1]) {
             int vertexId;
             float distance;
 
-            idxFile.read(reinterpret_cast<char*>(&vertexId), sizeof(vertexId));
-            idxFile.read(reinterpret_cast<char*>(&distance), sizeof(distance));
+            idxFile[task.threadId].read(reinterpret_cast<char*>(&vertexId), sizeof(vertexId));
+            idxFile[task.threadId].read(reinterpret_cast<char*>(&distance), sizeof(distance));
 
             surfIdx[streamlineIndex][vertexId] = distance;
         }      
 
-        idxFile.close();
     };
 
     MT::MTRUN(streamlineIndices.size(),"Reading surface indexing",runReader);
+
+    for (int n = 0; n < MT::MAXNUMBEROFTHREADS(); n++) {
+        idxFile[n].close();
+    }
 
     return surfIdx;
 }
@@ -362,27 +371,36 @@ std::vector<std::unordered_map<int,float>> NIBR::readSurfaceIndexing(TractogramR
     }
     surfPosFile.close();
 
+    std::vector<std::ifstream> idxFile;
+    idxFile.resize(MT::MAXNUMBEROFTHREADS());
+
+    for (int n = 0; n < MT::MAXNUMBEROFTHREADS(); n++) {
+        idxFile[n].open(indexFilePrefix + "_idx.bin", std::ios::binary | std::ios::in);
+    }
+
     auto runReader = [&](MT::TASK task)->void {
 
         const size_t& streamlineIndex = task.no;
         
-        std::ifstream idxFile(indexFilePrefix + "_idx.bin", std::ios::binary | std::ios::in);
-        idxFile.seekg(positions[streamlineIndex]);
+        idxFile[task.threadId].seekg(positions[streamlineIndex]);
 
-        while (idxFile.tellg() < positions[streamlineIndex+1]) {
+        while (idxFile[task.threadId].tellg() < positions[streamlineIndex+1]) {
             int vertexId;
             float distance;
 
-            idxFile.read(reinterpret_cast<char*>(&vertexId), sizeof(vertexId));
-            idxFile.read(reinterpret_cast<char*>(&distance), sizeof(distance));
+            idxFile[task.threadId].read(reinterpret_cast<char*>(&vertexId), sizeof(vertexId));
+            idxFile[task.threadId].read(reinterpret_cast<char*>(&distance), sizeof(distance));
 
             surfIdx[streamlineIndex][vertexId] = distance;
         }      
 
-        idxFile.close();
     };
 
     MT::MTRUN(tractogram.numberOfStreamlines,"Reading surface indexing",runReader);
+
+    for (int n = 0; n < MT::MAXNUMBEROFTHREADS(); n++) {
+        idxFile[n].close();
+    }
 
     return surfIdx;
 

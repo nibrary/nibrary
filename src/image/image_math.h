@@ -1,6 +1,7 @@
 #pragma once
 
-#include "image.h"
+#include "base/nibr.h"
+#include "image/image.h"
 #include "math/core.h"
 #include <cmath>
 #include <tuple>
@@ -40,6 +41,10 @@ namespace NIBR
     T imgMin(NIBR::Image<T>* img);
     std::tuple<T,T> imgMinMax(NIBR::Image<T>* img);
     std::tuple<T,T> imgMinMax(NIBR::Image<T>* img, int volInd);
+    void imgRescaleToRange(NIBR::Image<T>& img, double minVal, double maxVal, bool ignoreZeros);
+    void imgRescaleToRange(NIBR::Image<T>& imgOut, NIBR::Image<T>& img, double minVal, double maxVal, bool ignoreZeros);
+    void imgNorm(NIBR::Image<T_OUT>& imgOut,NIBR::Image<T>& img);
+    void imgNormalize(NIBR::Image<T>& imgOut,NIBR::Image<T>& img);
     */
     
 
@@ -48,7 +53,6 @@ namespace NIBR
     // FUNCTION DEFINITIONS
 
     // ------------THRESHOLDING-----------
-    
     // Threshold and overwrite input image
     template<typename T>
     void imgThresh(NIBR::Image<T>& img, float loVal, float hiVal) {
@@ -73,6 +77,32 @@ namespace NIBR
     }
     // -------------------------------
 
+    // ------------CLAMPING-----------
+    template<typename T>
+    void imgClamp(NIBR::Image<T>& img, float loVal, float hiVal) {
+
+        for (int n = 0; n < img.numel; n++) {
+            if      (img.data[n] < loVal) img.data[n] = loVal;
+            else if (img.data[n] > hiVal) img.data[n] = hiVal;
+        }
+        
+    }
+
+    template<typename T_INP,typename T_OUT>
+    void imgClamp(NIBR::Image<T_OUT>& imgOut, NIBR::Image<T_INP>& img, float loVal, float hiVal=FLT_MAX) {
+
+        if (imgOut.data == NULL)
+            imgOut.create(img.numberOfDimensions,img.imgDims,img.pixDims,img.ijk2xyz,true);
+
+        for (int n = 0; n < img.numel; n++) {
+            if      (img.data[n] < loVal) imgOut.data[n] = loVal;
+            else if (img.data[n] > hiVal) imgOut.data[n] = hiVal;
+            else imgOut.data[n] = img.data[n];
+        }
+        
+    }
+    // -------------------------------
+
 
     // ------------ADDITION-----------
     // Add and overwrite first image
@@ -80,7 +110,7 @@ namespace NIBR
     void imgAdd(NIBR::Image<T1>& img1,NIBR::Image<T2>& img2) {
 
         for (int n = 0; n < img1.numel; n++) {
-            img1.data[n] += img2.data[n]; 
+           img1.data[n] += img2.data[n]; 
         }
         
     }
@@ -453,6 +483,49 @@ namespace NIBR
 
     }
     // -------------------------------
+    // ----FINDS MIN AND MAX VALUE----
+    template<typename T>
+    std::tuple<T,T> imgMinMax(NIBR::Image<T>* img, bool ignoreZeros, bool ignoreNANs) {
+
+        if (img->numel == 0) {
+            disp(MSG_WARN,"Empty image, returning 0 as min and max values.");
+            return std::make_tuple(static_cast<T>(0), static_cast<T>(0));
+        }
+
+        auto isValid = [&](T val) {
+            if (ignoreZeros && val == static_cast<T>(0))             return false;
+            if (ignoreNANs  && std::isnan(static_cast<double>(val))) return false;
+            return true;
+        };
+
+        // Find the first valid value
+        int firstValidIndex = -1;
+        for (int n = 0; n < img->numel; ++n) {
+            if (isValid(img->data[n])) {
+                firstValidIndex = n;
+                break;
+            }
+        }
+
+        // If no valid values found, return (0,0)
+        if (firstValidIndex == -1) {
+            disp(MSG_WARN,"Image only has zeros or nans, returning 0 as min and max values.");
+            return std::make_tuple(static_cast<T>(0), static_cast<T>(0));
+        }
+
+        T minVal = img->data[firstValidIndex];
+        T maxVal = img->data[firstValidIndex];
+
+        // Loop through the remaining elements
+        for (int n = firstValidIndex + 1; n < img->numel; ++n) {
+            T val = img->data[n];
+            if (!isValid(val)) continue;
+            if (val < minVal)  minVal = val;
+            if (val > maxVal)  maxVal = val;
+        }
+
+        return std::make_tuple(minVal, maxVal);
+    }
 
     // ----FINDS MIN AND MAX VALUE----
     template<typename T>
@@ -500,6 +573,108 @@ namespace NIBR
         return std::make_tuple(minVal,maxVal);
 
     }
+
+    // --------------RESCALETORANGE-------------
+    template<typename T>
+    void imgRescaleToRange(NIBR::Image<T>& img, double minVal, double maxVal, bool ignoreZeros) {
+
+        if (minVal > maxVal) {
+            disp(MSG_ERROR,"minVal > maxVal");
+            return;
+        }
+
+        auto [oldMin, oldMax] = imgMinMax(&img, ignoreZeros, true);
+
+        if (oldMax == oldMin) {
+            for (int i = 0; i < img.numel; ++i) {
+                T& val = img.data[i];
+                if (ignoreZeros && val == static_cast<T>(0)) continue;
+                val = minVal;
+            }
+            return;
+        }
+
+        T oldRange = oldMax - oldMin;
+        T newRange = maxVal - minVal;
+
+        for (int i = 0; i < img.numel; ++i) {
+            T& val = img.data[i];
+
+            if (ignoreZeros && val == static_cast<T>(0)) continue;
+
+            T norm = (val - oldMin) / oldRange;
+            val = norm * newRange + minVal;
+        }
+    }
+
+    template<typename T_OUT,typename T>
+    void imgRescaleToRange(NIBR::Image<T>& imgOut, NIBR::Image<T>& img, double minVal, double maxVal, bool ignoreZeros) {
+        imgOut = img;
+        return imgRescaleToRange(imgOut,minVal,maxVal,ignoreZeros);
+    }
+    // -------------------------------
+
+    template<typename T_OUT,typename T>
+    void imgNorm(NIBR::Image<T_OUT>& imgOut,NIBR::Image<T>& img) {
+
+        if (imgOut.data == NULL) {
+            int64_t imgDims[7] = {img.imgDims[0],img.imgDims[1],img.imgDims[2],1,1,1,1};
+            float   pixDims[7] = {img.pixDims[0],img.pixDims[1],img.pixDims[2],0,0,0,0};
+            imgOut.create(3,imgDims,pixDims,img.ijk2xyz,true);
+        }
+
+        if (img.numberOfDimensions == 3) {
+            imgOut = img;
+            return;
+        }
+        
+        auto f = [&](NIBR::MT::TASK task)->void {
+
+            double val = 0.0;
+            for (int t = 0; t < img.valCnt; t++) {
+                val += (*img.at(task.no,t))*(*img.at(task.no,t));
+            }
+
+            imgOut.data[task.no] = std::sqrt(val);
+        };
+        
+        NIBR::MT::MTRUN(img.voxCnt,f);
+
+    }
+
+    template<typename T>
+    void imgNormalize(NIBR::Image<T>& imgOut,NIBR::Image<T>& img) {
+
+        if (imgOut.data == NULL) {
+            imgOut.create(img.numberOfDimensions,img.imgDims,img.pixDims,img.ijk2xyz,true);
+            // int order[7] = {3,0,1,2,4,5,6};
+            // imgOut.indexData(order);
+        }
+
+        if (img.numberOfDimensions == 3) {
+            for (int n = 0; n < imgOut.numel; n++) {
+                imgOut.data[n] = 1.0;
+            }
+            return;
+        }
+        
+        auto f = [&](NIBR::MT::TASK task)->void {
+            double val = 0.0;
+            for (int t = 0; t < img.valCnt; t++) {
+                val += (*img.at(task.no,t))*(*img.at(task.no,t));
+            }
+
+            val = (std::fabs(val) > EPS12) ? (1.0 / std::sqrt(val)) : 0.0;
+
+            for (int t = 0; t < img.valCnt; t++) {
+                (*imgOut.at(task.no,t)) = (*img.at(task.no,t)) * val;
+            }
+        };
+        
+        NIBR::MT::MTRUN(img.voxCnt,f);
+
+    }
+
 
 
 }

@@ -22,9 +22,9 @@
 /** unsigned char alias */
 typedef unsigned char uchar ;
 /** signed char alias */
-typedef   signed char schar ;
+typedef signed char schar ;
 /** isovalue alias */
-typedef        float real  ;
+typedef float realType  ;
 
 //-----------------------------------------------------------------------------
 // Vertex structure
@@ -40,8 +40,8 @@ typedef        float real  ;
  */
 typedef struct
 {
-  real  x,  y,  z ;  /**< Vertex coordinates */
-  real nx, ny, nz ;  /**< Vertex normal */
+  realType  x,  y,  z ;  /**< Vertex coordinates */
+  realType nx, ny, nz ;  /**< Vertex normal */
 } Vertex ;
 
 //-----------------------------------------------------------------------------
@@ -122,7 +122,7 @@ public :
    * selects to use data from another class
    * \param data is the pointer to the external data, allocated as a size_x*size_y*size_z vector running in x first
    */
-  inline void set_ext_data  ( real *data )
+  inline void set_ext_data  ( realType *data )
   { if( !_ext_data ) delete [] _data ;  _ext_data = data != NULL ;  if( _ext_data ) _data = data ; }
   /**
    * selects to allocate data
@@ -136,7 +136,7 @@ public :
    * \param j ordinate of the cube
    * \param k height of the cube
    */
-  inline const real get_data  ( const int i, const int j, const int k ) const { return _data[ i + j*_size_x + k*_size_x*_size_y] ; }
+  inline const realType get_data  ( const int i, const int j, const int k ) const { return _data[ i + j*_size_x + k*_size_x*_size_y] ; }
   /**
    * sets a specific cube of the grid
    * \param val new value for the cube
@@ -144,7 +144,7 @@ public :
    * \param j ordinate of the cube
    * \param k height of the cube
    */
-  inline void  set_data  ( const real val, const int i, const int j, const int k ) { _data[ i + j*_size_x + k*_size_x*_size_y] = val ; }
+  inline void  set_data  ( const realType val, const int i, const int j, const int k ) { _data[ i + j*_size_x + k*_size_x*_size_y] = val ; }
 
   // Data initialization
   /** inits temporary structures (must set sizes before call) : the grid and the vertex index per cube */
@@ -163,7 +163,7 @@ public :
    * Main algorithm : must be called after init_all
    * \param iso isovalue
    */
-  void run( real iso = (real)0.0 ) ;
+  void run( realType iso = (realType)0.0 ) ;
 
 protected :
   /** tesselates one cube */
@@ -181,7 +181,7 @@ protected :
    * computes almost all the vertices of the mesh by interpolation along the cubes edges
    * \param iso isovalue
    */
-  void compute_intersection_points( real iso ) ;
+  void compute_intersection_points( realType iso ) ;
 
   /**
    * routine to add a triangle to the mesh
@@ -208,21 +208,21 @@ protected :
    * \param j ordinate of the cube
    * \param k height of the cube
    */
-  real get_x_grad( const int i, const int j, const int k ) const ;
+  realType get_x_grad( const int i, const int j, const int k ) const ;
   /**
    * interpolates the longitudinal gradient of the implicit function at the lower vertex of the specified cube
    * \param i abscisse of the cube
    * \param j ordinate of the cube
    * \param k height of the cube
    */
-  real get_y_grad( const int i, const int j, const int k ) const ;
+  realType get_y_grad( const int i, const int j, const int k ) const ;
   /**
    * interpolates the vertical gradient of the implicit function at the lower vertex of the specified cube
    * \param i abscisse of the cube
    * \param j ordinate of the cube
    * \param k height of the cube
    */
-  real get_z_grad( const int i, const int j, const int k ) const ;
+  realType get_z_grad( const int i, const int j, const int k ) const ;
 
   /**
    * accesses the pre-computed vertex index on the lower horizontal edge of a specific cube
@@ -283,7 +283,7 @@ protected :
   int       _size_x     ;  /**< width  of the grid */
   int       _size_y     ;  /**< depth  of the grid */
   int       _size_z     ;  /**< height of the grid */
-  real     *_data       ;  /**< implicit function values sampled on the grid */
+  realType     *_data       ;  /**< implicit function values sampled on the grid */
 
   int      *_x_verts    ;  /**< pre-computed vertex indices on the lower horizontal   edge of each cube */
   int      *_y_verts    ;  /**< pre-computed vertex indices on the lower longitudinal edge of each cube */
@@ -300,7 +300,7 @@ protected :
   int       _j          ;  /**< height of the active cube */
   int       _k          ;  /**< ordinate of the active cube */
 
-  real      _cube[8]    ;  /**< values of the implicit function on the active cube */
+  realType      _cube[8]    ;  /**< values of the implicit function on the active cube */
   uchar     _lut_entry  ;  /**< cube sign representation in [0..255] */
   uchar     _case       ;  /**< case of the active cube in [0..15] */
   uchar     _config     ;  /**< configuration of the active cube */

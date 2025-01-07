@@ -2,6 +2,7 @@
 
 #include <stdio.h>
 #include <map>
+#include "base/nibr.h"
 #include "math/sphericalFunctions.h"
 #include "dMRI/tractography/mappers/tractogram2imageMapper.h"
 

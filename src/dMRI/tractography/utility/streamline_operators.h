@@ -1,6 +1,6 @@
 #pragma once
 
-#include "base/config.h"
+#include "base/nibr.h"
 #include "image/image.h"
 #include "dMRI/tractography/io/tractogramReader.h"
 #include <vector>

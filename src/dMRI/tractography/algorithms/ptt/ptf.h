@@ -1,8 +1,9 @@
 #pragma once
 
+#include "base/nibr.h"
 #include "../../tracker/tracker.h"
 #include "math/core.h"
-#include "algorithm_ptt_params.h"
+#include "algorithm_ptt.h"
 #include <cmath>
 #include <random>
 #include <cfloat>
@@ -16,7 +17,7 @@ class PTF {
 public:
 
     // For each streamline, create a new PTF object with tracking parameters
-    PTF();
+    PTF(TrackWith_PTT *_tracker);
     ~PTF();
 
     float  *p; // Last position
@@ -62,15 +63,20 @@ public:
     void   setInitPosteriorMax(float postMax) {initPosteriorMax = postMax;}
     float  getInitPosteriorMax() {return initPosteriorMax;}
 
+    // Refreshes parameters for the current position of the curve
+    void  refreshParams();
     void  print();
 
 private:
+
+    TrackWith_PTT* tracker;
 
     float  k1_cand;
     float  k2_cand;
     float *PP; // Propagator
     
     void   getARandomFrame(float* _dir);
+    float  calcLocalDataSupport(float* _p, float* _dir);
     float  calcDataSupport();
     void   prepPropagator(float t);
     
@@ -125,7 +131,7 @@ inline void PTF::prepPropagator(float t) {
 
 inline void PTF::walk() {
     
-    prepPropagator(TRACKER::params_ptt.stepSize);
+    prepPropagator(tracker->stepSize);
     k1 = k1_cand;
     k2 = k2_cand;
     
@@ -148,6 +154,16 @@ inline void PTF::walk() {
     
     likelihood 	= 0.0;
     
+}
+
+inline void PTF::refreshParams() {
+    angularSeparation = 2.0*M_PI/float(tracker->probeCount);
+    probeStepSize     = tracker->probeLength/(tracker->probeQuality-1);
+    if (TRACKER::params_ptt.img_FOD->getSHorder()%2==0) {
+        probeNormalizer   = 1/float(tracker->probeQuality*tracker->probeCount);
+    } else {
+        probeNormalizer   = 1/float((tracker->probeQuality-1)*tracker->probeCount);
+    }
 }
 
 }

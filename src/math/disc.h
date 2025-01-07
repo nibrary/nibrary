@@ -1,5 +1,7 @@
 #pragma once
 
+#include "base/nibr.h"
+
 namespace NIBR {
 
 const int DISC_1_VERT_CNT = 19;

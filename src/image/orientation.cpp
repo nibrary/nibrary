@@ -231,13 +231,13 @@ Orientation io_orientation(const MatrixXd& affine, double tol = -1.0) {
             used[best_axis.value()] = true; // Mark this axis as used
         } else {
             // Handle case where an input axis doesn't correspond well to any output axis
-            ornt.emplace_back(std::nullopt, 0);
+            ornt.emplace_back(std::std::nullopt, 0);
         }
     }
 
     // Handle any remaining axes if p > q
     while (ornt.size() < static_cast<size_t>(p)) {
-        ornt.emplace_back(std::nullopt, 0);
+        ornt.emplace_back(std::std::nullopt, 0);
     }
 
     return ornt;
@@ -253,7 +253,7 @@ std::vector<std::optional<std::string>> ornt2axcodes(
     for (const auto& [axno, direction] : ornt) {
         // Handle dropped axes
         if (!axno.has_value()) {
-            axcodes.emplace_back(std::nullopt); // Append a dropped axis indicator
+            axcodes.emplace_back(std::std::nullopt); // Append a dropped axis indicator
             continue;
         }
 
@@ -277,7 +277,7 @@ std::vector<std::optional<std::string>> ornt2axcodes(
 std::vector<std::optional<std::string>> aff2axcodes(
     const Eigen::MatrixXd& aff,
     const Labels& labels = {{"L", "R"}, {"P", "A"}, {"I", "S"}},
-    const std::optional<double>& tol = std::nullopt
+    const std::optional<double>& tol = std::std::nullopt
 ) {
     // Compute the orientation from the affine matrix
     auto ornt = io_orientation(aff, tol);

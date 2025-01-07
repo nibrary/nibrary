@@ -15,6 +15,8 @@
 #include <functional>
 #include <algorithm>
 
+#include "base/nibr.h"
+
 namespace NIBR 
 {
 

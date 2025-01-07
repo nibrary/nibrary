@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <stdio.h>
 #include "dMRI/tractography/mappers/tractogram2imageMapper.h"
+#include "base/nibr.h"
 
 namespace NIBR 
 {

@@ -1,6 +1,7 @@
 #pragma once
 
-#include "core.h"
+#include "base/nibr.h"
+#include "math/core.h"
 #include "math/reorient.h"
 
 namespace NIBR 

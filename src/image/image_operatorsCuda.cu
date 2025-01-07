@@ -1,5 +1,5 @@
 #include "image_operatorsCuda.cuh"
-#include "base/config.h"
+#include "base/nibr.h"
 #include "imageCuda.cuh"
 
 using namespace NIBR;

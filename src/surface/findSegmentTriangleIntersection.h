@@ -1,6 +1,7 @@
 #pragma once
 
-#include "surface.h"
+#include "base/nibr.h"
+#include "surface/surface.h"
 #include "dMRI/tractography/io/tractogramReader.h"
 
 namespace NIBR {

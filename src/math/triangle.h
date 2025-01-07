@@ -1,5 +1,7 @@
 #pragma once
-#include "./core.h"
+
+#include "base/nibr.h"
+#include "math/core.h"
 
 namespace NIBR
 {

@@ -1,6 +1,7 @@
 #pragma once
 
-#include "base/config.h"
+#include <vector>
+#include "base/nibr.h"
 
 namespace NIBR {
 
@@ -46,7 +47,7 @@ public:
     bool        pathway_oneSided (bool q);
     bool        pathway_skipSeed (bool q);
     bool        pathway_inOrder  (bool q);
-    bool        pathway_noEdgeSeed(bool q);
+    // bool        pathway_noEdgeSeed(bool q);
     
     // Algorithm options
     void        algorithm_clear();    // Everything about the algorithm is deleted. All algorithm parameters can always be changed without using this function.
@@ -59,30 +60,47 @@ public:
     void        orderOfDirections(std::string orderOfDirectionsTextInput);
 
     // Tracking options
-    void        stepSize(double stepSize);
-    void        minRadiusOfCurvature(double minRadiusOfCurvature);
-    void        minDataSupport(double minDataSupport);
-    void        dataSupportExponent(double dataSupportExponent);
-    void        ignoreWeakLinks(double weakLinkThresh);
+    void        ignoreWeakLinks(double      weakLinkThresh);
+
+    void        writeStepSize(float _writeStepSize);
+    void        writeStepSize(std::string paramStr);
+    void        stepSize(double      stepSize);
+    void        stepSize(std::string paramStr);
+
+    void        minRadiusOfCurvature(double      minRadiusOfCurvature);
+    void        minRadiusOfCurvature(std::string paramStr);
+    void        minDataSupport(double      minDataSupport);
+    void        minDataSupport(std::string paramStr);
+    void        dataSupportExponent(double      dataSupportExponent);
+    void        dataSupportExponent(std::string paramStr);
 
     // Sampling options
-    void        maxEstInterval(int maxEstInterval);
-    void        initMaxEstTrials(int initMaxEstTrials);
-    void        propMaxEstTrials(int propMaxEstTrials);
-    void        maxSamplingPerStep(int triesPerRejectionSampling);
-    void        useBestAtInit(bool useBestAtInit);
+    void        useBestAtInit(bool     useBestAtInit);    
     void        useLegacySampling(bool useLegacySampling);
-    void        samplingQuality(int samplingQuality);
+    void        samplingQuality(int         samplingQuality);
 
+    void        maxEstInterval(int         maxEstInterval);
+    void        maxEstInterval(std::string paramStr);
+    void        initMaxEstTrials(int         initMaxEstTrials);
+    void        initMaxEstTrials(std::string paramStr);
+    void        propMaxEstTrials(int         propMaxEstTrials);
+    void        propMaxEstTrials(std::string paramStr);
+    void        maxSamplingPerStep(int         triesPerRejectionSampling);
+    void        maxSamplingPerStep(std::string paramStr);
+    
     // Probe options
-    void        probeCount(int probeCount);
-    void        probeRadius(double probeRadius);
-    void        probeLength(double probeLength);
-    void        probeQuality(int probeQuality);
+    void        probeCount(int         probeCount);
+    void        probeCount(std::string paramStr);
+    void        probeRadius(double      probeRadius);
+    void        probeRadius(std::string paramStr);
+    void        probeLength(double      probeLength);
+    void        probeLength(std::string paramStr);
+    void        probeQuality(int         probeQuality);
+    void        probeQuality(std::string paramStr);
 
-    // Output options
-    void        writeStepSize(float _writeStepSize);
-    void        saveFrame(bool saveFrame);
+    // Parameter mask image
+    void        paramImgMask(std::string param_mask_fname);
+    
     
 };
 

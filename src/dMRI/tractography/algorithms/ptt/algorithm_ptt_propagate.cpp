@@ -1,5 +1,6 @@
 #include "../../tracker/tracker.h"
 #include "algorithm_ptt.h"
+#include "ptf.h"
 
 using namespace NIBR;
 
@@ -7,29 +8,29 @@ void TrackWith_PTT::estimatePosteriorMax() {
 
 	posteriorMax = 0;
 
-	for (int i=0; i<TRACKER::params_ptt.propMaxEstTrials; i++) {
+	for (int i=0; i<propMaxEstTrials; i++) {
 		curve->getCandidate();
 		if (curve->likelihood > posteriorMax)
 			posteriorMax = curve->likelihood;
 	}
 
-	posteriorMax = std::pow(posteriorMax*DEFAULT_PTT_MAXPOSTESTCOMPENS,TRACKER::params_ptt.dataSupportExponent);
+	posteriorMax = std::pow(posteriorMax*DEFAULT_PTT_MAXPOSTESTCOMPENS,dataSupportExponent);
 	// disp(MSG_DEBUG,"posteriorMax: %f", posteriorMax);
 
 }
 
 Propagation_Decision TrackWith_PTT::rejectionSample() {
 
-	for (int tries=0; tries<TRACKER::params_ptt.triesPerRejectionSampling; tries++) {
+	for (int tries=0; tries<triesPerRejectionSampling; tries++) {
 
 		curve->getCandidate();
 
-		float dataSupport = std::pow(curve->likelihood,TRACKER::params_ptt.dataSupportExponent);
+		float dataSupport = std::pow(curve->likelihood,dataSupportExponent);
 
 		if (dataSupport > posteriorMax) {
 			// disp(MSG_DEBUG,"curve->likelihood (failed): %f", curve->likelihood);
 			return PROP_FAIL;
-		} else if ((TRACKER::params_ptt.modMinDataSupport<=dataSupport) && (curve->doRandomThings.uniform_01()*posteriorMax <= dataSupport )) { // Equal helps to sample extrema
+		} else if ((modMinDataSupport<=dataSupport) && (curve->doRandomThings.uniform_01()*posteriorMax <= dataSupport )) { // Equal helps to sample extrema
             // This candidate is now selected and it will be propagated
             curve->resetFirstVal();
 			// disp(MSG_DEBUG,"posteriorMax: %f, dataSupport: %f", posteriorMax, dataSupport);
@@ -38,7 +39,7 @@ Propagation_Decision TrackWith_PTT::rejectionSample() {
 
 	}
 	
-	// if (tries==TRACKER::params_ptt.triesPerRejectionSampling)
+	// if (tries==triesPerRejectionSampling)
 	// disp(MSG_DEBUG,"Prop stop");
 	return PROP_STOP;
 
@@ -52,16 +53,16 @@ Propagation_Decision TrackWith_PTT::sampleFromCDF() {
 
 	// Calculate data support for each vertex of the k1-k2 disc 
 	for (int n = 0; n < p.cdfVertCnt; n++) {
-		cdfVertVal[n] = std::pow(curve->calcDataSupport(p.cdfk1k2[n].first,p.cdfk1k2[n].second),TRACKER::params_ptt.dataSupportExponent);
+		cdfVertVal[n] = std::pow(curve->calcDataSupport(cdfk1k2->at(n).first,cdfk1k2->at(n).second),dataSupportExponent);
 	}
 
 	// Calculate the data support for each face (sum of face vertices)
 	float cumSum = 0.0f;
 	for (int n = 0; n < p.cdfFaceCnt; n++) {
 
-		auto& f = p.cdfFace[n];
+		auto& f = cdfFace->at(n);
 
-		if ((cdfVertVal[f[0]] >= p.modMinDataSupport) && (cdfVertVal[f[1]] >= p.modMinDataSupport) && (cdfVertVal[f[2]] >= p.modMinDataSupport) ) {
+		if ((cdfVertVal[f[0]] >= modMinDataSupport) && (cdfVertVal[f[1]] >= modMinDataSupport) && (cdfVertVal[f[2]] >= modMinDataSupport) ) {
 
 			float faceDataSupport = cdfVertVal[f[0]] + cdfVertVal[f[1]] + cdfVertVal[f[2]];
 
@@ -82,7 +83,7 @@ Propagation_Decision TrackWith_PTT::sampleFromCDF() {
 	}
 
 	// Sample face
-	for (int tries=0; tries<TRACKER::params_ptt.triesPerRejectionSampling; tries++) {
+	for (int tries=0; tries<triesPerRejectionSampling; tries++) {
 
 		float randVal = curve->doRandomThings.uniform_01()*cumSum;
 		
@@ -92,7 +93,7 @@ Propagation_Decision TrackWith_PTT::sampleFromCDF() {
 				break;
 		}
 
-		auto& f = p.cdfFace[n];
+		auto& f = cdfFace->at(n);
 
 		float r1 = curve->doRandomThings.uniform_01();
 		float r2 = curve->doRandomThings.uniform_01();
@@ -102,12 +103,12 @@ Propagation_Decision TrackWith_PTT::sampleFromCDF() {
 			r2 = 1 - r2;
 		}
 
-		float k1t = p.cdfk1k2[f[0]].first  + r1 * (p.cdfk1k2[f[1]].first -p.cdfk1k2[f[0]].first ) + r2 * (p.cdfk1k2[f[2]].first -p.cdfk1k2[f[0]].first );
-		float k2t = p.cdfk1k2[f[0]].second + r1 * (p.cdfk1k2[f[1]].second-p.cdfk1k2[f[0]].second) + r2 * (p.cdfk1k2[f[2]].second-p.cdfk1k2[f[0]].second);
+		float k1t = cdfk1k2->at(f[0]).first  + r1 * (cdfk1k2->at(f[1]).first -cdfk1k2->at(f[0]).first ) + r2 * (cdfk1k2->at(f[2]).first -cdfk1k2->at(f[0]).first );
+		float k2t = cdfk1k2->at(f[0]).second + r1 * (cdfk1k2->at(f[1]).second-cdfk1k2->at(f[0]).second) + r2 * (cdfk1k2->at(f[2]).second-cdfk1k2->at(f[0]).second);
 
-		float dataSupport = std::pow(curve->calcDataSupport(k1t,k2t),TRACKER::params_ptt.dataSupportExponent);
+		float dataSupport = std::pow(curve->calcDataSupport(k1t,k2t),dataSupportExponent);
 
-		if (TRACKER::params_ptt.modMinDataSupport<=dataSupport) {
+		if (modMinDataSupport<=dataSupport) {
             // This candidate is now selected and it will be propagated
             curve->resetFirstVal();
 			// disp(MSG_DEBUG,"posteriorMax: %f, dataSupport: %f", posteriorMax, dataSupport);
@@ -129,6 +130,9 @@ Propagation_Decision TrackWith_PTT::propagate() {
 	// disp(MSG_DEBUG,"Before walk");
 	// curve->print();
 	curve->walk();
+	fetchParams(curve->p);
+	curve->refreshParams();
+
 	// disp(MSG_DEBUG,"After walk");
 	// curve->print();
 	stepCounter++;
@@ -136,7 +140,7 @@ Propagation_Decision TrackWith_PTT::propagate() {
 	if (TRACKER::params_ptt.useLegacySampling) {
 
 		// Estimate posterior
-		if (stepCounter%TRACKER::params_ptt.maxEstInterval==0) {
+		if (stepCounter%maxEstInterval==0) {
 			estimatePosteriorMax();
 		}
 

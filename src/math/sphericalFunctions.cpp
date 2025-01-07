@@ -1,6 +1,9 @@
-#include "base/config.h"
+#include "base/nibr.h"
+#include "base/verbose.h"
 #include "sphericalFunctions.h"
 #include <algorithm>
+
+using namespace std;
 
 namespace NIBR {
     namespace SF {

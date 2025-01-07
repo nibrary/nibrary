@@ -1,9 +1,10 @@
 #include "../../tracker/tracker.h"
 #include "algorithm_ptt_params.h"
 #include "math/disc.h"
+#include "base/vectorOperations.h"
+
 
 using namespace NIBR;
-
 
 bool Params_PTT::update() {
 
@@ -12,7 +13,10 @@ bool Params_PTT::update() {
 
 	if ((img_FOD==NULL) || ((img_FOD!=NULL) &&  ( (img_FOD->filePath != img_FOD_path) || (img_FOD->getSphereFileName() != fod_sphere_path) ))) {
 
-		if (img_FOD!=NULL) delete img_FOD;
+		if (img_FOD!=NULL) {
+			delete img_FOD;
+			img_FOD = NULL;
+		}
 
 		if (fod_sphere_path=="")
 			img_FOD 			= new FOD_Image(img_FOD_path);
@@ -41,10 +45,51 @@ bool Params_PTT::update() {
 		
 	}
 
+	if ( (img_param_mask==NULL) || ((img_param_mask!=NULL) && (img_param_mask->filePath != img_param_mask_path)) ) {
+		
+		delete_img(img_param_mask);
+
+		if (img_param_mask_path != "") {
+			
+			disp(MSG_INFO, "Reading parameter mask image");
+			img_param_mask = new Image<bool>(img_param_mask_path);
+
+			if(!img_param_mask->read()) {
+				disp(MSG_ERROR, "Can't read parameter mask image");
+				return false;		
+			}
+
+			if (img_param_mask->numberOfDimensions != 3) {
+				disp(MSG_ERROR, "Parameter mask has to be a 3D image");
+				return false;		
+			}
+
+			img_param_mask->setInterpolationMethod(NEAREST);
+		}
+
+	}
+
+	if(!update_param_img(outputStep_img,				outputStep_img_path,				"outputStep", 					toRefresh, img_param_mask)) return false;
+	if(!update_param_img(stepSize_img,					stepSize_img_path,					"stepSize", 					toRefresh, img_param_mask)) return false;
+
+	if(!update_param_img(minRadiusOfCurvature_img,		minRadiusOfCurvature_img_path,		"minRadiusOfCurvature", 		toRefresh, img_param_mask)) return false;	
+	if(!update_param_img(minDataSupport_img,			minDataSupport_img_path,			"minDataSupport", 				toRefresh, img_param_mask)) return false;
+	if(!update_param_img(dataSupportExponent_img,		dataSupportExponent_img_path,		"dataSupportExponent", 			toRefresh, img_param_mask)) return false;
+
+	if(!update_param_img(maxEstInterval_img,			maxEstInterval_img_path,			"maxEstInterval", 				toRefresh, img_param_mask)) return false;
+	if(!update_param_img(initMaxEstTrials_img,			initMaxEstTrials_img_path,			"initMaxEstTrials", 			toRefresh, img_param_mask)) return false;
+	if(!update_param_img(propMaxEstTrials_img,			propMaxEstTrials_img_path,			"propMaxEstTrials", 			toRefresh, img_param_mask)) return false;
+	if(!update_param_img(triesPerRejectionSampling_img,	triesPerRejectionSampling_img_path,	"triesPerRejectionSampling", 	toRefresh, img_param_mask)) return false;
+
+	if(!update_param_img(probeLength_img,				probeLength_img_path,				"probeLength", 					toRefresh, img_param_mask)) return false;
+	if(!update_param_img(probeQuality_img,				probeQuality_img_path,				"probeQuality", 				toRefresh, img_param_mask)) return false;
+	if(!update_param_img(probeCount_img,				probeCount_img_path,				"probeCount", 					toRefresh, img_param_mask)) return false;
+	if(!update_param_img(probeRadius_img,				probeRadius_img_path,				"probeRadius", 					toRefresh, img_param_mask)) return false;
+
 	setDefaults();
 
 	pttIsReady = true;
-	
+
 	return true;
 
 }
@@ -54,11 +99,6 @@ void Params_PTT::clear() {
 	pttIsReady = false;
 
 	// FOD internal
-	if (img_FOD!=NULL) {
-		delete img_FOD;
-		img_FOD = NULL;
-	}
-
 	fodSphere.clear();
 	fodIsSpheresliced           = false;
 	fodIsSym					= true;
@@ -72,119 +112,184 @@ void Params_PTT::clear() {
 	orderOfDirectionsTextInput  = "";
 	
 	// Tracking options
-	stepSize                    = NAN;
-	minRadiusOfCurvature        = NAN;
-	minDataSupport              = NAN;
-	dataSupportExponent         = NAN;
 	weakLinkThresh              = NAN;
 
+	outputStep_global      		= NAN;
+	stepSize_global             = NAN;
+
+	minRadiusOfCurvature_global = NAN;
+	minDataSupport_global       = NAN;
+	dataSupportExponent_global  = NAN;
+	
+
 	// Sampling options
-	maxEstInterval              = -1;
-	initMaxEstTrials            = -1;
-	propMaxEstTrials            = -1;
-	triesPerRejectionSampling   = -1;
 	useBestAtInit               = false;
 	useLegacySampling           = false;
 	samplingQuality             = -1;
 
-	// Probe options
-	probeCount                  = NAN;
-    probeRadius                 = NAN;
-    probeLength                 = NAN;
-	probeQuality                = NAN;
+	maxEstInterval_global              = -1;
+	initMaxEstTrials_global            = -1;
+	propMaxEstTrials_global            = -1;
+	triesPerRejectionSampling_global   = -1;
 
-	// Output options
-	saveFrame                   = false;
-	outputStep                  = NAN;
+	// Probe options
+	probeCount_global      		= NAN;
+    probeRadius_global       	= NAN;
+    probeLength_global       	= NAN;
+	probeQuality_global       	= NAN;	
 
 	// Derived parameters
-    maxCurvature                = NAN;
 	checkWeakLinks              = NAN;
-	modMinDataSupport           = NAN;
+
+    maxCurvature_global         = NAN;
+	modMinDataSupport_global    = NAN;
+
+	if (img_FOD!=NULL) {
+		disp(MSG_DETAIL,"Cleaning memory for %s", img_FOD->filePath.c_str());
+		delete img_FOD;
+		img_FOD = NULL;
+	}
+
+	delete_img(img_param_mask);
+
+	delete_img(outputStep_img);
+	delete_img(stepSize_img);
+
+	delete_img(minRadiusOfCurvature_img);
+	delete_img(minDataSupport_img);
+	delete_img(dataSupportExponent_img);
+
+	delete_img(maxEstInterval_img);
+	delete_img(initMaxEstTrials_img);
+	delete_img(propMaxEstTrials_img);
+	delete_img(triesPerRejectionSampling_img);
+
+	delete_img(probeCount_img);
+	delete_img(probeRadius_img);
+	delete_img(probeLength_img);
+	delete_img(probeQuality_img);	
+
+	disp(MSG_DEBUG,"PTT parameters cleared.");
+
 }
 
 
 
 void Params_PTT::setDefaults() {
 
-	// Handle stepSize and outputStep
-	if (std::isnan(stepSize) 			 || (stepSize<=0)) 				stepSize 			 = smallestPixDim*DEFAULT_PTT_STEPSIZE_IN_PIXELDIM;
-	if (std::isnan(outputStep) 			 || (outputStep<=0)) 			outputStep 			 = smallestPixDim*DEFAULT_PTT_OUTPUTSTEPSIZE_IN_PIXELDIM;
+	// Handle outputStep, stepSize, and minRadiusOfCurvature
+	if (std::isnan(outputStep_global)     		|| (outputStep_global<=0)			) 	outputStep_global 	 		= smallestPixDim*DEFAULT_PTT_OUTPUTSTEPSIZE_IN_PIXELDIM;
+	if (std::isnan(stepSize_global) 	  		|| (stepSize_global<=0)   			) 	stepSize_global 	 		= smallestPixDim*DEFAULT_PTT_STEPSIZE_IN_PIXELDIM;
+	
+	if (std::isnan(minRadiusOfCurvature_global) || (minRadiusOfCurvature_global<=0)	)	minRadiusOfCurvature_global = smallestPixDim*DEFAULT_PTT_MINRADIUSOFCURVATURE_IN_PIXELDIM;	
+	maxCurvature_global = 1.0f / minRadiusOfCurvature_global;
+	if (maxCurvature_global < 1e-4) maxCurvature_global = 1e-4;
 
-	// Handle minRadiusOfCurvature
-	if (std::isnan(minRadiusOfCurvature) || (minRadiusOfCurvature<=0))	minRadiusOfCurvature = smallestPixDim*DEFAULT_PTT_MINRADIUSOFCURVATURE_IN_PIXELDIM;
+	// Handle minDataSupport, dataSupportExponent, and weakLinkThresh
+	if (std::isnan(minDataSupport_global) 		 || (minDataSupport_global<0.0)		) 	minDataSupport_global 		= DEFAULT_PTT_MINDATASUPPORT;
+	if (std::isnan(dataSupportExponent_global)   || (dataSupportExponent_global<0.0))   dataSupportExponent_global  = DEFAULT_PTT_DATASUPPORTEXPONENT;
+	if (std::isnan(weakLinkThresh) 		 || (weakLinkThresh<=0)			)	weakLinkThresh 		 = DEFAULT_PTT_WEAKLINKTHRESH;
 
-	// Handle minDataSupport
-	if (std::isnan(minDataSupport) 		 || (minDataSupport<0.0)) 		minDataSupport 	   	 = DEFAULT_PTT_MINDATASUPPORT;
+	modMinDataSupport_global = std::pow(minDataSupport_global,dataSupportExponent_global);	
+	checkWeakLinks 			 = (weakLinkThresh>0) ? true : false;
 
-	// Handle dataSupportExponent
-	if (std::isnan(dataSupportExponent)  || (dataSupportExponent<0.0))  dataSupportExponent  = DEFAULT_PTT_DATASUPPORTEXPONENT;
+	// Handle maxEstInterval, initMaxEstTrials, propMaxEstTrials, triesPerRejectionSampling, and samplingQuality
+	if (maxEstInterval_global			 <= 0.0)	maxEstInterval_global 			  = DEFAULT_PTT_MAXESTINTERVAL;
+	if (initMaxEstTrials_global		  	 <= 0.0)	initMaxEstTrials_global 		  = DEFAULT_PTT_INITMAXESTTRIALS;
+	if (propMaxEstTrials_global		 	 <= 0.0)	propMaxEstTrials_global 		  = DEFAULT_PTT_PROPMAXESTTRIALS;
+	if (triesPerRejectionSampling_global <= 0.0)	triesPerRejectionSampling_global  = DEFAULT_PTT_TRIESPERREJECTIONSAMPLING;
 
-	// Handle weak link checking
-	if (std::isnan(weakLinkThresh) 		 || (weakLinkThresh<=0)) 		weakLinkThresh 		 = DEFAULT_PTT_WEAKLINKTHRESH;
+	// Handle probeCount, probeRadius, probeLength, and probeQuality
+	if (std::isnan(probeLength_global)  || (probeLength_global<=0.0))								probeLength_global  = smallestPixDim*DEFAULT_PTT_PROBELENGTH_IN_PIXELDIM;
+	if (std::isnan(probeQuality_global) || (probeQuality_global<=1.0) || (probeQuality_global>100))	probeQuality_global = DEFAULT_PTT_PROBEQUALITY;
+	
+	if (probeCount_global<1)   probeCount_global = NAN;
+	if (probeRadius_global<0)  probeRadius_global= NAN;
 
-	// Handle maxEstInterval, initMaxEstTrials, propMaxEstTrials, triesPerRejectionSampling and samplingQuality
-	if (maxEstInterval<=0.0)			maxEstInterval 			  = DEFAULT_PTT_MAXESTINTERVAL;
-	if (initMaxEstTrials<=0.0)			initMaxEstTrials 		  = DEFAULT_PTT_INITMAXESTTRIALS;
-	if (propMaxEstTrials<=0.0)			propMaxEstTrials 		  = DEFAULT_PTT_PROPMAXESTTRIALS;
-	if (triesPerRejectionSampling<=0.0)	triesPerRejectionSampling = DEFAULT_PTT_TRIESPERREJECTIONSAMPLING;
-	if (samplingQuality<=0.0)			samplingQuality 		  = DEFAULT_PTT_SAMPLINGQUALITY;
-
-	// Handle probeCount and probeRadius
-	if (probeCount<1)   probeCount = NAN;
-	if (probeRadius<0)  probeRadius= NAN;
-
-	if (isnan(probeCount) && isnan(probeRadius)) {
-		probeCount = DEFAULT_PTT_PROBECOUNT;
-		probeRadius= DEFAULT_PTT_PROBERADIUS_IN_PIXELDIM*smallestPixDim;
-	} else if (isnan(probeCount) && probeRadius!=NAN) {
-		probeCount = DEFAULT_PTT_PROBECOUNT_WHEN_THEREIS_PROBERADIUS;
-	} else if (!isnan(probeCount) && isnan(probeRadius)) {
-		probeRadius= DEFAULT_PTT_PROBERADIUS_IN_PIXELDIM*smallestPixDim;
+	if (isnan(probeCount_global) && isnan(probeRadius_global)) {
+		probeCount_global  = DEFAULT_PTT_PROBECOUNT;
+		probeRadius_global = DEFAULT_PTT_PROBERADIUS_IN_PIXELDIM*smallestPixDim;
+	} else if (isnan(probeCount_global) && probeRadius_global!=NAN) {
+		probeCount_global = DEFAULT_PTT_PROBECOUNT_WHEN_THEREIS_PROBERADIUS;
+	} else if (!isnan(probeCount_global) && isnan(probeRadius_global)) {
+		probeRadius_global= DEFAULT_PTT_PROBERADIUS_IN_PIXELDIM*smallestPixDim;
 	}
 
-	if (probeCount==1) {
-		probeRadius=0;
+	if (probeCount_global==1.0f) {
+		probeRadius_global=0.0f;
 	} else {
-		if (probeRadius==0) {
-			probeCount=1;
+		if (probeRadius_global==0.0f) {
+			probeCount_global=1.0f;
 		} else {
-			if (probeRadius>minRadiusOfCurvature) {
-				probeRadius = minRadiusOfCurvature;
+			if (probeRadius_global>minRadiusOfCurvature_global) {
+				probeRadius_global = minRadiusOfCurvature_global;
 			}
 		}
 	}
 
-	// Handle probeLength and probeQuality
-	if (std::isnan(probeLength)  || (probeLength<=0.0))							probeLength  = smallestPixDim*DEFAULT_PTT_PROBELENGTH_IN_PIXELDIM;
-	if (std::isnan(probeQuality) || (probeQuality<=1.0) || (probeQuality>100))	probeQuality = DEFAULT_PTT_PROBEQUALITY;
+	if ((probeRadius_img == NULL) && (probeRadius_global == 0.0f)) toRefresh.erase("probeCount"); // Don't refresh probeCount
+	if ((probeCount_img  == NULL) && (probeCount_global  == 1.0f)) toRefresh.erase("probeRadius"); // Don't refresh probeRadius
 
-
-	// Derived parameters
-	maxCurvature = 1/minRadiusOfCurvature;
-	if (maxCurvature<1e-4) maxCurvature = 1e-4;
-
-	checkWeakLinks = (weakLinkThresh>0) ? true : false;
-	modMinDataSupport = std::pow(minDataSupport,dataSupportExponent);
+	// Handle samplingQuality
+	if (samplingQuality<=0.0) samplingQuality = DEFAULT_PTT_SAMPLINGQUALITY;
 
 	// Prep CDF domain
-	auto fill_cdfk1k2 = [&](auto& verts) {
-		cdfk1k2.reserve(cdfVertCnt);
-		for (int n = 0; n < cdfVertCnt; n++) {
-			float k1 = verts[n][0] * maxCurvature;
-			float k2 = verts[n][1] * maxCurvature;
-			cdfk1k2.push_back(std::make_pair(k1,k2));
+
+	cdfCurvatures.clear();
+
+	float maxMaxCurvature = maxCurvature_global;
+
+	if (minRadiusOfCurvature_img != NULL) {
+
+		const auto& img = minRadiusOfCurvature_img;
+
+		float minMinRadiusOfCurvature = minRadiusOfCurvature_global;
+
+		for (int n = 0; n < img->numel; n++) {
+			if ((img->data[n] > 0) && (img->data[n] < minMinRadiusOfCurvature))
+				minMinRadiusOfCurvature = img->data[n];
 		}
+
+		if (minMinRadiusOfCurvature < 1e-4) minMinRadiusOfCurvature = 0.001;
+
+		maxMaxCurvature = 1.0f / minMinRadiusOfCurvature;
+		if (maxMaxCurvature < 1e-4) maxMaxCurvature = 1e-4;
+
+		cdfCurvatures = linspace(0.0001f, maxMaxCurvature, 1000);
+
+	} else {
+		cdfCurvatures.push_back(maxMaxCurvature);
+	}
+
+
+	auto fill_cdfk1k2 = [&](auto& verts) {
+
+		cdfk1k2_global.clear();
+		cdfk1k2_global.reserve(cdfCurvatures.size());
+		
+		for (auto curv : cdfCurvatures) {
+
+			std::vector<std::pair<float,float>> tmp;
+
+			for (int n = 0; n < cdfVertCnt; n++) {
+				float k1 = verts[n][0] * curv;
+				float k2 = verts[n][1] * curv;
+				tmp.push_back(std::make_pair(k1,k2));
+			}
+
+			cdfk1k2_global.push_back(tmp);
+
+		}
+
 	};
 
 	auto fill_cdfFace = [&](auto& faces) {
-		cdfFace.reserve(cdfFaceCnt);
+		cdfFace_global.clear();
+		cdfFace_global.reserve(cdfFaceCnt);
 		for (int n = 0; n < cdfFaceCnt; n++) {
-			cdfFace.push_back({faces[n][0],faces[n][1],faces[n][2]});
+			cdfFace_global.push_back({faces[n][0],faces[n][1],faces[n][2]});
 		}
 	};
-
-
 
 	switch (samplingQuality) {
 		case 1: {cdfVertCnt = DISC_1_VERT_CNT; cdfFaceCnt = DISC_1_FACE_CNT; fill_cdfk1k2(DISC_1_VERT); fill_cdfFace(DISC_1_FACE); break;}
@@ -198,9 +303,6 @@ void Params_PTT::setDefaults() {
 	}
 
 }
-
-
-
 
 void Params_PTT::print() {
 
@@ -227,18 +329,41 @@ void Params_PTT::print() {
 			std::cout << "fodIsSym             : OFF " << std::endl;
 	}
 
-	std::cout << "stepSize             : "  << to_string_with_precision(stepSize,4) << std::endl;
-	std::cout << "writeStepSize        : "  << to_string_with_precision(outputStep,4) << std::endl;
-	std::cout << "minRadiusOfCurvature : "  << to_string_with_precision(minRadiusOfCurvature,4) << std::endl;
+	auto dispParam = [&](std::string pstr, Image<float>* img, float pval, int precision) {
 
-	std::cout << "minDataSupport       : "  << to_string_with_precision(minDataSupport,4) << std::endl;
-	std::cout << "dataSupportExponent  : "  << to_string_with_precision(dataSupportExponent,4) << std::endl;
+		std::cout << pstr << to_string_with_precision(pval,precision);
+
+		if (img != NULL)
+			std::cout << "," << img->filePath << std::endl;
+		else
+			std::cout << std::endl;
+
+	};
+
+	auto dispParamInt = [&](std::string pstr, Image<int>* img, float pval) {
+
+		std::cout << pstr << pval;
+
+		if (img != NULL)
+			std::cout << "," << img->filePath << std::endl;
+		else
+			std::cout << std::endl;
+
+	};
+
+	dispParam("stepSize             : ", stepSize_img, 	 			stepSize_global,   			 4);
+	dispParam("writeStepSize        : ", outputStep_img, 			outputStep_global, 			 4);
+	
+	dispParam("minRadiusOfCurvature : ", minRadiusOfCurvature_img, 	minRadiusOfCurvature_global, 4);
+	dispParam("minDataSupport       : ", minDataSupport_img, 		minDataSupport_global, 		 4);
+	dispParam("dataSupportExponent  : ", dataSupportExponent_img, 	dataSupportExponent_global,  4);
 
     std::cout << "ignoreWeakLinks      : "  << to_string_with_precision(weakLinkThresh,4) << std::endl;
-    std::cout << "maxEstInterval       : "  << maxEstInterval 				<< std::endl;
-	std::cout << "maxSamplingPerStep   : "  << triesPerRejectionSampling 	<< std::endl;
-	std::cout << "initMaxEstTrials     : "  << initMaxEstTrials 			<< std::endl;
-	std::cout << "propMaxEstTrials     : "  << propMaxEstTrials 			<< std::endl;
+
+	dispParamInt("maxEstInterval       : ", maxEstInterval_img, 	 		maxEstInterval_global);
+	dispParamInt("maxSamplingPerStep   : ", triesPerRejectionSampling_img, 	triesPerRejectionSampling_global);
+	dispParamInt("initMaxEstTrials     : ", initMaxEstTrials_img, 	 		initMaxEstTrials_global);
+	dispParamInt("propMaxEstTrials     : ", propMaxEstTrials_img, 	 		propMaxEstTrials_global);
 
 	if (useBestAtInit)
 		std::cout << "useBestAtInit        : ON "  << std::endl;
@@ -252,10 +377,10 @@ void Params_PTT::print() {
 
 	std::cout << "samplingQuality      : "  << samplingQuality 			    << std::endl;
 
-	std::cout << "probeLength          : "  << to_string_with_precision(probeLength,4) << std::endl;
-	std::cout << "probeRadius          : "  << to_string_with_precision(probeRadius,4) << std::endl;
-	std::cout << "probeCount           : "  << int(probeCount)	       		<< std::endl;
-	std::cout << "probeQuality         : "  << int(probeQuality)	   		<< std::endl;
+	dispParam("probeLength          : ", probeLength_img, 		probeLength_global, 	4);
+	dispParam("probeRadius          : ", probeRadius_img, 		probeRadius_global, 	4);
+	dispParam("probeCount           : ", probeCount_img, 		probeCount_global, 		0);
+	dispParam("probeQuality         : ", probeQuality_img, 		probeQuality_global, 	0);
 
 	if (NIBR::VERBOSE()==VERBOSE_DEBUG) {
 		img_FOD->printInfo();

@@ -1,15 +1,18 @@
 #!/bin/bash
 
 cmakeExe=cmake
-buildType=Release
+buildType=Release #Release or Debug
 buildShared=OFF
 buildDir=build-static
 
 c_compiler=/bin/gcc
 cxx_compiler=/bin/g++
 
+
+rm -rf ${buildDir}
 mkdir -p ${buildDir}
 cd ${buildDir}
+
 
 ${cmakeExe} \
 -DCMAKE_C_COMPILER=${c_compiler} \
@@ -17,6 +20,7 @@ ${cmakeExe} \
 -DCMAKE_BUILD_TYPE=${buildType} \
 -DBUILD_SHARED_LIBS=${buildShared} \
 ..
+
 
 ${cmakeExe} --build . --config ${buildType} --target install --parallel 16
 

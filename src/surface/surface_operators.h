@@ -1,6 +1,7 @@
 #pragma once
 
-#include "surface.h"
+#include "base/nibr.h"
+#include "surface/surface.h"
 
 using namespace NIBR;
 
@@ -77,41 +78,29 @@ namespace NIBR {
     void surfBbox2Img(Image<T>& img,const Surface& surf,float voxDim)
     {
 
-        // Prepare output
-        if (img.numberOfDimensions == 0)
-        {
+        Image<T> tmpImg;
 
-            auto bbox = NIBR::surfBbox(surf);
+        auto bbox = NIBR::surfBbox(surf);
 
-            if (bbox.empty()) {
-                disp(MSG_DETAIL,"Empty bounding box.");
-            }
-
-
-            if (voxDim <= 0)
-                voxDim = std::pow((bbox[1] - bbox[0]) * (bbox[3] - bbox[2]) * (bbox[5] - bbox[4]) / 1000000.0f, 0.333333);
-
-            bbox[0] -= 1.51 * voxDim;
-            bbox[1] += 1.51 * voxDim;
-            bbox[2] -= 1.51 * voxDim;
-            bbox[3] += 1.51 * voxDim;
-            bbox[4] -= 1.51 * voxDim;
-            bbox[5] += 1.51 * voxDim;
-
-            img.createFromBoundingBox(3, bbox, voxDim, false);
+        if (bbox.empty()) {
+            disp(MSG_DETAIL,"Empty bounding box.");
         }
-        else
-        {
 
-            if (img.data == NULL)
-                img.data = new T[img.voxCnt * sizeof(T)]();
-        }
-    }
+        if (voxDim <= 0)
+            voxDim = std::pow((bbox[1] - bbox[0]) * (bbox[3] - bbox[2]) * (bbox[5] - bbox[4]) / 1000000.0f, 0.333333);
 
-    template <typename T>
-    void surfBbox2Img(Image<T>& img,const Surface& surf)
-    {
-        surfBbox2Img(img, surf, 0);
+        bbox[0] -= 1.51 * voxDim;
+        bbox[1] += 1.51 * voxDim;
+        bbox[2] -= 1.51 * voxDim;
+        bbox[3] += 1.51 * voxDim;
+        bbox[4] -= 1.51 * voxDim;
+        bbox[5] += 1.51 * voxDim;
+
+        tmpImg.createFromBoundingBox(3, bbox, voxDim, false);
+
+        img.deallocData();
+        img.createFromTemplate(tmpImg,true);
+
     }
 
 }

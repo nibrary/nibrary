@@ -34,7 +34,7 @@ void NIBR::Image<T>::init()
     numberOfDimensions = 0;
     memset(imgDims,0,7*sizeof(int64_t));
     memset(pixDims,0,7*sizeof(float));
-    dataType        = TYPEIDS[typeid(T)];
+    dataType        = getTypeId(typeid(T));
     inputDataType   = dataType;
     dataScaler      = 1;
     dataOffset      = 0;

@@ -1,5 +1,9 @@
-#include "base/config.h"
+#include "base/nibr.h"
+#include "base/verbose.h"
+#include "base/multithreader.h"
 #include "sphericalHarmonics.h"
+
+using namespace std;
 
 namespace NIBR {
 
@@ -29,6 +33,7 @@ namespace NIBR {
 
 using namespace NIBR;
 using namespace NIBR::SH;
+using namespace NIBR::MT;
 
 int NIBR::SH::getNumberOfSHCoeffs() {return NIBR::SH::numberOfSphericalHarmonicCoefficients;}
 

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "base/nibr.h"
 #include <iostream>
 #include <typeinfo>
 #include <unordered_map>
@@ -29,26 +30,10 @@ namespace NIBR
         COMPLEX256_DT
     } DATATYPE;
 
-    using TypeInfoRef = std::reference_wrapper<const std::type_info>;
+    std::string getTypeName(const std::type_info& T);
+    DATATYPE    getTypeId(std::string type);
+    DATATYPE    getTypeId(const std::type_info& T);
 
-    struct Hasher {
-        std::size_t operator()(TypeInfoRef code) const
-        {
-            return code.get().hash_code();
-        }
-    };
-
-    struct EqualTo {
-        bool operator()(TypeInfoRef lhs, TypeInfoRef rhs) const
-        {
-            return lhs.get() == rhs.get();
-        }
-    };
-
-    extern std::unordered_map<DATATYPE, TypeInfoRef>                     TYPE;
-    extern std::unordered_map<TypeInfoRef, DATATYPE,    Hasher, EqualTo> TYPEIDS;
-    extern std::unordered_map<TypeInfoRef, std::string, Hasher, EqualTo> TYPENAMES;
-
-    DATATYPE datatype(std::string type);
+    
 
 }

@@ -4,7 +4,9 @@
 
 #include <cstddef>
 #include <stdio.h>
-#include "image.h"
+
+#include "base/nibr.h"
+#include "image/image.h"
 #include "base/cudaHandler.cuh"
 #include "interpolationCuda.cuh"
 

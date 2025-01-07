@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stdlib.h>
+#include <cstddef>
 #include <iostream>
 #include <iomanip>
 #include <string>
@@ -16,15 +17,16 @@
 #else
 #include <unistd.h>
 #endif
+
+#include "base/nibr.h"
+#include "verbose.h"
 #include "byteSwapper.h"
 #include "multithreader.h"
 #include "dataTypeHandler.h"
-#include "verbose.h"
 
 namespace NIBR 
 {
 
-    std::string&   SGNTR();
     VERBOSE_LEVEL& VERBOSE();
 
     void INITIALIZE();

@@ -1,5 +1,6 @@
 #pragma once
 #include <vector>
+#include "base/nibr.h"
 
 namespace NIBR {
 

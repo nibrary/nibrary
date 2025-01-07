@@ -1,5 +1,6 @@
 #pragma once
 
+#include "base/nibr.h"
 #include "dMRI/tractography/mappers/tractogram2imageMapper.h"
 #include "dMRI/tractography/mappers/gridder_4mask.h"
 

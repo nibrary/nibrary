@@ -40,7 +40,6 @@
 using namespace NIBR;
 
 using namespace proxsuite::proxqp;
-using proxsuite::nullopt; // c++17 simply use std::nullopt
 
 #define CONSTRAINT_THRESHOLD 25
 
@@ -95,7 +94,7 @@ Eigen::VectorXd TranShi2015::setConstraints(Eigen::MatrixXd &aH,  Eigen::VectorX
         l = Eigen::VectorXd::Zero(BC_m + 2);
         
         // Solving QP
-        Results<double> results_dense_solver = dense::solve<double>(aH, g, qp_A, qp_b, C, l, nullopt);
+        Results<double> results_dense_solver = dense::solve<double>(aH, g, qp_A, qp_b, C, l, std::nullopt);
         
         d = results_dense_solver.x;
 
@@ -149,7 +148,7 @@ void TranShi2015::updateConstraints(Eigen::MatrixXd &aH,  Eigen::VectorXd &g,
         Eigen::VectorXd l_new = Eigen::VectorXd::Zero(BC_m + 2);
         
         // Solving QP
-        Results<double> results_dense_solver = dense::solve<double>(aH, g, qp_A, qp_b, C_new, l_new, nullopt);
+        Results<double> results_dense_solver = dense::solve<double>(aH, g, qp_A, qp_b, C_new, l_new, std::nullopt);
         
         auto d_new = results_dense_solver.x;
 

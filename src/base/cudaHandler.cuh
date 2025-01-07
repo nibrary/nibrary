@@ -2,6 +2,7 @@
 
 #ifdef HAVE_CUDA
 
+#include "base/nibr.h"
 #include <cuda_runtime_api.h>
 #include <cuda.h>
 

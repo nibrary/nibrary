@@ -9,10 +9,9 @@
 
 namespace NIBR 
 {
-    std::string   sgntr   = "nibrary v0.2.0";
+    
     VERBOSE_LEVEL verbose = VERBOSE_INFO;
 
-    std::string&   SGNTR()   {return sgntr;}
     VERBOSE_LEVEL& VERBOSE() {return verbose;}
 
     std::string  							DATESTAMP;

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "base/nibr.h"
 #include "math/core.h"
 #include "math/sphericalHarmonics.h"
 #include "image/image.h"

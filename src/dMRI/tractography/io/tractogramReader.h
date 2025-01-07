@@ -7,7 +7,7 @@
 #include <cstring>
 #include <vector>
 #include <float.h>
-#include "base/config.h"
+#include "base/nibr.h"
 #include "math/core.h"
 #include "image/image.h"
 

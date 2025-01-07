@@ -1,15 +1,17 @@
 #pragma once
 
-#include "surface.h"
 #include <algorithm>
 #include <cfloat>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+
+#include "base/nibr.h"
+#include "surface/surface.h"
+#include "surface/surface_operators.h"
+#include "image/image_transform.h"
 #include "math/core.h"
 #include "math/sphere.h"
-#include "image/image_transform.h"
-#include "surface_operators.h"
 
 namespace NIBR 
 {
@@ -192,8 +194,8 @@ namespace NIBR
             surfBbox2Img(*img,*surf,voxDim);
         }
 
-        if ( (img->pixDims[0]!=img->pixDims[1]) || (img->pixDims[0]!=img->pixDims[2]) || (img->pixDims[1]!=img->pixDims[2]) ) {
-            disp(MSG_ERROR,"Voxelization requires template image to have isotropic voxel dimensions.");
+        if ( (std::fabs(img->pixDims[0]-img->pixDims[1])>EPS6) || (std::fabs(img->pixDims[0]-img->pixDims[2])>EPS6) || (std::fabs(img->pixDims[1]-img->pixDims[2])>EPS6) ) {
+            disp(MSG_ERROR,"Voxelization requires template image to have isotropic voxel dimensions, differences [%.8f, %.8f, %.8f].", std::fabs(img->pixDims[0]-img->pixDims[1]), std::fabs(img->pixDims[0]-img->pixDims[2]), std::fabs(img->pixDims[1]-img->pixDims[2]));
             return false;
         }
 

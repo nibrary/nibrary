@@ -7,6 +7,7 @@
 // For example, seed count, density, density files, etc. can additionally be provided.
 // After all the members are set/updated, getSeed functions can be used to get seeds for tractography.
 
+#include "base/nibr.h"
 #include "../../../utility/seeder/seedingMethods.h"
 #include "../pathway/pathwayRule.h"
 #include <cstdint>

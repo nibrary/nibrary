@@ -2,7 +2,9 @@
 
 using namespace NIBR;
 
-PTF::PTF() {
+PTF::PTF(TrackWith_PTT* _tracker) {
+
+    tracker     = _tracker;
     
 	p 			= new float[3];
     F           = new float*[3];
@@ -14,17 +16,10 @@ PTF::PTF() {
 	likelihood 	= 0.0;
     firstVal    = NAN;
     
-    angularSeparation = 2.0*M_PI/float(TRACKER::params_ptt.probeCount);
-    probeStepSize     = TRACKER::params_ptt.probeLength/(TRACKER::params_ptt.probeQuality-1);
-    if (TRACKER::params_ptt.img_FOD->getSHorder()%2==0) {
-        probeNormalizer   = 1/float(TRACKER::params_ptt.probeQuality*TRACKER::params_ptt.probeCount);
-    } else {
-        probeNormalizer   = 1/float((TRACKER::params_ptt.probeQuality-1)*TRACKER::params_ptt.probeCount);
-    }
-    
 }
 
 PTF::~PTF() {
+    tracker = NULL;
     delete[] p;
     delete[] F[0];
     delete[] F[1];
@@ -41,6 +36,9 @@ void PTF::setPosition(float* _p) {
 }
 
 void PTF::copy(PTF *ptf) {
+
+    tracker  =  ptf->tracker;
+
     k1       =  ptf->k1;
     k2       =  ptf->k2;
     k1_cand  =  ptf->k1_cand;
@@ -91,8 +89,24 @@ void PTF::print() {
     std::cout << "initPosteriorMax: " << initPosteriorMax << std::endl;
 }
 
+float PTF::calcLocalDataSupport(float* _p, float* _dir) {
+
+    float fodSupport = TRACKER::params_ptt.img_FOD->getFODamp(_p,_dir);
+
+    return fodSupport;
+    
+}
 
 float PTF::calcDataSupport() {
+
+    // disp(MSG_DEBUG, "calcDataSupport...");
+
+    // TRACKER::params_ptt.print();
+    // this->print();
+    // disp(MSG_DEBUG,"probeLength:  %f", tracker->probeLength);
+    // disp(MSG_DEBUG,"probeRadius:  %f", tracker->probeRadius);
+    // disp(MSG_DEBUG,"probeCount:   %f", tracker->probeCount);
+    // disp(MSG_DEBUG,"probeQuality: %f", tracker->probeQuality);
     
     float _p[3];
     float _F[3][3];
@@ -103,7 +117,7 @@ float PTF::calcDataSupport() {
     prepPropagator(probeStepSize);
 
     if (isnan(firstVal)) {
-        firstVal = TRACKER::params_ptt.img_FOD->getFODamp(p,F[0]);
+        firstVal = calcLocalDataSupport(p,F[0]);
     }
 
     // Copy initial _p and _F    
@@ -118,7 +132,7 @@ float PTF::calcDataSupport() {
     
         likelihood = firstVal;
         
-        for (int q=0; q<(TRACKER::params_ptt.probeQuality-1); q++) {
+        for (int q=0; q<(tracker->probeQuality-1); q++) {
             
             
             for (int i=0; i<3; i++) {
@@ -127,7 +141,7 @@ float PTF::calcDataSupport() {
             }
             normalize(_T);
             
-            if (q<(TRACKER::params_ptt.probeQuality-1)) {
+            if (q<(tracker->probeQuality-1)) {
                 
                 for (int i=0; i<3; i++) {
                     _N2[i]  = PP[6]*_F[0][i] +  PP[7]*_F[1][i]  +  PP[8]*_F[2][i];
@@ -143,12 +157,14 @@ float PTF::calcDataSupport() {
             }
             
             
-            if (TRACKER::params_ptt.probeCount==1) {
+            if (tracker->probeCount==1) {
                 
-                float val = TRACKER::params_ptt.img_FOD->getFODamp(_p,_T);
+                float val = calcLocalDataSupport(_p,_T);
                 
                 if ((TRACKER::params_ptt.checkWeakLinks==true) && (val < TRACKER::params_ptt.weakLinkThresh)) {
                     likelihood  = 0;
+                    // disp(MSG_DEBUG, "Reached weak link");
+                    // disp(MSG_DEBUG, "calcDataSupport...Done");
                     return 0;
                 } else {
                     likelihood += val;
@@ -159,7 +175,7 @@ float PTF::calcDataSupport() {
                 
                 float totVal = 0;
                 
-                if (q==(TRACKER::params_ptt.probeQuality-1)) {
+                if (q==(tracker->probeQuality-1)) {
                     for (int i=0; i<3; i++) {
                         _N2[i]  = PP[6]*_F[0][i] +  PP[7]*_F[1][i]  +  PP[8]*_F[2][i];
                     }
@@ -167,18 +183,20 @@ float PTF::calcDataSupport() {
                 }
                 
                 
-                for (float c=0; c<TRACKER::params_ptt.probeCount; c++) {
+                for (float c=0; c<tracker->probeCount; c++) {
                     
                     float pp[3];
                     
                     for (int i=0; i<3; i++) {
-                        pp[i] = _p[i] + _N1[i]*TRACKER::params_ptt.probeRadius*std::cos(c*angularSeparation) + _N2[i]*TRACKER::params_ptt.probeRadius*std::sin(c*angularSeparation);
+                        pp[i] = _p[i] + _N1[i]*tracker->probeRadius*std::cos(c*angularSeparation) + _N2[i]*tracker->probeRadius*std::sin(c*angularSeparation);
                     }
                     
-                    float val = TRACKER::params_ptt.img_FOD->getFODamp(pp,_T);
+                    float val = calcLocalDataSupport(pp,_T);
                     
                     if ((TRACKER::params_ptt.checkWeakLinks==true) && (val < TRACKER::params_ptt.weakLinkThresh)) {
                         likelihood    = 0;
+                        // disp(MSG_DEBUG, "Reached weak link");
+                        // disp(MSG_DEBUG, "calcDataSupport...Done");
                         return 0;
                     } else {
                         totVal += val;
@@ -201,7 +219,7 @@ float PTF::calcDataSupport() {
         float Tb[3];
         float Te[3];
         
-        for (int q=0; q<(TRACKER::params_ptt.probeQuality-1); q++) {
+        for (int q=0; q<(tracker->probeQuality-1); q++) {
             
             
             for (int i=0; i<3; i++) {
@@ -218,12 +236,14 @@ float PTF::calcDataSupport() {
             }
             
             
-            if (TRACKER::params_ptt.probeCount==1) {
+            if (tracker->probeCount==1) {
                 
-                float link = (TRACKER::params_ptt.img_FOD->getFODamp(_p,Tb) + TRACKER::params_ptt.img_FOD->getFODamp(pn,Te))/float(2.0);
+                float link = (calcLocalDataSupport(_p,Tb) + calcLocalDataSupport(pn,Te))/float(2.0);
                 
                 if ((TRACKER::params_ptt.checkWeakLinks==true) && (link < TRACKER::params_ptt.weakLinkThresh)) {
                     likelihood  = 0;
+                    // disp(MSG_DEBUG, "Reached weak link");
+                    // disp(MSG_DEBUG, "calcDataSupport...Done");
                     return 0;
                 } else {
                     likelihood += link;
@@ -231,14 +251,14 @@ float PTF::calcDataSupport() {
                 
             } else {
                 
-                for (float c=0; c<TRACKER::params_ptt.probeCount; c++) {
+                for (float c=0; c<tracker->probeCount; c++) {
                     
                     float pp[3];
                     float ppn[3];
                     
                     for (int i=0; i<3; i++) {
-                        pp[i]  =  _p[i] + _F[1][i]*TRACKER::params_ptt.probeRadius*std::cos(c*angularSeparation) + _F[2][i]*TRACKER::params_ptt.probeRadius*std::sin(c*angularSeparation);
-                        ppn[i] =  pn[i] +   _N1[i]*TRACKER::params_ptt.probeRadius*std::cos(c*angularSeparation) + _N2[i]*TRACKER::params_ptt.probeRadius*std::sin(c*angularSeparation);
+                        pp[i]  =  _p[i] + _F[1][i]*tracker->probeRadius*std::cos(c*angularSeparation) + _F[2][i]*tracker->probeRadius*std::sin(c*angularSeparation);
+                        ppn[i] =  pn[i] +   _N1[i]*tracker->probeRadius*std::cos(c*angularSeparation) + _N2[i]*tracker->probeRadius*std::sin(c*angularSeparation);
                         Tb[i]  = ppn[i] -    pp[i];
                     }
                     
@@ -247,10 +267,12 @@ float PTF::calcDataSupport() {
                         Te[i]  = -Tb[i];
                     }
                     
-                    float link = (TRACKER::params_ptt.img_FOD->getFODamp(pp,Tb) + TRACKER::params_ptt.img_FOD->getFODamp(ppn,Te))/float(2.0);
+                    float link = (calcLocalDataSupport(pp,Tb) + calcLocalDataSupport(ppn,Te))/float(2.0);
                     
                     if ((TRACKER::params_ptt.checkWeakLinks==true) && (link < TRACKER::params_ptt.weakLinkThresh)) {
                         likelihood  = 0;
+                        // disp(MSG_DEBUG, "Reached weak link");
+                        // disp(MSG_DEBUG, "calcDataSupport...Done");
                         return 0;
                     } else {
                         likelihood += link;
@@ -261,7 +283,7 @@ float PTF::calcDataSupport() {
             }
             
             // Update _F here
-            if (q<(TRACKER::params_ptt.probeQuality-1)) {
+            if (q<(tracker->probeQuality-1)) {
                 for (int i=0; i<3; i++) {
                        _p[i] = pn[i];
                     _F[0][i] =  _T[i];
@@ -279,21 +301,24 @@ float PTF::calcDataSupport() {
 
     likelihood *= probeNormalizer;
 
-    // if (TRACKER::params_ptt.dataSupportExponent != 1)
-    //     likelihood  = std::pow(likelihood,TRACKER::params_ptt.dataSupportExponent);
+    // if (tracker->dataSupportExponent != 1)
+    //     likelihood  = std::pow(likelihood,tracker->dataSupportExponent);
 
+    // disp(MSG_DEBUG, "calcDataSupport...Done");
     return likelihood;
 }
 
 float PTF::getCandidate() {
-    doRandomThings.getARandomPointWithinDisk(&k1_cand, &k2_cand, TRACKER::params_ptt.maxCurvature);
+    doRandomThings.getARandomPointWithinDisk(&k1_cand, &k2_cand, tracker->maxCurvature);
     return calcDataSupport();
 }
 
 float PTF::getInitCandidate(float *initDir) {
-    
+
+    // disp(MSG_DEBUG, "getInitCandidate...");
+
     doRandomThings.getARandomMovingFrame(F,initDir);
-    doRandomThings.getARandomPointWithinDisk(&k1_cand, &k2_cand, TRACKER::params_ptt.maxCurvature);
+    doRandomThings.getARandomPointWithinDisk(&k1_cand, &k2_cand, tracker->maxCurvature);
     k1 = k1_cand;
     k2 = k2_cand;   
     
@@ -302,19 +327,19 @@ float PTF::getInitCandidate(float *initDir) {
         // First part of the probe
         likelihood = 0.0;
         
-        if (TRACKER::params_ptt.probeCount==1) {
-            likelihood = TRACKER::params_ptt.img_FOD->getFODamp(p,F[0]);
+        if (tracker->probeCount==1) {
+            likelihood = calcLocalDataSupport(p,F[0]);
         } else {
             
-            for (float c=0; c<TRACKER::params_ptt.probeCount; c++) {
+            for (float c=0; c<tracker->probeCount; c++) {
                         
                 float pp[3];
                 
                 for (int i=0; i<3; i++) {
-                    pp[i] = p[i] + F[1][i]*TRACKER::params_ptt.probeRadius*std::cos(c*angularSeparation) + F[2][i]*TRACKER::params_ptt.probeRadius*std::sin(c*angularSeparation);
+                    pp[i] = p[i] + F[1][i]*tracker->probeRadius*std::cos(c*angularSeparation) + F[2][i]*tracker->probeRadius*std::sin(c*angularSeparation);
                 }
                 
-                float val = TRACKER::params_ptt.img_FOD->getFODamp(pp,F[0]);
+                float val = calcLocalDataSupport(pp,F[0]);
                 
                 if ((TRACKER::params_ptt.checkWeakLinks==true) && (val < TRACKER::params_ptt.weakLinkThresh)) {
                     likelihood  = 0;
@@ -327,12 +352,15 @@ float PTF::getInitCandidate(float *initDir) {
             
         }
         
-        // At init we use only lastVal because this will be added in calcDataSupport
         initFirstVal = likelihood;
         firstVal     = initFirstVal;
     }
     
-    // lastVal is not used in the asymmetric FOD case
-    return calcDataSupport();
+    // firstVal is not used in the asymmetric FOD case
+    auto out = calcDataSupport();
+    
+    // disp(MSG_DEBUG, "getInitCandidate...Done");
+
+    return out;
 
 }

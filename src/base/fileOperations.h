@@ -1,5 +1,6 @@
 #pragma once
 
+#include "base/nibr.h"
 #include <filesystem>
 #include "math/core.h"
 

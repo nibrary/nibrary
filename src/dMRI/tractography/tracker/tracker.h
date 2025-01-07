@@ -1,11 +1,14 @@
 #pragma once
 
+#include "base/nibr.h"
 #include "../algorithms/tractographyAlgorithm.h"
 #include "../algorithms/ptt/algorithm_ptt_params.h"
 #include "../seed/seed.h"
 #include "../pathway/pathway.h"
 
 #define DEFAULT_IDLETIMELIMIT 120 // If not streamline is computed in the last 120 sec idleTimeLimitReached will be set to true
+
+using namespace std;
 
 namespace NIBR {
 

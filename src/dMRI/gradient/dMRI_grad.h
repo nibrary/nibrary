@@ -1,5 +1,6 @@
 #pragma once
 
+#include "base/nibr.h"
 #include "base/stringOperations.h"
 #include <fstream>
 

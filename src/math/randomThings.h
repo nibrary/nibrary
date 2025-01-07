@@ -3,8 +3,9 @@
 #include <cfloat>
 #include <random>
 
-#include "./core.h"
-#include "./rotation.h"
+#include "base/nibr.h"
+#include "math/core.h"
+#include "math/rotation.h"
 
 namespace NIBR
 {

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "base/nibr.h"
 #include "dMRI/tractography/io/tractogramReader.h"
 #include "dMRI/tractography/pathway/pathway.h"
 #include "dMRI/tractography/io/tractogramWriter.h"

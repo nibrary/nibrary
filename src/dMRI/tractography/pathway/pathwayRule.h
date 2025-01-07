@@ -1,5 +1,6 @@
 #pragma once
 
+#include "base/nibr.h"
 #include "image/image.h"
 #include "surface/surface.h"
 

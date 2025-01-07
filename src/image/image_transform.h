@@ -1,6 +1,7 @@
 #pragma once
 
-#include "image.h"
+#include "base/nibr.h"
+#include "image/image.h"
 
 namespace NIBR
 {

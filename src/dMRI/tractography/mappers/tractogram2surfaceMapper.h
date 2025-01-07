@@ -1,5 +1,6 @@
 #pragma once
 
+#include "base/nibr.h"
 #include "dMRI/tractography/io/tractogramReader.h"
 #include "surface/surface2imageMapper.h"
 #include "surface/findSegmentTriangleIntersection.h"

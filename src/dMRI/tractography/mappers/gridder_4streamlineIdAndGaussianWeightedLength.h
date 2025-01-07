@@ -1,5 +1,6 @@
 #pragma once
 
+#include "base/nibr.h"
 #include "math/core.h"
 #include "math/gaussian.h"
 #include "dMRI/tractography/mappers/tractogram2imageMapper.h"

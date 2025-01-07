@@ -5,6 +5,8 @@
 #include <string>
 #include <stdexcept>
 
+#include "base/nibr.h"
+
 namespace NIBR
 {
 

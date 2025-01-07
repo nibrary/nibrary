@@ -17,7 +17,11 @@
 #include <functional> 
 #include <mutex>
 #include <condition_variable>
+
+#include "base/nibr.h"
 #include "math/randomThings.h"
+
+using namespace std;
 
 namespace NIBR 
 {
@@ -36,7 +40,7 @@ namespace NIBR
         std::atomic<size_t>&                             FINISHEDTASKCOUNT();
         std::atomic<size_t>&                             FINISHEDTASKCOUNTTOSTOP();
         uint16_t&                                        FINISHEDTHREADID();
-        std::vector<std::unique_ptr<RandomDoer>>&        RNDM();
+        std::vector<std::unique_ptr<NIBR::RandomDoer>>&  RNDM();
 
         void MTINIT();
 

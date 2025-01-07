@@ -3,6 +3,8 @@
 #include <stdint.h>
 #include <cmath>
 
+#include "base/nibr.h"
+
 namespace NIBR
 {
 

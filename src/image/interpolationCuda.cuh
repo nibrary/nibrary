@@ -2,6 +2,7 @@
 
 #ifdef HAVE_CUDA
 
+#include "base/nibr.h"
 #include "base/cudaHandler.cuh"
 
 typedef enum {

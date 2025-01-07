@@ -4,7 +4,9 @@
 #include <cstdint>
 #include <regex>
 
+using namespace std;
 using namespace NIBR;
+
 
 std::unordered_map<std::string, std::tuple<Pathway_Type, Tracking_Side>> table = {
     {"discard_seed",               std::make_tuple(Pathway_Type::discard_seed,           Tracking_Side::either)},

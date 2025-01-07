@@ -38,7 +38,6 @@
 using namespace NIBR;
 
 using namespace proxsuite::proxqp;
-using proxsuite::nullopt; // c++17 simply use std::nullopt
 
 // Compartment optimization function
 REASON_OF_TERMINATION TranShi2015::optimizeDiso(Eigen::MatrixXd &aH,  Eigen::VectorXd &g, 
@@ -54,7 +53,7 @@ REASON_OF_TERMINATION TranShi2015::optimizeDiso(Eigen::MatrixXd &aH,  Eigen::Vec
     // Proxsuite api is used for the optimization loop so we can more efficiently update the aH and q values.
     proxsuite::proxqp::dense::QP<double> qp(aH.rows(), qp_A.rows(), C.rows(), false, proxsuite::proxqp::DenseBackend::Automatic);
     
-    qp.init(aH, g, qp_A, qp_b, C, l, nullopt, true);
+    qp.init(aH, g, qp_A, qp_b, C, l, std::nullopt, true);
 
     qp.settings.initial_guess   = proxsuite::proxqp::InitialGuessStatus::WARM_START_WITH_PREVIOUS_RESULT;
     qp.settings.max_iter        = 100; //ProxSuite default: 10000
@@ -67,7 +66,7 @@ REASON_OF_TERMINATION TranShi2015::optimizeDiso(Eigen::MatrixXd &aH,  Eigen::Vec
         g = -A_plus.transpose() * s_ + xi * I;
 
         // Solving QP
-        qp.update(aH, g, nullopt, nullopt, nullopt, nullopt, nullopt);
+        qp.update(aH, g, std::nullopt, std::nullopt, std::nullopt, std::nullopt, std::nullopt);
         qp.solve();
         d = qp.results.x;
     };

@@ -46,6 +46,13 @@ bool NIBR::Image<T>::read() {
 template <typename OUT_T,typename INP_T>
 void convert(OUT_T* out, void* inp, int64_t* imgDims, float dataScaler, float dataOffset, bool swapByte)
 {
+
+    // disp(MSG_DEBUG,"OUT_T: %s", typeid(OUT_T).name());
+    // disp(MSG_DEBUG,"INP_T: %s", typeid(INP_T).name());
+    // disp(MSG_DEBUG,"dataScaler: %.6f", dataScaler);
+    // disp(MSG_DEBUG,"dataOffset: %.6f", dataOffset);
+    // disp(MSG_DEBUG,"swapByte:   %d",   int(swapByte));
+
     int64_t numel = 1;
     for (auto i=0; i<7; i++) numel *= imgDims[i];
 
@@ -65,6 +72,13 @@ void convert(OUT_T* out, void* inp, int64_t* imgDims, float dataScaler, float da
 template <typename OUT_T,typename INP_T>
 void convert(OUT_T* out, void* inp, int64_t* imgDims, int* outIndexOrder, float dataScaler, float dataOffset, bool swapByte)
 {
+
+    // disp(MSG_DEBUG,"OUT_T: %s", typeid(OUT_T).name());
+    // disp(MSG_DEBUG,"INP_T: %s", typeid(INP_T).name());
+    // disp(MSG_DEBUG,"dataScaler: %.6f", dataScaler);
+    // disp(MSG_DEBUG,"dataOffset: %.6f", dataOffset);
+    // disp(MSG_DEBUG,"swapByte:   %d",   int(swapByte));
+
     int64_t outS2i[7];
     int64_t numel = 1;
 
@@ -117,6 +131,7 @@ bool NIBR::Image<T>::read_nii() {
         disp(MSG_FATAL,"Cannot read nifti image: %s",filePath);
         return false;
     }
+
 
     data = new T[numel]();
     // data = (T*) malloc(numel*sizeof(T));

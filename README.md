@@ -55,12 +55,12 @@ nibrary natively supports Linux, Windows and Mac. nibrary depends on several ext
 
 ### License information and use of third-party software
 
-nibrary uses a BSD 3-Clause License. However, we use a variety of third-party tools, which are included in the [external](./external/README.md) folder. Please read the [license](./external/LICENSE.md) file under the external folder for details.
+nibrary uses a BSD 3-Clause License. However, we use a variety of third-party tools, which are included in the [external](./external) folder. Please read the [license](./external/LICENSE.md) file under the external folder for details.
 
 
 
 
-&copy; 2024 Dogu Baran Aydogan, baran.aydogan@uef.fi
+&copy; 2025 Dogu Baran Aydogan, baran.aydogan@uef.fi
 
 
 

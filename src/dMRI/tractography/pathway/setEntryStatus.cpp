@@ -65,39 +65,50 @@ bool NIBR::Pathway::setEntryStatus(NIBR::Walker* w, int ruleNo) {
                 return true;
             }
 
-            // Move 1 micrometer before the stop rule
+            // Surface case
+            // Move 1 micrometer before the stop rule when segCrosLength is precise
             case sph_src: 
-            case surf_src:
+            case surf_src: 
             case img_mask_src:
-            case img_label_src:
-            case img_pvf_src: {
-
+            case img_label_src: {
                 disp(MSG_DEBUG,"  Stopping before exit/entry (by %.12f)", w->segCrosLength);
                 w->segCrosLength -= EPS3 / w->segment.len;
-
-                if (w->segCrosLength <= 0.0) {
-                    disp(MSG_DEBUG,"  Can't stop streamline: segment can't be shorter");
-                    // wait("...");
-                    return false;
-                }
-
-                if ((prules[ruleNo].type==stop_before_exit) && (!confirmIsInside())) {
-                    disp(MSG_DEBUG,"  Can't stop streamline: shorter segment is not inside");
-                    // wait("...");
-                    return false;
-                }
-
-                if ((prules[ruleNo].type==stop_before_entry) && (!confirmIsOutside())) {
-                    disp(MSG_DEBUG,"  Can't stop streamline: shorter segment is not outside");
-                    // wait("...");
-                    return false;
-                }
-                
                 break;
-
             }
 
-        }            
+            // Image pvf case
+            // Move one downsampleFactor before the stop rule
+            case img_pvf_src: {
+                float downsampleFactor = w->segment.len * maxSegSizeScaler[ruleNo];
+
+                if (downsampleFactor > 1) {
+                    float s = w->segment.len / float(std::ceil(downsampleFactor));
+                    w->segCrosLength -= s / w->segment.len;
+                }
+
+                break;
+          
+            }
+
+        }
+
+        if (w->segCrosLength <= 0.0) {
+            disp(MSG_DEBUG,"  Can't stop streamline: segment can't be shorter");
+            // wait("...");
+            return false;
+        }
+
+        if ((prules[ruleNo].type==stop_before_exit) && (!confirmIsInside())) {
+            disp(MSG_DEBUG,"  Can't stop streamline: shorter segment is not inside");
+            // wait("...");
+            return false;
+        }
+
+        if ((prules[ruleNo].type==stop_before_entry) && (!confirmIsOutside())) {
+            disp(MSG_DEBUG,"  Can't stop streamline: shorter segment is not outside");
+            // wait("...");
+            return false;
+        }         
 
         return true;
 
@@ -116,38 +127,42 @@ bool NIBR::Pathway::setEntryStatus(NIBR::Walker* w, int ruleNo) {
                 return true;
             }
 
-            // Move 1 micrometer after the stop rule
+            // Surface case
+            // Move 1 micrometer after the stop rule when segCrosLength is precise
             case sph_src: 
-            case surf_src:
+            case surf_src: 
             case img_mask_src:
-            case img_label_src:
-            case img_pvf_src: {
-
+            case img_label_src: {
                 disp(MSG_DEBUG,"  Stopping after exit/entry (by %.12f)", w->segCrosLength);
-                w->segCrosLength += EPS3 / w->segment.len; 
-                
-                if (w->segCrosLength>1.0f) {
-                    disp(MSG_DEBUG,"  Can't stop streamline: segment can't be longer");
-                    // wait("...");
-                    return false;
-                }
-
-                if ((prules[ruleNo].type==stop_after_exit) && (!confirmIsOutside())) {
-                    disp(MSG_DEBUG,"  Can't stop streamline: shorter segment is not outside");
-                    // wait("...");
-                    return false;
-                }
-
-                if ((prules[ruleNo].type==stop_after_entry) && (!confirmIsInside())) {
-                    disp(MSG_DEBUG,"  Can't stop streamline: shorter segment is not inside");
-                    // wait("...");
-                    return false;
-                }
-
+                w->segCrosLength += EPS3 / w->segment.len;
                 break;
-
             }
 
+            // Image pvf case
+            // Nothing needed since the end point is very likely to be not exactly on the border but already beyond the stop rule
+            // i.e. when the last point is checked, it will always show to be beyond the stopping rule - it will not appear 50% inside/outside
+            case img_pvf_src: {
+                break;
+            }
+
+        }
+
+        if (w->segCrosLength>1.0f) {
+            disp(MSG_DEBUG,"  Can't stop streamline: segment can't be longer");
+            // wait("...");
+            return false;
+        }
+
+        if ((prules[ruleNo].type==stop_after_exit) && (!confirmIsOutside())) {
+            disp(MSG_DEBUG,"  Can't stop streamline: shorter segment is not outside");
+            // wait("...");
+            return false;
+        }
+
+        if ((prules[ruleNo].type==stop_after_entry) && (!confirmIsInside())) {
+            disp(MSG_DEBUG,"  Can't stop streamline: shorter segment is not inside");
+            // wait("...");
+            return false;
         }
 
         return true;

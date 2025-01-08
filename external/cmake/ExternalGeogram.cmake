@@ -1,21 +1,22 @@
 # GEOGRAM
 
-SET(GEOGRAM_MIN_VERSION "1.9.2") 
+SET(GEOGRAM_MIN_VERSION "1.8.6") 
+
+include("${CMAKE_CURRENT_LIST_DIR}/utils.cmake")
 
 # Try to use the system library if exists
 if (USE_SYSTEM_GEOGRAM)
 
-    # mesh_fill_holes function actually uses a geogram .cpp file, which is not ideal but
-    # for now, this was found to be good solution. Until we have a better solution,
-    # we will download the source and compile geogram. So system package is not used for now.
-    #
-    # find_package(Geogram ${GEOGRAM_MIN_VERSION} QUIET)
+    find_package(Geogram ${GEOGRAM_MIN_VERSION} QUIET)
 
     if (GEOGRAM_FOUND)
         set(BUILDING_GEOGRAM_FROM_SOURCE FALSE CACHE INTERNAL "Using system geogram")
         set(GEOGRAM_INCLUDE_DIR ${GEOGRAM_INCLUDE_DIR} CACHE INTERNAL "")
         set(GEOGRAM_LIBRARY ${GEOGRAM_LIBRARY} CACHE INTERNAL "")
+        conditional_copy_file("${CMAKE_SOURCE_DIR}/external/geogram_config/mesh_fill_holes.cpp" "${CMAKE_SOURCE_DIR}/external/geogram/mesh/mesh_fill_holes.cpp")
         message(STATUS "Using system geogram")
+    else()
+        message(STATUS "Geogram not found")
     endif()
 
 endif()
@@ -29,15 +30,21 @@ if(NOT GEOGRAM_FOUND)
 
         set(BUILDING_GEOGRAM_FROM_SOURCE TRUE CACHE INTERNAL "Geogram will be built from local source")
 
+        message(STATUS "Geogram will be built from local source")
+
     elseif (EXISTS "${CMAKE_SOURCE_DIR}/external/geogram_${GEOGRAM_MIN_VERSION}/CMakeLists.txt")
 
         set(GEOGRAM_SOURCE_DIR "${CMAKE_SOURCE_DIR}/external/geogram_${GEOGRAM_MIN_VERSION}")
 
         set(BUILDING_GEOGRAM_FROM_SOURCE TRUE CACHE INTERNAL "Geogram will be built from local source")
 
+        message(STATUS "Geogram will be built from local source")
+
     else()    
 
         set(BUILDING_GEOGRAM_FROM_SOURCE TRUE CACHE INTERNAL "Geogram will be downloaded and built from source")
+
+        message(STATUS "Geogram will be downloaded and built from source")
 
         set(GEOGRAM_SOURCE_DIR "${CMAKE_BINARY_DIR}/external/geogram_${GEOGRAM_MIN_VERSION}")
 

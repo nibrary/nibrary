@@ -13,6 +13,10 @@ if (USE_SYSTEM_GEOGRAM)
         set(BUILDING_GEOGRAM_FROM_SOURCE FALSE CACHE INTERNAL "Using system geogram")
         set(GEOGRAM_INCLUDE_DIR ${GEOGRAM_INCLUDE_DIR} CACHE INTERNAL "")
         set(GEOGRAM_LIBRARY ${GEOGRAM_LIBRARY} CACHE INTERNAL "")
+        
+        # mesh_fill_holes function actually uses a geogram .cpp file, which is not ideal but
+        # for now, this was found to be good solution. Until we have a better solution,
+        # we will download the source and compile geogram. So system package is not used for now.
         conditional_copy_file("${CMAKE_SOURCE_DIR}/external/geogram_config/mesh_fill_holes.cpp" "${CMAKE_SOURCE_DIR}/external/geogram/mesh/mesh_fill_holes.cpp")
         message(STATUS "Using system geogram")
     else()

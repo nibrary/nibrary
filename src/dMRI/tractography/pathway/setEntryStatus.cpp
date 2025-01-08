@@ -37,20 +37,52 @@ bool NIBR::Pathway::setEntryStatus(NIBR::Walker* w, int ruleNo) {
         }
     }
 
-    auto confirmIsInside = [&]()->bool {
-        float p[3];
-        p[0] = w->segment.beg[0] + w->segment.dir[0] * w->segCrosLength * w->segment.len;
-        p[1] = w->segment.beg[1] + w->segment.dir[1] * w->segCrosLength * w->segment.len;
-        p[2] = w->segment.beg[2] + w->segment.dir[2] * w->segCrosLength * w->segment.len;
-        return isPointInsideRule(&p[0],ruleNo);
+   auto isExiting = [&]()->bool {
+        float tmp_end[3]        = {w->segment.end[0],w->segment.end[1],w->segment.end[2]};
+        float tmp_len           = w->segment.len;
+        float tmp_segCrosLength = w->segCrosLength;
+
+        w->segment.end[0] = w->segment.beg[0] + w->segment.dir[0] * w->segCrosLength * w->segment.len;
+        w->segment.end[1] = w->segment.beg[1] + w->segment.dir[1] * w->segCrosLength * w->segment.len;
+        w->segment.end[2] = w->segment.beg[2] + w->segment.dir[2] * w->segCrosLength * w->segment.len;
+
+        float tmp[3];
+        vec3sub(tmp,w->segment.end,w->segment.beg);
+        w->segment.len = norm(tmp);
+        
+        bool q = isSegmentExiting(w, ruleNo);
+
+        w->segment.end[0] = tmp_end[0];
+        w->segment.end[1] = tmp_end[1];
+        w->segment.end[2] = tmp_end[2];
+        w->segment.len    = tmp_len;
+        w->segCrosLength  = tmp_segCrosLength;
+        
+        return q;
     };
 
-    auto confirmIsOutside = [&]()->bool {
-        float p[3];
-        p[0] = w->segment.beg[0] + w->segment.dir[0] * w->segCrosLength * w->segment.len;
-        p[1] = w->segment.beg[1] + w->segment.dir[1] * w->segCrosLength * w->segment.len;
-        p[2] = w->segment.beg[2] + w->segment.dir[2] * w->segCrosLength * w->segment.len;
-        return !isPointInsideRule(&p[0],ruleNo);
+    auto isEntering = [&]()->bool {
+        float tmp_end[3]        = {w->segment.end[0],w->segment.end[1],w->segment.end[2]};
+        float tmp_len           = w->segment.len;
+        float tmp_segCrosLength = w->segCrosLength;
+
+        w->segment.end[0] = w->segment.beg[0] + w->segment.dir[0] * w->segCrosLength * w->segment.len;
+        w->segment.end[1] = w->segment.beg[1] + w->segment.dir[1] * w->segCrosLength * w->segment.len;
+        w->segment.end[2] = w->segment.beg[2] + w->segment.dir[2] * w->segCrosLength * w->segment.len;
+
+        float tmp[3];
+        vec3sub(tmp,w->segment.end,w->segment.beg);
+        w->segment.len = norm(tmp);
+        
+        bool q = isSegmentEntering(w, ruleNo);
+        
+        w->segment.end[0] = tmp_end[0];
+        w->segment.end[1] = tmp_end[1];
+        w->segment.end[2] = tmp_end[2];
+        w->segment.len    = tmp_len;
+        w->segCrosLength  = tmp_segCrosLength;
+
+        return q;
     };
 
     // Slightly move back before the stop rule
@@ -92,19 +124,19 @@ bool NIBR::Pathway::setEntryStatus(NIBR::Walker* w, int ruleNo) {
 
         }
 
-        if (w->segCrosLength <= 0.0) {
+        if (w->segCrosLength <= 0.0f) {
             disp(MSG_DEBUG,"  Can't stop streamline: segment can't be shorter");
             // wait("...");
             return false;
         }
 
-        if ((prules[ruleNo].type==stop_before_exit) && (!confirmIsInside())) {
+        if ((prules[ruleNo].type==stop_before_exit) && (isExiting())) {
             disp(MSG_DEBUG,"  Can't stop streamline: shorter segment is not inside");
             // wait("...");
             return false;
         }
 
-        if ((prules[ruleNo].type==stop_before_entry) && (!confirmIsOutside())) {
+        if ((prules[ruleNo].type==stop_before_entry) && (isEntering())) {
             disp(MSG_DEBUG,"  Can't stop streamline: shorter segment is not outside");
             // wait("...");
             return false;
@@ -147,19 +179,19 @@ bool NIBR::Pathway::setEntryStatus(NIBR::Walker* w, int ruleNo) {
 
         }
 
-        if (w->segCrosLength>1.0f) {
+        if (w->segCrosLength >= 1.0f) {
             disp(MSG_DEBUG,"  Can't stop streamline: segment can't be longer");
             // wait("...");
             return false;
         }
 
-        if ((prules[ruleNo].type==stop_after_exit) && (!confirmIsOutside())) {
+        if ((prules[ruleNo].type==stop_after_exit) && (!isExiting())) {
             disp(MSG_DEBUG,"  Can't stop streamline: shorter segment is not outside");
             // wait("...");
             return false;
         }
 
-        if ((prules[ruleNo].type==stop_after_entry) && (!confirmIsInside())) {
+        if ((prules[ruleNo].type==stop_after_entry) && (!isEntering())) {
             disp(MSG_DEBUG,"  Can't stop streamline: shorter segment is not inside");
             // wait("...");
             return false;

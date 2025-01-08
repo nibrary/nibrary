@@ -16,7 +16,6 @@ public:
     void        run();      // Runs the tracker and populates TRACKER::tractogram
     void        reset();    // Clears TRACKER::tractogram. run() will generate a new TRACKER::tractogram with the same settings.
 
-
     // General options
     void        numberOfThreads(int n);
     void        runTimeLimit(int t);
@@ -100,6 +99,9 @@ public:
 
     // Parameter mask image
     void        paramImgMask(std::string param_mask_fname);
+
+    // Output options
+    void        saveSeedIndex (bool q);
     
     
 };

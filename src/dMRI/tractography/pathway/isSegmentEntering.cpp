@@ -5,11 +5,12 @@ using namespace NIBR;
 
 // This is used for mask and label images, not for pvf images
 template <typename T>
-bool checkEnteryUsingRayTracing(float& segCrosLength, LineSegment& segment, Image<T>* img, T label) {
+bool checkEntryUsingRayTracing(float& segCrosLength, LineSegment& segment, Image<T>* img, T label) {
 
     // segment.beg is inside the image
     if ((*img)(segment.beg)==label) {
         segCrosLength = 0.0;
+        disp(MSG_DEBUG,"   entered at segCrosLength %.12f", segCrosLength);
         return true;
     }
 
@@ -74,6 +75,7 @@ bool checkEnteryUsingRayTracing(float& segCrosLength, LineSegment& segment, Imag
                     vec3sub(dir,p1,segment.beg); // dir is now in real-space
                     segCrosLength = norm(dir)/segment.len;
                     if (segCrosLength>1.0f) segCrosLength = 1.0f;
+                    disp(MSG_DEBUG,"   entered at segCrosLength %.12f", segCrosLength);
                     return true;
                 }
             }
@@ -89,6 +91,7 @@ bool checkEnteryUsingRayTracing(float& segCrosLength, LineSegment& segment, Imag
     // segment.end is inside the image
     if ((*img)(segment.end)==label) {
         segCrosLength = 1.0f;
+        disp(MSG_DEBUG,"   entered at segCrosLength %.12f", segCrosLength);
         return true;
     }
 
@@ -98,8 +101,8 @@ bool checkEnteryUsingRayTracing(float& segCrosLength, LineSegment& segment, Imag
 }
 
 // Explicit instantiation for mask (int8_t) and label (int) images
-template bool checkEnteryUsingRayTracing<int8_t>(float& segCrosLength, LineSegment& segment, Image<int8_t>* img, int8_t label); // For img_mask
-template bool checkEnteryUsingRayTracing<int>   (float& segCrosLength, LineSegment& segment, Image<int>* img,    int    label); // For img_label
+template bool checkEntryUsingRayTracing<int8_t>(float& segCrosLength, LineSegment& segment, Image<int8_t>* img, int8_t label); // For img_mask
+template bool checkEntryUsingRayTracing<int>   (float& segCrosLength, LineSegment& segment, Image<int>* img,    int    label); // For img_label
 
 // If a segment is entering a pathway rule, this function returns true
 // w->segCrosLength shows the fraction of segment length to enter the pathway rule
@@ -158,14 +161,14 @@ bool NIBR::Pathway::isSegmentEntering(NIBR::Walker* w, int ruleNo) {
         // Image - mask
         case img_mask_src: {
 
-            return checkEnteryUsingRayTracing<int8_t>(w->segCrosLength, w->segment, img_mask[ruleNo], 1);
+            return checkEntryUsingRayTracing<int8_t>(w->segCrosLength, w->segment, img_mask[ruleNo], 1);
 
         }
         
         // Image - label
         case img_label_src: {
 
-            return checkEnteryUsingRayTracing<int>(w->segCrosLength, w->segment, img_label[ruleNo], img_label_val[ruleNo]);
+            return checkEntryUsingRayTracing<int>(w->segCrosLength, w->segment, img_label[ruleNo], img_label_val[ruleNo]);
 
         }
 

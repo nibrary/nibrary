@@ -10,6 +10,7 @@ bool checkExitUsingRayTracing(float& segCrosLength, LineSegment& segment, Image<
     // segment.beg is outside the image
     if ((*img)(segment.beg)!=label) {
         segCrosLength = 0.0f;
+        disp(MSG_DEBUG,"   exited at segCrosLength %.12f", segCrosLength);
         return true;
     }
 
@@ -74,6 +75,7 @@ bool checkExitUsingRayTracing(float& segCrosLength, LineSegment& segment, Image<
                     vec3sub(dir,p1,segment.beg); // dir is now in real-space
                     segCrosLength = norm(dir)/segment.len;
                     if (segCrosLength>1.0f) segCrosLength = 1.0f;
+                    disp(MSG_DEBUG,"   exited at segCrosLength %.12f", segCrosLength);
                     return true;
                 }
             }
@@ -89,6 +91,7 @@ bool checkExitUsingRayTracing(float& segCrosLength, LineSegment& segment, Image<
     // segment.end is inside the image
     if ((*img)(segment.end)!=label) {
         segCrosLength = 1.0f;
+        disp(MSG_DEBUG,"   exited at segCrosLength %.12f", segCrosLength);
         return true;
     }
 

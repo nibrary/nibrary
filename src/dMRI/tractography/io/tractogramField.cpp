@@ -421,6 +421,7 @@ void NIBR::clearField(TractogramField& field,TractogramReader& tractogram)
 
     switch (field.datatype) {
 
+        case UNKNOWN_DT:       break;
         case BOOL_DT:          clearFieldWrapper<bool>(field,tractogram);    break;
         case UINT8_DT:         clearFieldWrapper<uint8_t>(field,tractogram);    break;
         case INT8_DT:          clearFieldWrapper< int8_t>(field,tractogram);    break;
@@ -442,7 +443,34 @@ void NIBR::clearField(TractogramField& field,TractogramReader& tractogram)
             break;
     }
 
-    
+}
+
+void NIBR::clearField(TractogramField& field, std::vector<std::vector<std::vector<float>>>& tractogram)
+{
+
+    switch (field.datatype) {
+
+        case UNKNOWN_DT:       break;
+        case BOOL_DT:          clearFieldWrapper<bool>(field,tractogram);    break;
+        case UINT8_DT:         clearFieldWrapper<uint8_t>(field,tractogram);    break;
+        case INT8_DT:          clearFieldWrapper< int8_t>(field,tractogram);    break;
+        case UINT16_DT:        clearFieldWrapper<uint16_t>(field,tractogram);    break;
+        case INT16_DT:         clearFieldWrapper< int16_t>(field,tractogram);    break;
+        case UINT32_DT:        clearFieldWrapper<uint32_t>(field,tractogram);    break;
+        case INT32_DT:         clearFieldWrapper< int32_t>(field,tractogram);    break;
+        case UINT64_DT:        clearFieldWrapper<uint64_t>(field,tractogram);    break;
+        case INT64_DT:         clearFieldWrapper< int64_t>(field,tractogram);    break;
+        case FLOAT32_DT:       clearFieldWrapper<float>(field,tractogram);    break;
+        case FLOAT64_DT:       clearFieldWrapper<double>(field,tractogram);    break;
+        case FLOAT128_DT:      clearFieldWrapper<long double>(field,tractogram);    break;
+        // case COMPLEX64_DT:     clearFieldWrapper<std::complex<double>>(field,tractogram);    break;
+        // case COMPLEX128_DT:    clearFieldWrapper<std::complex<long double>>(field,tractogram);    break;
+        // case COMPLEX256_DT:    clearFieldWrapper<std::complex<long long double>>(field,tractogram);    break;
+
+        default:
+            disp(MSG_FATAL,"Unknown datatype");
+            break;
+    }
 
 }
 

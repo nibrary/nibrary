@@ -10,11 +10,14 @@ int             TRACKER::nThreads;
 int             TRACKER::runTimeLimit;
 int             TRACKER::idleTimeLimit;
 Seed            TRACKER::seed;
+bool            TRACKER::saveSeedIndex;
 Pathway         TRACKER::pw;
 Params_PTT      TRACKER::params_ptt;
 
 // Derived parameters
 std::vector<std::vector<std::vector<float>>>        TRACKER::tractogram;
+std::vector<int>                                    TRACKER::seedIndex;
+TractogramField                                     TRACKER::seedIndexField;
 std::chrono::steady_clock::time_point               TRACKER::initTime;
 std::chrono::steady_clock::time_point               TRACKER::lastTime;
 bool                                                TRACKER::runtimeLimitReached;
@@ -41,6 +44,29 @@ std::atomic<size_t> TRACKER::log_unexpected_TRACKING_STATUS;
 
 std::vector<std::vector<std::vector<float>>>& TRACKER::getTractogram() {return TRACKER::tractogram;}
 
+TractogramField& TRACKER::getSeedIndexField() {
+
+    clearField(seedIndexField,tractogram);
+
+    int*** idx = new int**[tractogram.size()];
+
+    for (size_t n = 0; n < tractogram.size(); n++) {
+        idx[n]  = new int*[tractogram[n].size()];
+        for (size_t l = 0; l < tractogram[n].size(); l++) {
+            idx[n][l]    = new int[1];
+            idx[n][l][0] = (int(l) == seedIndex[n]);
+        }
+    }
+
+    seedIndexField.owner      = POINT_OWNER;
+    seedIndexField.name       = "seedIndex";
+    seedIndexField.datatype   = INT32_DT;
+    seedIndexField.dimension  = 1;
+    seedIndexField.data       = reinterpret_cast<void*>(idx);
+
+    return seedIndexField;
+}
+
 void TRACKER::reset() {
 
     // Reset seed
@@ -48,6 +74,10 @@ void TRACKER::reset() {
     runTimeLimit  = (runTimeLimit<=0)  ? INT32_MAX             : runTimeLimit;
     idleTimeLimit = (idleTimeLimit<=0) ? DEFAULT_IDLETIMELIMIT : idleTimeLimit;
     
+    // Reset seedIndex and seedIndexField
+    seedIndex.clear();
+    clearField(seedIndexField,tractogram);    
+
     // Reset derived parameters
     tractogram.clear();
     initTime               = std::chrono::steady_clock::now();

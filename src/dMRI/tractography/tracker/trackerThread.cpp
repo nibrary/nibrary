@@ -389,6 +389,7 @@ bool TrackingThread::track()
 			if (!TRACKER::countIsReached) {
 
 				TRACKER::tractogram.push_back(outTrk);
+				if (TRACKER::saveSeedIndex) TRACKER::seedIndex.push_back(walker->seedInd);
 
 				TRACKER::lastTime = std::chrono::steady_clock::now();
 			

@@ -37,6 +37,8 @@ Trekker::~Trekker()
     disp(MSG_DEBUG,"Seed cleaned");
     algorithm_clear();
     disp(MSG_DEBUG,"Algorithm cleaned");
+    reset();
+    disp(MSG_DEBUG,"Tracker cleaned");
 }
 
 // General options
@@ -371,6 +373,10 @@ void Trekker::paramImgMask(std::string param_mask_fname) {
         default:
             break;
     }
+}
+
+void Trekker::saveSeedIndex(bool q) {
+    TRACKER::saveSeedIndex = q;
 }
 
 
@@ -723,7 +729,7 @@ void Trekker::run() {
         auto dispCount = [&](size_t& cumCnt, size_t cnt, std::string reason)->void {
             if (cnt > 0) {
                 size_t spaces = 34 - reason.length();
-                reason = "   " + reason + std::string(spaces,' ') + ":";
+                reason = "   " + reason + std::string(spaces,' ') + ": ";
                 std::cout << preamble << reason << cnt << "\033[0m" << std::endl; 
                 lineCount++;
                 cumCnt += cnt;

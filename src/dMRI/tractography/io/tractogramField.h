@@ -22,7 +22,8 @@ namespace NIBR
         void*                   data{NULL};
     };
 
-    void clearField(TractogramField& field,TractogramReader& tractogram);
+    void clearField(TractogramField& field, TractogramReader& tractogram);
+    void clearField(TractogramField& field, std::vector<std::vector<std::vector<float>>>& tractogram);
 
     std::vector<NIBR::TractogramField> findTractogramFields(TractogramReader& tractogram);
     std::vector<NIBR::TractogramField> readTractogramFields(TractogramReader& tractogram);
@@ -35,34 +36,86 @@ namespace NIBR
 
 
 template<class T>
-void clearFieldWrapper(TractogramField& field,TractogramReader& tractogram) {
+void clearFieldWrapper(TractogramField& field,TractogramReader& tractogram) {    
 
-    if (field.owner == POINT_OWNER) {
+    if (field.data != NULL) {
 
-        T*** toDel = reinterpret_cast<T***>(field.data);
+        if (field.owner == POINT_OWNER) {
 
-        for (size_t s = 0; s < tractogram.numberOfStreamlines; s++) {
-            for (uint32_t l = 0; l < tractogram.len[s]; l++) {
-                delete[] toDel[s][l];
+            T*** toDel = reinterpret_cast<T***>(field.data);
+
+            for (size_t s = 0; s < tractogram.numberOfStreamlines; s++) {
+                for (uint32_t l = 0; l < tractogram.len[s]; l++) {
+                    delete[] toDel[s][l];
+                }
+                delete[] toDel[s];
             }
-            delete[] toDel[s];
+
+            delete[] toDel; 
+
         }
 
-        delete[] toDel; 
+        if (field.owner == STREAMLINE_OWNER) {
+
+            T** toDel = reinterpret_cast<T**>(field.data);
+
+            for (size_t s = 0; s < tractogram.numberOfStreamlines; s++) {
+                delete[] toDel[s];
+            }
+            
+            delete[] toDel;
+
+        }
 
     }
 
-    if (field.owner == STREAMLINE_OWNER) {
+    field.owner     = POINT_OWNER;
+    field.name      = "";
+    field.datatype  = UNKNOWN_DT;
+    field.dimension = 0;
+    field.data      = NULL;
 
-        T** toDel = reinterpret_cast<T**>(field.data);
+}
 
-        for (size_t s = 0; s < tractogram.numberOfStreamlines; s++) {
-            delete[] toDel[s];
+template<class T>
+void clearFieldWrapper(TractogramField& field, std::vector<std::vector<std::vector<float>>>& tractogram) {    
+
+    if (field.data != NULL) {
+
+        if (field.owner == POINT_OWNER) {
+
+            T*** toDel = reinterpret_cast<T***>(field.data);
+
+            for (size_t s = 0; s < tractogram.size(); s++) {
+                for (uint32_t l = 0; l < tractogram[s].size(); l++) {
+                    delete[] toDel[s][l];
+                }
+                delete[] toDel[s];
+            }
+
+            delete[] toDel; 
+
         }
-        
-        delete[] toDel;
+
+        if (field.owner == STREAMLINE_OWNER) {
+
+            T** toDel = reinterpret_cast<T**>(field.data);
+
+            for (size_t s = 0; s < tractogram.size(); s++) {
+                delete[] toDel[s];
+            }
+            
+            delete[] toDel;
+
+        }
 
     }
+
+    field.owner     = POINT_OWNER;
+    field.name      = "";
+    field.datatype  = UNKNOWN_DT;
+    field.dimension = 0;
+    field.data      = NULL;
 
 }
 

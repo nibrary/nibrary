@@ -12,7 +12,7 @@ using namespace NIBR;
 // Returns true if a new rule is added successfully. Returns false otherwise.
 bool NIBR::Pathway::add(PathwayRule prule) {
 
-    prule.uniqueId = uniqueIdCnt++; // Never changes until program terminates
+    prule.uniqueId  = uniqueIdCnt++; // Never changes until program terminates
 
     prules.push_back(prule);
     ruleCnt++;

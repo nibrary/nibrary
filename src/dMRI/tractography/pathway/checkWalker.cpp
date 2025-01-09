@@ -167,13 +167,19 @@ NIBR::WalkerAction NIBR::Pathway::checkWalker(NIBR::Walker *w, int b, int e)
 					w->terminationReasonSideA = STOP_ROI_REACHED;
 					w->action = STOP;
 					w->isDone[n] = true;
+					break;
 				} else if (w->side == side_B) {
 					w->terminationReasonSideB = STOP_ROI_REACHED;
 					w->action = STOP;            
 					w->isDone[n] = true;
+					break;
 				}
 
+				disp(MSG_FATAL,"Unexpected stopping condition (w->side = either)");
+				
 			}
+
+			break;
 
 		}
 
@@ -185,11 +191,12 @@ NIBR::WalkerAction NIBR::Pathway::checkWalker(NIBR::Walker *w, int b, int e)
 
 
 	if (w->action == STOP) {
-		disp(MSG_DEBUG,"Shortened segment by %.12f%% and %.12f mm", w->segCrosLength, w->segment.len*(1.0f-w->segCrosLength));
+		disp(MSG_DEBUG,"Shortened segment by %.12f%% and %.12f mm", w->segCrosLength*100.0f, w->segment.len*(1.0f-w->segCrosLength));
 		w->segment.len   *= w->segCrosLength;
-		w->segCrosLength  = 1.0f;
+		// w->segCrosLength  = 1.0f;
 		// Don't modifying segment end unless tracking
 		if (isTracking) {
+			w->segCrosLength  = 1.0f;
 			w->segment.end[0] = w->segment.beg[0] + w->segment.dir[0] * w->segment.len;
 			w->segment.end[1] = w->segment.beg[1] + w->segment.dir[1] * w->segment.len;
 			w->segment.end[2] = w->segment.beg[2] + w->segment.dir[2] * w->segment.len;
@@ -232,11 +239,10 @@ NIBR::WalkerAction NIBR::Pathway::checkWalker(NIBR::Walker *w, int b, int e)
 				return DISCARD;
 			}
 
-			w->segCrosLength   = 1.0f - shorten / w->segment.len;
-
 			// Don't modifying segment end unless tracking
 			if (isTracking) {
-				disp(MSG_DEBUG,"Shortened segment by %.12f%% and %.12f mm", w->segCrosLength, shorten);
+				w->segCrosLength   = 1.0f - shorten / w->segment.len;
+				disp(MSG_DEBUG,"Shortened segment by %.12f%% and %.12f mm", w->segCrosLength*100.0f, shorten);
 				w->segment.len    -= shorten;
 				w->segCrosLength   = 1.0f;
 				w->segment.end[0]  = w->segment.beg[0] + w->segment.dir[0]*w->segment.len;

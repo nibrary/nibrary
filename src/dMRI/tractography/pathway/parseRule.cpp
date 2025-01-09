@@ -452,8 +452,9 @@ std::vector<PathwayRule> NIBR::parsePathwayInput(std::vector<std::string> inp) {
         PathwayRule rule;
 
         auto setRule = [&]() {
-            rule.type = std::get<0>(tableVals->second);
-            rule.side = std::get<1>(tableVals->second);
+            rule.type       = std::get<0>(tableVals->second);
+            rule.side       = std::get<1>(tableVals->second);
+            rule.orig_side  = rule.side;
             out.push_back(rule);
         };
 

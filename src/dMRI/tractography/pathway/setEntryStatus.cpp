@@ -3,30 +3,12 @@
 // Check and set entry status. Discard if stop conditions can't be satisfied.
 bool NIBR::Pathway::setEntryStatus(NIBR::Walker* w, int ruleNo) {
 
-    // if (VERBOSE()==VERBOSE_DEBUG) {
-    //     switch (w->entry_status[ruleNo]) {
-    //     case notEnteredYet: disp(MSG_DEBUG,"Before setEntryStatus (%d): notEnteredYet",ruleNo);   break;
-    //     case entered:       disp(MSG_DEBUG,"Before setEntryStatus (%d): entered",ruleNo);         break;
-    //     case exited:        disp(MSG_DEBUG,"Before setEntryStatus (%d): exited",ruleNo);          break;
-    //     case notExitedYet:  disp(MSG_DEBUG,"Before setEntryStatus (%d): notExitedYet",ruleNo);    break;
-    //     }
-    // }
-
     switch (w->entry_status[ruleNo]) {
     case notEnteredYet: w->entry_status[ruleNo] = isSegmentEntering(w, ruleNo) ? entered : notEnteredYet;   break;
     case entered:       w->entry_status[ruleNo] = isSegmentExiting (w, ruleNo) ? exited  : notExitedYet;    break;
     case exited:        w->entry_status[ruleNo] = isSegmentEntering(w, ruleNo) ? entered : exited;          break;
     case notExitedYet:  w->entry_status[ruleNo] = isSegmentExiting (w, ruleNo) ? exited  : notExitedYet;    break;
     }
-
-    // if (VERBOSE()==VERBOSE_DEBUG) {
-    //     switch (w->entry_status[ruleNo]) {
-    //     case notEnteredYet: disp(MSG_DEBUG,"After setEntryStatus (%d): notEnteredYet",ruleNo);   break;
-    //     case entered:       disp(MSG_DEBUG,"After setEntryStatus (%d): entered",ruleNo);         break;
-    //     case exited:        disp(MSG_DEBUG,"After setEntryStatus (%d): exited",ruleNo);          break;
-    //     case notExitedYet:  disp(MSG_DEBUG,"After setEntryStatus (%d): notExitedYet",ruleNo);    break;
-    //     }
-    // }
 
     if (VERBOSE()==VERBOSE_DEBUG) {
         switch (w->entry_status[ruleNo]) {
@@ -37,20 +19,22 @@ bool NIBR::Pathway::setEntryStatus(NIBR::Walker* w, int ruleNo) {
         }
     }
 
-   auto isExiting = [&]()->bool {
+    auto exitingOrEnteringWrapper = [&](bool testType)->bool {
         float tmp_end[3]        = {w->segment.end[0],w->segment.end[1],w->segment.end[2]};
         float tmp_len           = w->segment.len;
         float tmp_segCrosLength = w->segCrosLength;
 
-        w->segment.end[0] = w->segment.beg[0] + w->segment.dir[0] * w->segCrosLength * w->segment.len;
-        w->segment.end[1] = w->segment.beg[1] + w->segment.dir[1] * w->segCrosLength * w->segment.len;
-        w->segment.end[2] = w->segment.beg[2] + w->segment.dir[2] * w->segCrosLength * w->segment.len;
+        w->segment.len   *= w->segCrosLength;
+
+        w->segment.end[0] = w->segment.beg[0] + w->segment.dir[0] * w->segment.len;
+        w->segment.end[1] = w->segment.beg[1] + w->segment.dir[1] * w->segment.len;
+        w->segment.end[2] = w->segment.beg[2] + w->segment.dir[2] * w->segment.len;
 
         float tmp[3];
         vec3sub(tmp,w->segment.end,w->segment.beg);
         w->segment.len = norm(tmp);
         
-        bool q = isSegmentExiting(w, ruleNo);
+        bool q = (testType) ? isSegmentExiting(w, ruleNo) : isSegmentEntering(w, ruleNo);
 
         w->segment.end[0] = tmp_end[0];
         w->segment.end[1] = tmp_end[1];
@@ -61,29 +45,8 @@ bool NIBR::Pathway::setEntryStatus(NIBR::Walker* w, int ruleNo) {
         return q;
     };
 
-    auto isEntering = [&]()->bool {
-        float tmp_end[3]        = {w->segment.end[0],w->segment.end[1],w->segment.end[2]};
-        float tmp_len           = w->segment.len;
-        float tmp_segCrosLength = w->segCrosLength;
-
-        w->segment.end[0] = w->segment.beg[0] + w->segment.dir[0] * w->segCrosLength * w->segment.len;
-        w->segment.end[1] = w->segment.beg[1] + w->segment.dir[1] * w->segCrosLength * w->segment.len;
-        w->segment.end[2] = w->segment.beg[2] + w->segment.dir[2] * w->segCrosLength * w->segment.len;
-
-        float tmp[3];
-        vec3sub(tmp,w->segment.end,w->segment.beg);
-        w->segment.len = norm(tmp);
-        
-        bool q = isSegmentEntering(w, ruleNo);
-        
-        w->segment.end[0] = tmp_end[0];
-        w->segment.end[1] = tmp_end[1];
-        w->segment.end[2] = tmp_end[2];
-        w->segment.len    = tmp_len;
-        w->segCrosLength  = tmp_segCrosLength;
-
-        return q;
-    };
+    auto isExiting  = [&]()->bool { return exitingOrEnteringWrapper(true);  };
+    auto isEntering = [&]()->bool { return exitingOrEnteringWrapper(false); };
 
     // Slightly move back before the stop rule
     if ( ((w->entry_status[ruleNo] == exited ) && (prules[ruleNo].type==stop_before_exit)) ||

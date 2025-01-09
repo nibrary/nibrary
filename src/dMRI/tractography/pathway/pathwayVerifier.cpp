@@ -25,7 +25,7 @@ bool NIBR::Pathway::verify() {
     if (B_pulled) {
         for(size_t i=0;i<prules.size(); ++i)
             if (prules[i].type != seed)
-                prules[i].side  = either;
+                prules[i].side  = prules[i].orig_side;
 
         order_of_side_B_prules.clear();
         isSided  = false;

@@ -92,8 +92,6 @@ bool Trekker::pathway_inOrder  (bool q)                     {return TRACKER::pw.
 bool Trekker::pathway_skipSeed (bool q)                     {return TRACKER::pw.skipSeed(q);}
 // bool Trekker::pathway_noEdgeSeed (bool q)                   {return TRACKER::pw.noEdgeSeed(q);}
 
-
-
 // Tracking options
 void Trekker::algorithm_clear() {
      switch (TRACKER::algorithm) {

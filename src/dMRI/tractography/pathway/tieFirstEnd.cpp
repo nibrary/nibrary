@@ -3,8 +3,6 @@
 using namespace NIBR;
 
 // When the first end is tied, the action is set to either DISCARD or STOP
-// Tying the first end does not change w->side
-// i.e. if w->side = either, it will check as either, and it will remain that way
 NIBR::Walker *NIBR::Pathway::tieFirstEnd(NIBR::Walker *w)
 {
 

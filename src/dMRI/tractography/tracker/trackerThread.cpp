@@ -202,7 +202,6 @@ bool TrackingThread::track()
 					walker->failingReason = FAILED_BY_THE_ALGORITHM;
 				}
 
-
 			};
 
 			// Track first side
@@ -218,7 +217,7 @@ bool TrackingThread::track()
 			if (TRACKER::pw.directionality==ONE_SIDED) {
 
 				// ONE_SIDED tracking
-				TRACKER::pw.tieSecondEnd(walker); // walker->action is either DISCARD or KEEP
+				TRACKER::pw.tieEnd(walker); // walker->action is either DISCARD or KEEP
 
 				if (TRACKER::pw.skipSeedROI) {
 					// Changes the beginning position of the streamline.
@@ -251,6 +250,9 @@ bool TrackingThread::track()
 						// seedInd is now at the end
 						walker->seedInd = walker->streamline->size()-1;
 						TRACKER::pw.flipSide(walker);
+
+						// Reset propCounter
+						propCounter = 0;
 
 						// Track other side
 						while ( (walker->action == CONTINUE) && (algDecision == PROP_CONTINUE) && !hitTimeLimit(walker) ) {

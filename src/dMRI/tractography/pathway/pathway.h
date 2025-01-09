@@ -156,6 +156,7 @@ namespace NIBR
         void                        walkSecondEnd(Walker* walker);
         Walker*                     tieFirstEnd(Walker* walker);
         Walker*                     tieSecondEnd(Walker* walker);
+        Walker*                     tieEnd(Walker* walker) {return tieSecondEnd(walker);}
         Walker*                     tieRequireRules(Walker* walker);
         Walker*                     tieDiscardRules(Walker* walker);
         void                        flipSide(Walker* walker);

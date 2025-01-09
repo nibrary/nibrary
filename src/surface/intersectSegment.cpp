@@ -92,13 +92,15 @@ std::tuple<bool,bool,double,int,bool,double> NIBR::Surface::intersectSegment(Lin
 
             // Voxel is OUTSIDE
             // disp(MSG_DEBUG, "Outside.");
-            return std::make_tuple(false,false,NAN,INT_MIN,false,NAN);
+            begIsInside = endIsInside = false;
+            return std::make_tuple(begIsInside,endIsInside,NAN,INT_MIN,false,NAN);
 
         } else if (val==INSIDE) {
 
             // Voxel is INSIDE
             // disp(MSG_DEBUG, "Inside.");
-            return std::make_tuple(true,true,NAN,INT_MIN,false,NAN);
+            begIsInside = endIsInside = true;
+            return std::make_tuple(begIsInside,endIsInside,NAN,INT_MIN,false,NAN);
 
         } else {
 
@@ -248,6 +250,15 @@ std::tuple<bool,bool,double,int,bool,double> NIBR::Surface::intersectSegment(Lin
 
 
     }
+
+    /*
+    if (begIsInside) {disp(MSG_DEBUG,"begIsInside: YES");} else {disp(MSG_DEBUG,"begIsInside: NO");} 
+    if (endIsInside) {disp(MSG_DEBUG,"endIsInside: YES");} else {disp(MSG_DEBUG,"endIsInside: NO");} 
+    disp(MSG_DEBUG,"dist:       %.12f", dist);
+    disp(MSG_DEBUG,"intFaceInd: %d",    intFaceInd);
+    if (towardsOutside) {disp(MSG_DEBUG,"towardsOutside: YES");} else {disp(MSG_DEBUG,"towardsOutside: NO");}
+    if (boundaryTransitionDist) {disp(MSG_DEBUG,"boundaryTransitionDist: YES");} else {disp(MSG_DEBUG,"boundaryTransitionDist: NO");}
+    */
 
     return std::make_tuple(begIsInside,endIsInside,dist,intFaceInd,towardsOutside,boundaryTransitionDist);
 

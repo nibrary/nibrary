@@ -140,14 +140,20 @@ Propagation_Decision TrackWith_PTT::flip() {
 	// Already find the next curve! 
 	// Because next call for propagate needs to know the curve in order to walk.
 	
-	// Estimate posterior
-    posteriorMax = curve->getInitPosteriorMax();
+	if (TRACKER::params_ptt.useLegacySampling) {
 
-	// disp(MSG_DEBUG,"Flipped curve:");
-	// curve->print();
+		// Get init posteriorMax
+    	posteriorMax = curve->getInitPosteriorMax();
 
-	// Rejection sample
-	return rejectionSample();
+		// Rejection sample
+		return rejectionSample();
+
+	} else {
+
+		// Sample from CDF
+		return sampleFromCDF();
+
+	}
 
 }
 

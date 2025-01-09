@@ -58,6 +58,7 @@ namespace NIBR
 		Pathway_Src		  				 src{undef_src};
 		Pathway_Type      				 type{undef_type};
 		Tracking_Side     				 side{either};
+		Tracking_Side     				 orig_side{either};					// keep orig side for reverting B_pulling
 		bool              				 useLabel{false};					// img_label_src, img_pvf_src, surf_src
 		int               				 label{0};							// label, volume, label
 		float			  				 center[3]{NAN,NAN,NAN};

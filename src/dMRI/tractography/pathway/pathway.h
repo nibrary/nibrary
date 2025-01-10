@@ -88,7 +88,7 @@ namespace NIBR
         float                      begInd;
         float                      endInd;
         LineSegment                segment;
-        float                      segCrosLength;
+        float                      segStopLength;
         float                      trackedLength;
         
         TerminationReason          terminationReasonSideA;
@@ -157,8 +157,8 @@ namespace NIBR
         Walker*                     tieFirstEnd(Walker* walker);
         Walker*                     tieSecondEnd(Walker* walker);
         Walker*                     tieEnd(Walker* walker) {return tieSecondEnd(walker);}
-        Walker*                     tieRequireRules(Walker* walker);
-        Walker*                     tieDiscardRules(Walker* walker);
+        Walker*                     tieRequireRules(float* p, Walker* walker);
+        Walker*                     tieDiscardRules(float* p, Walker* walker);
         void                        flipSide(Walker* walker);
         void                        softReset(Walker* walker);
         void                        printDiscardingReason(Walker* walker);
@@ -173,12 +173,11 @@ private:
 
         void                        prepSegment(Walker* walker);
         bool                        getSeedInd(Walker* walker);
-        float                       getStreamlineLength(Walker* walker);
 
         bool                        isPointAtEdgeOfRule(float*  p, int ruleNo, float distThresh);
         bool                        isPointInsideRule(float*  p, int ruleNo);
-        bool                        isSegmentEntering(Walker* w, int ruleNo);
-        bool                        isSegmentExiting(Walker* w, int ruleNo);
+        std::tuple<bool,float>      isSegmentEntering(const LineSegment& segment, int ruleNo);
+        std::tuple<bool,float>      isSegmentExiting (const LineSegment& segment, int ruleNo);
         bool                        setEntryStatus(Walker* w, int ruleNo);    // Check and set entry status. Discard if stop conditions can't be satisfied.
 
         bool                        isTracking;

@@ -9,7 +9,7 @@
 // boundaryTransitionDist ≠ NAN if the segment is transitioning through the boundary without intersection.
 // i.e. a segment can transition from the boundary to outside or the other way around, without intersecting the mesh
 // this can happen for example when the segment beg is within SURFTHICKNESS and the end is outside on the opposite of the normal
-std::tuple<bool,bool,double,int,bool,double> NIBR::Surface::intersectSegment(LineSegment* seg) 
+std::tuple<bool,bool,double,int,bool,double> NIBR::Surface::intersectSegment(const LineSegment* seg) 
 {  
 
     // Compute ijk of segment.beg and segment.end

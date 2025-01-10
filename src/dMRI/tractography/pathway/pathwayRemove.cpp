@@ -20,7 +20,7 @@ bool NIBR::Pathway::remove(int ruleInd) {
 
         for(size_t i=0;i<prules.size(); ++i)
             if (prules[i].type != seed)
-                prules[i].side  = either;
+                prules[i].side  = prules[i].orig_side;
 
         isSided  = false;
         B_pulled = false;

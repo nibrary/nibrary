@@ -161,6 +161,12 @@ bool NIBR::Pathway::verify() {
     //     return false;
     // }
 
+    // Check atMaxLength
+    if ( (atMaxLength == ATMAXLENGTH_STOP) && !hasOneSeed() ) {
+        disp(MSG_ERROR,"Seed must be provided to stop at max length.");
+        return false;
+    }
+
     // Check skipSeedROI
     if ( skipSeedROI && !hasOneSeed() ) {
         disp(MSG_ERROR,"Seed must be provided to skip it at the output.");

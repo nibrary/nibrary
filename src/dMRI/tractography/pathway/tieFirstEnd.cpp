@@ -24,11 +24,22 @@ NIBR::Walker *NIBR::Pathway::tieFirstEnd(NIBR::Walker *w)
 			w->terminationReasonSideB = MIN_DATASUPPORT_REACHED;
 
 		w->action = STOP;
-		w->segCrosLength = 1.0;
 	}
 
-	if (tieDiscardRules(w)->action == DISCARD) return w;	
-    if (tieRequireRules(w)->action == DISCARD) return w;
+	float lastPoint[3];
+
+	if (isTracking) {
+		lastPoint[0]  = w->segment.end[0];
+		lastPoint[1]  = w->segment.end[1];
+		lastPoint[2]  = w->segment.end[2];
+	} else {
+		lastPoint[0]  = w->segment.beg[0] + w->segment.dir[0] * w->segStopLength;
+		lastPoint[1]  = w->segment.beg[1] + w->segment.dir[1] * w->segStopLength;
+		lastPoint[2]  = w->segment.beg[2] + w->segment.dir[2] * w->segStopLength;
+	}
+
+	if (tieDiscardRules(lastPoint,w)->action == DISCARD) {return w; }
+    if (tieRequireRules(lastPoint,w)->action == DISCARD) {return w; }
 
     disp(MSG_DEBUG,"First end is tied successfully");
 

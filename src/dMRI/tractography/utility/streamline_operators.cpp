@@ -35,6 +35,23 @@ float NIBR::getStreamlineLength(std::vector<std::vector<float>>& inp)
     return length;
 }
 
+float NIBR::getStreamlineLength(std::vector<Point>& inp) {
+
+    int len = inp.size();
+
+    if (len<2)
+        return 0;
+
+    float length = 0;
+
+    for (int i=1; i<len; i++) {
+        length += dist(inp[i],inp[i-1]);
+    }
+
+    return length;
+
+}
+
 float NIBR::getStreamlineLength_hermite(float** inp, int len, int div) 
 {
     if (len<2)

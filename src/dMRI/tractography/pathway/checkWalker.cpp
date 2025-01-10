@@ -16,10 +16,11 @@ NIBR::WalkerAction NIBR::Pathway::checkWalker(NIBR::Walker *w, int b, int e)
 	// Prepare segment
 	w->segment.beg   = &(w->streamline->at(b).x);
     w->segment.end   = &(w->streamline->at(e).x);
+
 	vec3sub(w->segment.dir,w->segment.end,w->segment.beg);
     w->segment.len   = norm(w->segment.dir);
-    normalize(w->segment.dir);
-	w->segCrosLength = 1.0;
+	w->segStopLength = w->segment.len;
+	normalize(w->segment.dir);
 
 	for (int n = 0; n < ruleCnt; n++) {
 
@@ -189,72 +190,100 @@ NIBR::WalkerAction NIBR::Pathway::checkWalker(NIBR::Walker *w, int b, int e)
 
 	}
 
-
-	if (w->action == STOP) {
-		disp(MSG_DEBUG,"Shortened segment by %.12f%% and %.12f mm", w->segCrosLength*100.0f, w->segment.len*(1.0f-w->segCrosLength));
-		w->segment.len   *= w->segCrosLength;
-		// w->segCrosLength  = 1.0f;
-		// Don't modifying segment end unless tracking
-		if (isTracking) {
-			w->segCrosLength  = 1.0f;
-			w->segment.end[0] = w->segment.beg[0] + w->segment.dir[0] * w->segment.len;
-			w->segment.end[1] = w->segment.beg[1] + w->segment.dir[1] * w->segment.len;
-			w->segment.end[2] = w->segment.beg[2] + w->segment.dir[2] * w->segment.len;
-		}
-	}
-	
-	w->trackedLength += w->segment.len;
-
-
-	// Check atMaxLength case
+	// atMaxLength checkers
 	// Instead of the precise value of maxLength, we will use maxLength-EPS4
 	// This makes sure that if one runs discard atMaxLength at a later run with the same maxLength value, 
 	// this streamline will not be discarded in some cases due to floating point errors
-	if ( w->trackedLength > (maxLength-EPS4) ) {
 
-		if (atMaxLength == ATMAXLENGTH_DISCARD) {
+	// Returns CONTINUE or STOP
+	auto checkStopAtMax = [&](float trackLengthCheck)->WalkerAction {
+		if ( (atMaxLength == ATMAXLENGTH_STOP) && ( trackLengthCheck > (maxLength-EPS4) ) ) {
+			w->action = STOP;
+			if (w->side == side_A) {
+				w->terminationReasonSideA = MAX_LENGTH_REACHED;
+			} else {
+				w->terminationReasonSideB = MAX_LENGTH_REACHED;
+			}
+			return STOP;
+		}
+		return CONTINUE;
+	};
+
+	// Returns CONTINUE or DISCARD
+	auto checkDiscardAtMax = [&](float trackLengthCheck)->WalkerAction {
+		if ( (atMaxLength == ATMAXLENGTH_DISCARD) && ( trackLengthCheck > (maxLength-EPS4) ) ) {
 			w->action 			= DISCARD;
 			w->discardingReason = TOO_LONG;
+			w->trackedLength    = trackLengthCheck;
 			disp(MSG_DEBUG,"Rule %d. Segment %d - %d. DISCARD - TOO_LONG", ruleCnt, b, e);
 			return DISCARD;
 		}
+		return CONTINUE;
+	};
 
-		// Handle ATMAXLENGTH_STOP
-		else {			
+	// When stopping rules reach, segment is shortened and STOP is returned
+	// If segment is too short to truncate then returns DISCARD
+	auto truncateSegment = [&](float shorten, float trackLengthCheck)->WalkerAction {
 
-			if (w->side == side_A)
-				w->terminationReasonSideA = MAX_LENGTH_REACHED;
-			else
-				w->terminationReasonSideB = MAX_LENGTH_REACHED;
+		// This could happen but it is not possible to shorten more than the segment length.
+		if (shorten > w->segment.len) { 
+			w->action 			= DISCARD;
+			w->discardingReason = CANT_MEET_STOP_CONDITION;
+			w->trackedLength    = trackLengthCheck;
+			disp(MSG_DEBUG,"Rule %d. Segment %d - %d. DISCARD - CANT_MEET_STOP_CONDITION (Segment too short)", ruleCnt, b, e);
+			return DISCARD;
+		}
 
-			w->action = STOP;
+		w->segStopLength = w->segment.len - shorten;
 
-			float shorten = w->trackedLength - (maxLength-EPS4);
+		// Don't modifying segment end unless tracking
+		if (isTracking) {
+			disp(MSG_DEBUG,"Shortened segment by %.12f%% and %.12f mm", (w->segStopLength / w->segment.len) * 100.0f, shorten);
+			w->segment.len    -= shorten;
+			w->segment.end[0]  = w->segment.beg[0] + w->segment.dir[0]*w->segment.len;
+			w->segment.end[1]  = w->segment.beg[1] + w->segment.dir[1]*w->segment.len;
+			w->segment.end[2]  = w->segment.beg[2] + w->segment.dir[2]*w->segment.len;
+		}
 
-			// This could happen but it is not possible to shorten more than the segment length.
-			if (shorten > w->segment.len) { 
-				w->action 			= DISCARD;
-				w->discardingReason = CANT_MEET_STOP_CONDITION;
-				disp(MSG_DEBUG,"Rule %d. Segment %d - %d. DISCARD - CANT_MEET_STOP_CONDITION (Segment too short)", ruleCnt, b, e);
-				return DISCARD;
-			}
+		return STOP;
+	}; 
 
-			// Don't modifying segment end unless tracking
-			if (isTracking) {
-				w->segCrosLength   = 1.0f - shorten / w->segment.len;
-				disp(MSG_DEBUG,"Shortened segment by %.12f%% and %.12f mm", w->segCrosLength*100.0f, shorten);
-				w->segment.len    -= shorten;
-				w->segCrosLength   = 1.0f;
-				w->segment.end[0]  = w->segment.beg[0] + w->segment.dir[0]*w->segment.len;
-				w->segment.end[1]  = w->segment.beg[1] + w->segment.dir[1]*w->segment.len;
-				w->segment.end[2]  = w->segment.beg[2] + w->segment.dir[2]*w->segment.len;
-				w->trackedLength  -= shorten;
-			}
+	
+	// If a stop pathway rule was reached, then w->segStopLength < w->segment.len, otherwise it is w->segment.len.
+	float trackLengthCheck = w->trackedLength + w->segStopLength;
 
+	// atMaxLength can either be discard or stop, and it can't be both
+	if (checkDiscardAtMax(trackLengthCheck) == DISCARD) return DISCARD;
+
+	// If STOP was reached due to pathway rule, i.e., not length,
+	// we check if segment needs to be truncated earlier due to stop atMaxLength.
+	if (w->action == STOP) {
+		
+		float toShortenDueLengthLim  = trackLengthCheck - (maxLength-EPS4); // in mm
+		float toShortenDueStopRegion = w->segment.len - w->segStopLength; 	// in mm
+
+		float toShorten = 0.0f;
+
+		if (checkStopAtMax(trackLengthCheck) == STOP) {
+			// trackLength reached and streamline needs to be truncated before the stopping rule
+			toShorten = std::max(toShortenDueLengthLim,toShortenDueStopRegion);
+		} else {
+			// Streamline needs to be truncated due to reaching stopping rule
+			toShorten = toShortenDueStopRegion;
+		}
+
+		if (truncateSegment(toShorten,trackLengthCheck) == DISCARD) return DISCARD;
+		
+	} else {
+
+		if (checkStopAtMax(trackLengthCheck) == STOP) {
+			float toTruncate = trackLengthCheck - (maxLength-EPS4);
+			if (truncateSegment(toTruncate,trackLengthCheck) == DISCARD) return DISCARD;
 		}
 
 	}
-
+	
+	w->trackedLength = trackLengthCheck;
 
 	if (w->action == STOP) {
 		disp(MSG_DEBUG,"Rule %d. Segment %d - %d. STOP", ruleCnt, b, e);

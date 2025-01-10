@@ -33,6 +33,13 @@ NIBR::Pathway::~Pathway() {
 
     disp(MSG_DEBUG,"Deconstructing pathway");
 
+    disp(MSG_DEBUG,"Removing pathway rules");
+
+    for(int i=(prules.size()-1); i>=0; --i) {
+        if (i != theOneSeed)
+            remove(i);
+    }
+
     // Set here the default values so verify() calls when removing rules don't pop up
     satisfy_requirements_in_order = NO_ORDER;
     minLength                     = 0.0;
@@ -43,10 +50,10 @@ NIBR::Pathway::~Pathway() {
     // noEdgeSeeds                   = false;
     seedTrials                    = 0;
 
-    disp(MSG_DEBUG,"Deleting interval variables");
-
+    disp(MSG_DEBUG,"Removing seed rule");
     for(int i=(prules.size()-1); i>=0; --i) {
-        remove(i);
+        if (i == theOneSeed)
+            remove(i);
     }
 
     // Internal variables
@@ -367,7 +374,7 @@ void NIBR::Pathway::printWalker(NIBR::Walker* w) {
     else
         disp(MSG_INFO,"w->segment.end: NULL");
 
-    disp(MSG_INFO,"w->segCrosLength: %.4f", w->segCrosLength);
+    disp(MSG_INFO,"w->segStopLength: %.4f", w->segStopLength);
     disp(MSG_INFO,"w->trackedLength: %.4f", w->trackedLength);
 
     disp(MSG_INFO,"w->terminationReasonSideA: %d", w->terminationReasonSideA);

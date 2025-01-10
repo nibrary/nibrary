@@ -9,6 +9,7 @@ namespace NIBR
 {
     float getStreamlineLength(float** inp, int len);
     float getStreamlineLength(std::vector<std::vector<float>>& inp);
+    float getStreamlineLength(std::vector<Point>& inp);
 
     float getStreamlineLength_hermite(float** inp, int len, int div);                   // Uses Hermite interpolation and does numerical integration with div number of divisions
     float getStreamlineLength_hermite(std::vector<std::vector<float>>& inp, int div);   // Uses Hermite interpolation and does numerical integration with div number of divisions

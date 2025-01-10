@@ -32,14 +32,16 @@ void NIBR::Pathway::walkSecondEnd(NIBR::Walker* walker)
     // Set the begInd if STOP is reached
     if (walker->action == STOP) {
 
-        walker->begInd = n - walker->segCrosLength;
+        double segStopFrac = walker->segStopLength / walker->segment.len;
+
+        walker->begInd = n - segStopFrac;
 
         // If the seed point is inserted we need to shift the begInd accordingly
         if ((walker->seedInserted) && (n==walker->seedInd)) {
 
             float prevLen = dist(walker->streamline->at(n),walker->streamline->at(n-1));
             float nextLen = dist(walker->streamline->at(n),walker->streamline->at(n+1));
-            float crsLen  = prevLen * walker->segCrosLength;
+            float crsLen  = prevLen * segStopFrac;
             float corrLen = (prevLen - crsLen) / (prevLen + nextLen);
 
             walker->begInd = n - 1.0 + corrLen;

@@ -23,13 +23,19 @@ bool NIBR::Pathway::skipSeed(NIBR::Walker *walker, bool reverseDir)
             prepSegment(walker);
 
             // Already the last segment is inside the seed region
-            if (isSegmentEntering(walker,theOneSeed)) {
+            
+            auto [isEntering, entryLength] = isSegmentEntering(walker->segment,theOneSeed);
 
-                walker->trackedLength = walker->segCrosLength*walker->segment.len;
+            if (isEntering) {
 
-                if (walker->segCrosLength > res) {
+                float segmentEntryFrac = entryLength / walker->segment.len;
+
+                walker->trackedLength = entryLength;
+
+                if (segmentEntryFrac > res) {
+
                     // Part of the last segment is inside the seed region, we will cut that part.
-                    walker->begInd        = ind - walker->segCrosLength;
+                    walker->begInd        = ind - segmentEntryFrac;
 
                     if (walker->trackedLength < minLength) {
                         walker->action           = DISCARD;
@@ -42,9 +48,9 @@ bool NIBR::Pathway::skipSeed(NIBR::Walker *walker, bool reverseDir)
                     // In the case of tracking, where only reverseDir = false, we modify the streamline too that directly changes the output.
                     // Note that segment is running in descending direction, so segment.end is in the seed, and segment.beg is outside.
                     if (isTracking) {
-                        walker->segment.end[0] = walker->segment.beg[0] + walker->segment.dir[0]*((walker->segCrosLength)*walker->segment.len);
-                        walker->segment.end[1] = walker->segment.beg[1] + walker->segment.dir[1]*((walker->segCrosLength)*walker->segment.len);
-                        walker->segment.end[2] = walker->segment.beg[2] + walker->segment.dir[2]*((walker->segCrosLength)*walker->segment.len);
+                        walker->segment.end[0] = walker->segment.beg[0] + walker->segment.dir[0]*entryLength;
+                        walker->segment.end[1] = walker->segment.beg[1] + walker->segment.dir[1]*entryLength;
+                        walker->segment.end[2] = walker->segment.beg[2] + walker->segment.dir[2]*entryLength;
                         walker->streamline->erase(walker->streamline->begin(), walker->streamline->begin() + ind - 1);
                     }
 
@@ -70,13 +76,15 @@ bool NIBR::Pathway::skipSeed(NIBR::Walker *walker, bool reverseDir)
             walker->segment.end = &(walker->streamline->at(desInd-1).x);
             prepSegment(walker);
 
-            // disp(MSG_DEBUG,"ind: %.2f, beg: %.2f, end: %.2f", desInd, walker->segment.beg[0], walker->segment.end[0]);
-            if (isSegmentEntering(walker,theOneSeed)) {
+            // disp(MSG_DEBUG,"ind: %.2f, beg: %.2f, end: %.2f", desInd, walker->segment.beg[0], walker->segment.end[0]);            
+            auto [isEntering, entryLength] = isSegmentEntering(walker->segment,theOneSeed);
 
-                // disp(MSG_DEBUG,"  shift: %.2f", walker->segCrosLength);
+            if (isEntering) {
 
-                walker->begInd         = desInd - walker->segCrosLength;
-                walker->trackedLength += (walker->segCrosLength)*walker->segment.len;
+                float segmentEntryFrac = entryLength / walker->segment.len;
+
+                walker->begInd         = desInd - segmentEntryFrac;
+                walker->trackedLength += entryLength;
 
                 if (walker->seedInserted)
                     walker->begInd -= 1;
@@ -90,9 +98,9 @@ bool NIBR::Pathway::skipSeed(NIBR::Walker *walker, bool reverseDir)
                 // In the case of tracking, where only reverseDir = false, we modify the streamline too that directly changes the output.
                 // Note that segment is running in descending direction, so segment.end is in the seed, and segment.beg is outside.
                 if (isTracking) {
-                    walker->segment.end[0] = walker->segment.beg[0] + walker->segment.dir[0]*((walker->segCrosLength)*walker->segment.len);
-                    walker->segment.end[1] = walker->segment.beg[1] + walker->segment.dir[1]*((walker->segCrosLength)*walker->segment.len);
-                    walker->segment.end[2] = walker->segment.beg[2] + walker->segment.dir[2]*((walker->segCrosLength)*walker->segment.len);
+                    walker->segment.end[0] = walker->segment.beg[0] + walker->segment.dir[0] * entryLength;
+                    walker->segment.end[1] = walker->segment.beg[1] + walker->segment.dir[1] * entryLength;
+                    walker->segment.end[2] = walker->segment.beg[2] + walker->segment.dir[2] * entryLength;
                     walker->streamline->erase(walker->streamline->begin(), walker->streamline->begin() + desInd - 1);
                 }
 
@@ -120,13 +128,17 @@ bool NIBR::Pathway::skipSeed(NIBR::Walker *walker, bool reverseDir)
             prepSegment(walker);
 
             // Already the last segment is inside the seed region
-            if (isSegmentEntering(walker,theOneSeed)) {
+            auto [isEntering, entryLength] = isSegmentEntering(walker->segment,theOneSeed);
 
-                walker->trackedLength = walker->segCrosLength*walker->segment.len;
+            if (isEntering) {
 
-                if (walker->segCrosLength > res) {
+                float segmentEntryFrac = entryLength / walker->segment.len;
+
+                walker->trackedLength  = entryLength;
+
+                if (segmentEntryFrac > res) {
                     // Part of the last segment is inside the seed region, we will cut that part.
-                    walker->begInd        = ind + walker->segCrosLength;
+                    walker->begInd        = ind + segmentEntryFrac;
 
                     if (walker->seedInserted)
                         walker->begInd -= 1;
@@ -160,9 +172,14 @@ bool NIBR::Pathway::skipSeed(NIBR::Walker *walker, bool reverseDir)
             walker->segment.end = &(walker->streamline->at(ascInd+1).x);
             prepSegment(walker);
             
-            if (isSegmentEntering(walker,theOneSeed)) {
-                walker->endInd         = ascInd + walker->segCrosLength;
-                walker->trackedLength += (walker->segCrosLength)*walker->segment.len;
+            auto [isEntering, entryLength] = isSegmentEntering(walker->segment,theOneSeed);
+
+            if (isEntering) {
+
+                float segmentEntryFrac = entryLength / walker->segment.len;
+
+                walker->endInd         = ascInd + segmentEntryFrac;
+                walker->trackedLength += entryLength;
                 
                 if (walker->trackedLength < minLength) {
                     walker->action           = DISCARD;

@@ -4,7 +4,8 @@
 using namespace NIBR;
 
 // Starting from the seed, walk towards the end of the streamline and get endInd
-void NIBR::Pathway::walkFirstEnd(NIBR::Walker* walker) {
+void NIBR::Pathway::walkFirstEnd(NIBR::Walker* walker) 
+{
 
     int n = walker->seedInd;
 
@@ -34,7 +35,9 @@ void NIBR::Pathway::walkFirstEnd(NIBR::Walker* walker) {
     // Set the endInd if STOP is reached
     if (walker->action == STOP) {
 
-        walker->endInd = n + walker->segCrosLength;
+        double segStopFrac = walker->segStopLength / walker->segment.len;
+
+        walker->endInd = n + segStopFrac;
         
         // If the seed point is inserted we need to shift the endInd accordingly
         if (walker->seedInserted) {
@@ -43,13 +46,13 @@ void NIBR::Pathway::walkFirstEnd(NIBR::Walker* walker) {
 
                 float prevLen  = dist(walker->streamline->at(n),walker->streamline->at(n-1));
                 float nextLen  = dist(walker->streamline->at(n),walker->streamline->at(n+1));
-                float crsLen   = nextLen * walker->segCrosLength;
+                float crsLen   = nextLen * segStopFrac;
                 float corrLen  = (prevLen + crsLen) / (prevLen + nextLen);
 
                 walker->endInd = n - 1.0 + corrLen;
 
             } else {
-                walker->endInd = n - 1.0 + walker->segCrosLength;
+                walker->endInd = n - 1.0 + segStopFrac;
             }
 
         }
@@ -57,7 +60,5 @@ void NIBR::Pathway::walkFirstEnd(NIBR::Walker* walker) {
     } else {
         walker->endInd = (walker->seedInserted) ? walker->streamline->size()-2 : walker->streamline->size()-1;
     }
-
-    // disp(MSG_DEBUG,"n: %d, walker->segCrosLength]: %.2f", n, walker->segCrosLength);
         
 }

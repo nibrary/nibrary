@@ -198,7 +198,7 @@ namespace NIBR
         // <isSegBegInside,isSegEndInside,distFromSegBegToMesh,intersectingFaceIndex,intersectionIsInsideToOutside,boundaryTransitionDist>
         // distFromBegToMesh      ≠ NAN if the segment is intersecting the mesh. Then intersectingFaceIndex and intersectionIsInsideToOutside are valid.
         // boundaryTransitionDist ≠ NAN if the segment is transitioning through the boundary without intersection.
-        std::tuple<bool,bool,double,int,bool,double> intersectSegment(LineSegment* seg);
+        std::tuple<bool,bool,double,int,bool,double> intersectSegment(const LineSegment* seg);
 
         // TODO: The following should be moved to surface_operators and they should generate new surfaces.
         // Because they modify vertices and/or faces of the surface

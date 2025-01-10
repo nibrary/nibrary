@@ -113,8 +113,9 @@ bool NIBR::Pathway::getSeedInd(NIBR::Walker* walker)
                     walker->segment.beg = &(walker->streamline->at(ascInd).x);
                     walker->segment.end = &(walker->streamline->at(ascInd+1).x);
                     prepSegment(walker);
-                    if (isSegmentEntering(walker,theOneSeed)) {                
-                        ascInd += walker->segCrosLength;
+                    auto [isEntering, entryLength] = isSegmentEntering(walker->segment,theOneSeed);
+                    if (isEntering) {                
+                        ascInd += entryLength / walker->segment.len;
                         hit = true;
                         break;
                     }
@@ -139,8 +140,9 @@ bool NIBR::Pathway::getSeedInd(NIBR::Walker* walker)
                         walker->segment.beg = &(walker->streamline->at(desInd).x);
                         walker->segment.end = &(walker->streamline->at(desInd-1).x);
                         prepSegment(walker);
-                        if (isSegmentEntering(walker,theOneSeed)) {
-                            desInd -= walker->segCrosLength;
+                        auto [isEntering, entryLength] = isSegmentEntering(walker->segment,theOneSeed);
+                        if (isEntering) {  
+                            desInd -= entryLength / walker->segment.len;
                             hit = true;
                             break;
                         }

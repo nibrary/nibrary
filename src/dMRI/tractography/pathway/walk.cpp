@@ -1,5 +1,6 @@
 #include "pathway.h"
 #include "pathwayRule.h"
+#include "../utility/streamline_operators.h"
 
 using namespace NIBR;
 
@@ -24,7 +25,7 @@ void NIBR::Pathway::walk(NIBR::Walker* walker) {
         walker->begInd = 0;
         walker->endInd = walker->streamline->size()-1;
 
-        float length = getStreamlineLength(walker);
+        float length = getStreamlineLength(*(walker->streamline));
 
         if (length<minLength) {
             walker->trackedLength    = length;
@@ -33,11 +34,13 @@ void NIBR::Pathway::walk(NIBR::Walker* walker) {
             return;
         }
 
-        if (length>maxLength) {
-            walker->trackedLength    = length;
-            walker->action           = DISCARD;
-            walker->discardingReason = TOO_LONG;
-            return;
+        if (atMaxLength == ATMAXLENGTH_DISCARD) {
+            if (length>maxLength) {
+                walker->trackedLength    = length;
+                walker->action           = DISCARD;
+                walker->discardingReason = TOO_LONG;
+                return;
+            }
         }
 
     }

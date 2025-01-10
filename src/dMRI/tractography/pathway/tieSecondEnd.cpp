@@ -19,7 +19,12 @@ NIBR::Walker *NIBR::Pathway::tieSecondEnd(NIBR::Walker *w)
 
     auto sideKeeper    = w->side;
     auto actionKeeper  = w->action;
-    auto endKeeper     = w->segment.end;
+
+    float firstPoint[3];
+    firstPoint[0]  = w->streamline->at(0).x;
+    firstPoint[1]  = w->streamline->at(0).y;
+    firstPoint[2]  = w->streamline->at(0).z;
+	
 
     // If the current side is A, and there is no termination reason set for side B
     // this means, side B was terminated due to reaching low data support
@@ -31,11 +36,10 @@ NIBR::Walker *NIBR::Pathway::tieSecondEnd(NIBR::Walker *w)
         w->terminationReasonSideB = MIN_DATASUPPORT_REACHED;
 
         // Check if side_B ends inside a discard region
-        w->segment.end  = &(w->streamline->at(0).x);
-        if (tieDiscardRules(w)->action == DISCARD) return w;
+        if (tieDiscardRules(firstPoint,w)->action == DISCARD) return w;
 
         // Check if side_B satisfies required rules
-        if (tieRequireRules(w)->action == DISCARD) return w;
+        if (tieRequireRules(firstPoint,w)->action == DISCARD) return w;
 
     }
 
@@ -49,16 +53,26 @@ NIBR::Walker *NIBR::Pathway::tieSecondEnd(NIBR::Walker *w)
         w->terminationReasonSideA = MIN_DATASUPPORT_REACHED;
 
         // Check if side_A ends inside a discard region
-        w->segment.end  = &(w->streamline->at(0).x);
-        if (tieDiscardRules(w)->action == DISCARD) return w;
+        if (tieDiscardRules(firstPoint,w)->action == DISCARD) return w;
 
         // Check if side_A satisfies required rules
-        if (tieRequireRules(w)->action == DISCARD) return w;
+        if (tieRequireRules(firstPoint,w)->action == DISCARD) return w;
 
     }
 
-    w->action       = actionKeeper;
-    w->segment.end  = endKeeper;
+    w->action = actionKeeper;
+    
+    float lastPoint[3];
+
+	if (isTracking) {
+		lastPoint[0]  = w->segment.end[0];
+		lastPoint[1]  = w->segment.end[1];
+		lastPoint[2]  = w->segment.end[2];
+	} else {
+		lastPoint[0]  = w->segment.beg[0] + w->segment.dir[0] * w->segStopLength;
+		lastPoint[1]  = w->segment.beg[1] + w->segment.dir[1] * w->segStopLength;
+		lastPoint[2]  = w->segment.beg[2] + w->segment.dir[2] * w->segStopLength;
+	}
 
     // If the current side is "either", 
     // then we first set the side to side_A and check whether that satisfies everything
@@ -71,16 +85,14 @@ NIBR::Walker *NIBR::Pathway::tieSecondEnd(NIBR::Walker *w)
 
         w->side                   = side_A;
         w->terminationReasonSideA = MIN_DATASUPPORT_REACHED;
-        w->segment.end            = &(w->streamline->at(0).x);
-        if (satisfiesAll && (tieDiscardRules(w)->action == DISCARD) ) satisfiesAll = false;
-        if (satisfiesAll && (tieRequireRules(w)->action == DISCARD) ) satisfiesAll = false;
+        if (satisfiesAll && (tieDiscardRules(firstPoint,w)->action == DISCARD) ) satisfiesAll = false;
+        if (satisfiesAll && (tieRequireRules(firstPoint,w)->action == DISCARD) ) satisfiesAll = false;
 
         if (satisfiesAll) {
             w->side                   = side_B;
             w->terminationReasonSideB = MIN_DATASUPPORT_REACHED;
-            w->segment.end            = endKeeper;
-            if (satisfiesAll && (tieDiscardRules(w)->action == DISCARD) ) satisfiesAll = false;
-            if (satisfiesAll && (tieRequireRules(w)->action == DISCARD) ) satisfiesAll = false;
+            if (satisfiesAll && (tieDiscardRules(lastPoint,w)->action == DISCARD) ) satisfiesAll = false;
+            if (satisfiesAll && (tieRequireRules(lastPoint,w)->action == DISCARD) ) satisfiesAll = false;
         }
 
         // Try the other way around
@@ -90,16 +102,14 @@ NIBR::Walker *NIBR::Pathway::tieSecondEnd(NIBR::Walker *w)
 
             w->side                   = side_A;
             w->terminationReasonSideA = MIN_DATASUPPORT_REACHED;
-            w->segment.end            = endKeeper;
-            if (satisfiesAll && (tieDiscardRules(w)->action == DISCARD) ) satisfiesAll = false;
-            if (satisfiesAll && (tieRequireRules(w)->action == DISCARD) ) satisfiesAll = false;
+            if (satisfiesAll && (tieDiscardRules(lastPoint,w)->action == DISCARD) ) satisfiesAll = false;
+            if (satisfiesAll && (tieRequireRules(lastPoint,w)->action == DISCARD) ) satisfiesAll = false;
 
             if (satisfiesAll) {
                 w->side                   = side_B;
                 w->terminationReasonSideB = MIN_DATASUPPORT_REACHED;
-                w->segment.end            = &(w->streamline->at(0).x);
-                if (satisfiesAll && (tieDiscardRules(w)->action == DISCARD) ) satisfiesAll = false;
-                if (satisfiesAll && (tieRequireRules(w)->action == DISCARD) ) satisfiesAll = false;
+                if (satisfiesAll && (tieDiscardRules(firstPoint,w)->action == DISCARD) ) satisfiesAll = false;
+                if (satisfiesAll && (tieRequireRules(firstPoint,w)->action == DISCARD) ) satisfiesAll = false;
             }
 
         }

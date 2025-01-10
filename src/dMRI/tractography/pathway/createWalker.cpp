@@ -23,7 +23,7 @@ NIBR::Walker* NIBR::Pathway::createWalker(std::vector<Point>* streamline) {
     walker->segment.dir[0]          = 1.0;
     walker->segment.dir[1]          = 0.0;
     walker->segment.dir[2]          = 0.0;
-    walker->segCrosLength           = 1.0;
+    walker->segStopLength           = 0.0;
     walker->trackedLength           = 0.0;
     
     walker->terminationReasonSideA  = TERMINATIONREASON_NOTSET;

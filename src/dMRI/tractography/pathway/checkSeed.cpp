@@ -17,7 +17,6 @@ NIBR::WalkerAction NIBR::Pathway::checkSeed(NIBR::Walker *w, NIBR::Tracking_Side
 	w->segment.dir[0] = 1.0;
 	w->segment.dir[1] = 0.0;
 	w->segment.dir[2] = 0.0;
-	w->segCrosLength  = 1.0;
 
 	w->side = side;
 	// disp(MSG_DEBUG,"Walker side: %d ", w->side);
@@ -179,7 +178,6 @@ NIBR::WalkerAction NIBR::Pathway::checkSeed(NIBR::Walker *w)
 	w->segment.dir[0] = 1.0;
 	w->segment.dir[1] = 0.0;
 	w->segment.dir[2] = 0.0;
-	w->segCrosLength  = 1.0;
 
 	disp(MSG_DEBUG,"Walker side: %d", w->side);
 

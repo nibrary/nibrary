@@ -311,8 +311,10 @@ std::vector<std::string> NIBR::getMatchingFiles(const std::string& pattern) {
 
     std::filesystem::path p(pattern);
     const auto directory = p.parent_path();
+    disp(MSG_DEBUG,"directory: %s", directory.c_str());
     const auto filenameWildcard = p.filename().string();
     const auto filenameRegexPattern = wildcardToRegex(filenameWildcard);
+    disp(MSG_DEBUG,"filenameRegexPattern: %s", filenameRegexPattern.c_str());
     std::regex filenameRegex(filenameRegexPattern, std::regex::ECMAScript | std::regex::icase);
 
     if (!std::filesystem::exists(directory) || !std::filesystem::is_directory(directory)) {

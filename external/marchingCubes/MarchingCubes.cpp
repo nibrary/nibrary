@@ -47,7 +47,7 @@ MarchingCubes::MarchingCubes( const int size_x /*= -1*/, const int size_y /*= -1
   _size_x    (size_x),
   _size_y    (size_y),
   _size_z    (size_z),
-  _data      ((real *)NULL),
+  _data      ((realType *)NULL),
   _x_verts   (( int *)NULL),
   _y_verts   (( int *)NULL),
   _z_verts   (( int *)NULL),
@@ -75,7 +75,7 @@ MarchingCubes::~MarchingCubes()
 
 //_____________________________________________________________________________
 // main algorithm
-void MarchingCubes::run( real iso )
+void MarchingCubes::run( realType iso )
 //-----------------------------------------------------------------------------
 {
   clock_t time = clock() ;
@@ -118,7 +118,7 @@ void MarchingCubes::init_temps()
 //-----------------------------------------------------------------------------
 {
   if( !_ext_data )
-    _data    = new real [_size_x * _size_y * _size_z] ;
+    _data    = new realType [_size_x * _size_y * _size_z] ;
   _x_verts = new int  [_size_x * _size_y * _size_z] ;
   _y_verts = new int  [_size_x * _size_y * _size_z] ;
   _z_verts = new int  [_size_x * _size_y * _size_z] ;
@@ -159,7 +159,7 @@ void MarchingCubes::clean_temps()
   delete [] _z_verts;
 
   if( !_ext_data )
-    _data     = (real*)NULL ;
+    _data     = (realType*)NULL ;
   _x_verts  = (int*)NULL ;
   _y_verts  = (int*)NULL ;
   _z_verts  = (int*)NULL ;
@@ -193,7 +193,7 @@ void MarchingCubes::clean_all()
 
 //_____________________________________________________________________________
 // Compute the intersection points
-void MarchingCubes::compute_intersection_points( real iso )
+void MarchingCubes::compute_intersection_points( realType iso )
 //-----------------------------------------------------------------------------
 {
   for( _k = 0 ; _k < _size_z ; _k++ )
@@ -241,7 +241,7 @@ void MarchingCubes::compute_intersection_points( real iso )
 bool MarchingCubes::test_face( schar face )
 //-----------------------------------------------------------------------------
 {
-  real A,B,C,D ;
+  realType A,B,C,D ;
 
   switch( face )
   {
@@ -271,7 +271,7 @@ bool MarchingCubes::test_face( schar face )
 bool MarchingCubes::test_interior( schar s )
 //-----------------------------------------------------------------------------
 {
-  real t, At=0, Bt=0, Ct=0, Dt=0, a, b ;
+  realType t, At=0, Bt=0, Ct=0, Dt=0, a, b ;
   char  test =  0 ;
   char  edge = -1 ; // reference edge of the triangulation
 
@@ -820,7 +820,7 @@ void MarchingCubes::add_triangle( const char* trig, char n, int v12 )
 //_____________________________________________________________________________
 // Calculating gradient
 
-real MarchingCubes::get_x_grad( const int i, const int j, const int k ) const
+realType MarchingCubes::get_x_grad( const int i, const int j, const int k ) const
 //-----------------------------------------------------------------------------
 {
   if( i > 0 )
@@ -835,7 +835,7 @@ real MarchingCubes::get_x_grad( const int i, const int j, const int k ) const
 }
 //-----------------------------------------------------------------------------
 
-real MarchingCubes::get_y_grad( const int i, const int j, const int k ) const
+realType MarchingCubes::get_y_grad( const int i, const int j, const int k ) const
 //-----------------------------------------------------------------------------
 {
   if( j > 0 )
@@ -850,7 +850,7 @@ real MarchingCubes::get_y_grad( const int i, const int j, const int k ) const
 }
 //-----------------------------------------------------------------------------
 
-real MarchingCubes::get_z_grad( const int i, const int j, const int k ) const
+realType MarchingCubes::get_z_grad( const int i, const int j, const int k ) const
 //-----------------------------------------------------------------------------
 {
   if( k > 0 )
@@ -889,17 +889,17 @@ int MarchingCubes::add_x_vertex( )
   test_vertex_addition() ;
   Vertex *vert = _vertices + _nverts++ ;
 
-  real u = ( _cube[0] ) / ( _cube[0] - _cube[1] ) ;
+  realType u = ( _cube[0] ) / ( _cube[0] - _cube[1] ) ;
 
-  vert->x      = (real)_i+u;
-  vert->y      = (real) _j ;
-  vert->z      = (real) _k ;
+  vert->x      = (realType)_i+u;
+  vert->y      = (realType) _j ;
+  vert->z      = (realType) _k ;
 
   vert->nx = (1-u)*get_x_grad(_i,_j,_k) + u*get_x_grad(_i+1,_j,_k) ;
   vert->ny = (1-u)*get_y_grad(_i,_j,_k) + u*get_y_grad(_i+1,_j,_k) ;
   vert->nz = (1-u)*get_z_grad(_i,_j,_k) + u*get_z_grad(_i+1,_j,_k) ;
 
-  u = (real) sqrt( vert->nx * vert->nx + vert->ny * vert->ny +vert->nz * vert->nz ) ;
+  u = (realType) sqrt( vert->nx * vert->nx + vert->ny * vert->ny +vert->nz * vert->nz ) ;
   if( u > 0 )
   {
     vert->nx /= u ;
@@ -918,17 +918,17 @@ int MarchingCubes::add_y_vertex( )
   test_vertex_addition() ;
   Vertex *vert = _vertices + _nverts++ ;
 
-  real u = ( _cube[0] ) / ( _cube[0] - _cube[3] ) ;
+  realType u = ( _cube[0] ) / ( _cube[0] - _cube[3] ) ;
 
-  vert->x      = (real) _i ;
-  vert->y      = (real)_j+u;
-  vert->z      = (real) _k ;
+  vert->x      = (realType) _i ;
+  vert->y      = (realType)_j+u;
+  vert->z      = (realType) _k ;
 
   vert->nx = (1-u)*get_x_grad(_i,_j,_k) + u*get_x_grad(_i,_j+1,_k) ;
   vert->ny = (1-u)*get_y_grad(_i,_j,_k) + u*get_y_grad(_i,_j+1,_k) ;
   vert->nz = (1-u)*get_z_grad(_i,_j,_k) + u*get_z_grad(_i,_j+1,_k) ;
 
-  u = (real) sqrt( vert->nx * vert->nx + vert->ny * vert->ny +vert->nz * vert->nz ) ;
+  u = (realType) sqrt( vert->nx * vert->nx + vert->ny * vert->ny +vert->nz * vert->nz ) ;
   if( u > 0 )
   {
     vert->nx /= u ;
@@ -946,17 +946,17 @@ int MarchingCubes::add_z_vertex( )
   test_vertex_addition() ;
   Vertex *vert = _vertices + _nverts++ ;
 
-  real u = ( _cube[0] ) / ( _cube[0] - _cube[4] ) ;
+  realType u = ( _cube[0] ) / ( _cube[0] - _cube[4] ) ;
 
-  vert->x      = (real) _i ;
-  vert->y      = (real) _j ;
-  vert->z      = (real)_k+u;
+  vert->x      = (realType) _i ;
+  vert->y      = (realType) _j ;
+  vert->z      = (realType)_k+u;
 
   vert->nx = (1-u)*get_x_grad(_i,_j,_k) + u*get_x_grad(_i,_j,_k+1) ;
   vert->ny = (1-u)*get_y_grad(_i,_j,_k) + u*get_y_grad(_i,_j,_k+1) ;
   vert->nz = (1-u)*get_z_grad(_i,_j,_k) + u*get_z_grad(_i,_j,_k+1) ;
 
-  u = (real) sqrt( vert->nx * vert->nx + vert->ny * vert->ny +vert->nz * vert->nz ) ;
+  u = (realType) sqrt( vert->nx * vert->nx + vert->ny * vert->ny +vert->nz * vert->nz ) ;
   if( u > 0 )
   {
     vert->nx /= u ;
@@ -974,7 +974,7 @@ int MarchingCubes::add_c_vertex( )
   test_vertex_addition() ;
   Vertex *vert = _vertices + _nverts++ ;
 
-  real u = 0 ;
+  realType u = 0 ;
   int   vid ;
 
   vert->x = vert->y = vert->z =  vert->nx = vert->ny = vert->nz = 0 ;
@@ -1009,7 +1009,7 @@ int MarchingCubes::add_c_vertex( )
   vert->y  /= u ;
   vert->z  /= u ;
 
-  u = (real) sqrt( vert->nx * vert->nx + vert->ny * vert->ny +vert->nz * vert->nz ) ;
+  u = (realType) sqrt( vert->nx * vert->nx + vert->ny * vert->ny +vert->nz * vert->nz ) ;
   if( u > 0 )
   {
     vert->nx /= u ;

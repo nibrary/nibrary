@@ -317,9 +317,8 @@ std::vector<std::string> NIBR::getMatchingFiles(const std::string& pattern) {
     } else {
         directory = std::filesystem::current_path();
     }
-    
-    const auto filenameWildcard = p.filename().string();
     disp(MSG_DEBUG,"directory: %s", directory.c_str());
+    
     const auto filenameWildcard = p.filename().string();
     const auto filenameRegexPattern = wildcardToRegex(filenameWildcard);
     disp(MSG_DEBUG,"filenameRegexPattern: %s", filenameRegexPattern.c_str());

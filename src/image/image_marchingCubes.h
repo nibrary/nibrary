@@ -42,15 +42,19 @@ namespace NIBR
             return Surface();
         }
 
-        if (surf.nv > 0) surf = surfRepair(surf);
-        if (surf.nv > 0) surf = surfMakeItSingleClosed(surf);
+        if (surf.nv > 0) surf = surfRepair(surf);               else disp(MSG_ERROR, "Isosurface failed.");
+        if (surf.nv > 0) surf = surfMakeItSingleClosed(surf);   else disp(MSG_ERROR, "Repair failed.");
 
-        if (surf.nv > 0) surf = surfSmooth(surf,2);
+        if (surf.nv > 0) surf = surfSmooth(surf,2);             else disp(MSG_ERROR, "surfMakeItSingleClosed(0) failed.");
+        if (surf.nv <= 0) disp(MSG_ERROR, "surfSmooth failed.");
         if (meanFaceArea != 0) {
-            if (surf.nv > 0) surf.calcArea();
+            if (surf.nv > 0) surf.calcArea();                                         
             if (surf.nv > 0) surf = surfRemesh(surf,surf.area/meanFaceArea*0.5f,1,0);
+            if (surf.nv <= 0) disp(MSG_ERROR, "surfRemesh failed.");
         }
         if (surf.nv > 0) surf = surfMakeItSingleClosed(surf);
+
+        if (surf.nv <= 0) disp(MSG_ERROR, "surfMakeItSingleClosed failed.");
 
         return surf;
 

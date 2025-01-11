@@ -310,7 +310,15 @@ std::vector<std::string> NIBR::getMatchingFiles(const std::string& pattern) {
     std::vector<std::string> result;
 
     std::filesystem::path p(pattern);
-    const auto directory = p.parent_path();
+    std::filesystem::path directory;
+
+    if (p.has_parent_path()) {
+        directory = p.parent_path();
+    } else {
+        directory = std::filesystem::current_path();
+    }
+    
+    const auto filenameWildcard = p.filename().string();
     disp(MSG_DEBUG,"directory: %s", directory.c_str());
     const auto filenameWildcard = p.filename().string();
     const auto filenameRegexPattern = wildcardToRegex(filenameWildcard);

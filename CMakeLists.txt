@@ -10,7 +10,7 @@ set(CMAKE_INSTALL_PREFIX "${CMAKE_BINARY_DIR}/install")
 option(BUILD_SHARED_LIBS        "Build shared libraries"                ON)
 option(USE_SYSTEM_EIGEN         "Use system eigen if exists"            OFF)
 option(USE_SYSTEM_ZLIB          "Use system zlib if exists"             OFF)
-option(USE_SYSTEM_GEOGRAM       "Use system geogram if exists"          OFF)
+# option(USE_SYSTEM_GEOGRAM       "Use system geogram if exists"          OFF) - Remove support for this until the dependency of mesh_fill_holes.cpp is resolved
 option(USE_SYSTEM_LIBIGL        "Use system libigl if exists"           OFF)
 option(USE_SYSTEM_SIMDE         "Use system simde if exists"            OFF)
 option(USE_SYSTEM_PROXSUITE     "Use system proxsuite if exists"        OFF)

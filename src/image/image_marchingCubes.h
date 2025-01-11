@@ -42,6 +42,9 @@ namespace NIBR
             return Surface();
         }
 
+        if (surf.nv > 0) surf = surfRepair(surf);
+        if (surf.nv > 0) surf = surfMakeItSingleClosed(surf);
+
         if (surf.nv > 0) surf = surfSmooth(surf,2);
         if (meanFaceArea != 0) {
             if (surf.nv > 0) surf.calcArea();

@@ -19,7 +19,7 @@ extern "C" {
 #undef DT_UNKNOWN
 #undef PI
 
-#ifdef __GNUC__
+#if defined(__GNUC__) && !defined(__clang__)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wpedantic"
 #pragma GCC diagnostic ignored "-Wall"
@@ -40,16 +40,34 @@ extern "C" {
 #pragma GCC diagnostic ignored "-Wunused-result"
 #pragma GCC diagnostic ignored "-Wcomment"
 #pragma GCC diagnostic ignored "-Wfree-nonheap-object"
+#elif defined(__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunknown-warning-option"
+#pragma clang diagnostic ignored "-Wpedantic"
+#pragma clang diagnostic ignored "-Wall"
+#pragma clang diagnostic ignored "-Wextra"
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+#pragma clang diagnostic ignored "-Wunused-local-typedefs"
+#pragma clang diagnostic ignored "-Wsign-compare"
+#pragma clang diagnostic ignored "-Warray-bounds"
+#pragma clang diagnostic ignored "-Wtype-limits"
+#pragma clang diagnostic ignored "-Wunused-variable"
+#pragma clang diagnostic ignored "-Wreorder"
+#pragma clang diagnostic ignored "-Wunknown-pragmas"
+#pragma clang diagnostic ignored "-Wuninitialized"
+#pragma clang diagnostic ignored "-Wunused-parameter"
+#pragma clang diagnostic ignored "-Wunused-result"
+#pragma clang diagnostic ignored "-Wcomment"
+#pragma clang diagnostic ignored "-Winvalid-offsetof"
+#endif
 
 #include <igl/AABB.h>
 #include <igl/fast_winding_number.h>
+
+#if defined(__GNUC__) && !defined(__clang__)
 #pragma GCC diagnostic pop
-
-#else
-
-#include <igl/AABB.h>
-#include <igl/fast_winding_number.h>
-
+#elif defined(__clang__)
+#pragma clang diagnostic pop
 #endif
 
 #include <Eigen/Core>

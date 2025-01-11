@@ -7,19 +7,16 @@
 #include "surface/surface.h"
 #include "surface/surface_operators.h"
 
-#ifdef __GNUC__
-
+#if defined(__GNUC__) && !defined(__clang__)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wignored-qualifiers"
-#include "marchingCubes/MarchingCubes.h"
-#pragma GCC diagnostic pop
-
-#else
-
-#include "marchingCubes/MarchingCubes.h"
-
 #endif
 
+#include "marchingCubes/MarchingCubes.h"
+
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 namespace NIBR
 {

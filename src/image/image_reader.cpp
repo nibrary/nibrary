@@ -6,25 +6,6 @@
 
 using namespace NIBR;
 
-// Explicit instantiations
-template class NIBR::Image<bool>;
-template class NIBR::Image<uint8_t>;
-template class NIBR::Image<int8_t>;
-template class NIBR::Image<uint16_t>;
-template class NIBR::Image<int16_t>;
-template class NIBR::Image<uint32_t>;
-template class NIBR::Image<int32_t>;
-template class NIBR::Image<uint64_t>;
-template class NIBR::Image<int64_t>;
-template class NIBR::Image<float>;
-template class NIBR::Image<double>;
-template class NIBR::Image<long double>;
-
-// TODO: Implement converters for complex data types in image_reader.cpp
-// template class Image<std::complex<float>>;
-// template class Image<std::complex<double>>;
-// template class Image<std::complex<long double>>;
-
 template<typename T>
 bool NIBR::Image<T>::read() {
 
@@ -39,7 +20,7 @@ bool NIBR::Image<T>::read() {
     if ((fileExtension=="mgh") || (fileExtension=="mgz"))
         return read_mghz();
 
-    disp(MSG_ERROR,"Can't read image data with this extension yet: %s",fileExtension);
+    disp(MSG_ERROR,"Can't read image data with this extension yet: %s",fileExtension.c_str());
     return false;
 }
 
@@ -128,7 +109,7 @@ bool NIBR::Image<T>::read_nii() {
     nifti_image* nim = nifti_image_read(filePath.c_str(),0);
 
     if (nifti_image_load(nim)==-1) {
-        disp(MSG_FATAL,"Cannot read nifti image: %s",filePath);
+        disp(MSG_FATAL,"Cannot read nifti image: %s",filePath.c_str());
         return false;
     }
 
@@ -277,3 +258,17 @@ bool NIBR::Image<T>::read_mghz() {
     return true;
 
 }
+
+// Explicit instantiations
+template class NIBR::Image<bool>;
+template class NIBR::Image<uint8_t>;
+template class NIBR::Image<int8_t>;
+template class NIBR::Image<uint16_t>;
+template class NIBR::Image<int16_t>;
+template class NIBR::Image<uint32_t>;
+template class NIBR::Image<int32_t>;
+template class NIBR::Image<uint64_t>;
+template class NIBR::Image<int64_t>;
+template class NIBR::Image<float>;
+template class NIBR::Image<double>;
+template class NIBR::Image<long double>;

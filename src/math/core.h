@@ -287,8 +287,8 @@ namespace NIBR
     template<typename T1,typename T2> inline constexpr
     double angle(const T1& a, const T2& b, const T2& c) 
     {
-        float ab[3]; vec3sub(ab,b,a);
-        float ac[3]; vec3sub(ac,c,a);
+        float ab[3]={0.0f,0.0f,0.0f}; vec3sub(ab,b,a);
+        float ac[3]={0.0f,0.0f,0.0f}; vec3sub(ac,c,a);
 
         double dot_product  = dot(ac,ab);
         double norm_ab      = norm(ab);

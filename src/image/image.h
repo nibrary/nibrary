@@ -46,7 +46,7 @@ namespace NIBR
         // friend class Interpolator<std::complex<long double>,std::complex<long double>>;
         
         Image();
-        ~Image();
+        ~Image(){if (data!=NULL) {delete[] data; data = NULL;}}
         Image(std::string _filePath);
         Image(const char* _filePath);
         Image(std::string _filePath, int* _indexOrder);
@@ -575,6 +575,25 @@ namespace NIBR
         
         
     }
+
+    // Explicit instantiations
+    extern template class Image<bool>;
+    extern template class Image<uint8_t>;
+    extern template class Image<int8_t>;
+    extern template class Image<uint16_t>;
+    extern template class Image<int16_t>;
+    extern template class Image<uint32_t>;
+    extern template class Image<int32_t>;
+    extern template class Image<uint64_t>;
+    extern template class Image<int64_t>;
+    extern template class Image<float>;
+    extern template class Image<double>;
+    extern template class Image<long double>;
+
+    // TODO: Implement support for complex data types
+    // extern template class Image<std::complex<float>>;
+    // extern template class Image<std::complex<double>>;
+    // extern template class Image<std::complex<long double>>;
 
 
 }

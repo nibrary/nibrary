@@ -79,6 +79,25 @@ namespace NIBR
         bool                    maskFromImage;
     };
 
+    // Explicit instantiations
+    extern template class Tractogram2ImageMapper<bool>;
+    extern template class Tractogram2ImageMapper<uint8_t>;
+    extern template class Tractogram2ImageMapper<int8_t>;
+    extern template class Tractogram2ImageMapper<uint16_t>;
+    extern template class Tractogram2ImageMapper<int16_t>;
+    extern template class Tractogram2ImageMapper<uint32_t>;
+    extern template class Tractogram2ImageMapper<int32_t>;
+    extern template class Tractogram2ImageMapper<uint64_t>;
+    extern template class Tractogram2ImageMapper<int64_t>;
+    extern template class Tractogram2ImageMapper<float>;
+    extern template class Tractogram2ImageMapper<double>;
+    extern template class Tractogram2ImageMapper<long double>;
+
+    // TODO: These are not yet supported because the Image<T> is missing their definitions
+    // extern template class Tractogram2ImageMapper<std::complex<float>>;
+    // extern template class Tractogram2ImageMapper<std::complex<double>>;
+    // extern template class Tractogram2ImageMapper<std::complex<long double>>;
+
 }
 
 

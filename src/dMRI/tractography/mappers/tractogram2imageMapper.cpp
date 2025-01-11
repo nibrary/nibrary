@@ -5,25 +5,6 @@
 
 using namespace NIBR;
 
-// Explicit instantiations
-template class NIBR::Tractogram2ImageMapper<bool>;
-template class NIBR::Tractogram2ImageMapper<uint8_t>;
-template class NIBR::Tractogram2ImageMapper<int8_t>;
-template class NIBR::Tractogram2ImageMapper<uint16_t>;
-template class NIBR::Tractogram2ImageMapper<int16_t>;
-template class NIBR::Tractogram2ImageMapper<uint32_t>;
-template class NIBR::Tractogram2ImageMapper<int32_t>;
-template class NIBR::Tractogram2ImageMapper<uint64_t>;
-template class NIBR::Tractogram2ImageMapper<int64_t>;
-template class NIBR::Tractogram2ImageMapper<float>;
-template class NIBR::Tractogram2ImageMapper<double>;
-template class NIBR::Tractogram2ImageMapper<long double>;
-
-// TODO: These are not yet supported because the Image<T> is missing their definitions
-// template class Tractogram2ImageMapper<std::complex<float>>;
-// template class Tractogram2ImageMapper<std::complex<double>>;
-// template class Tractogram2ImageMapper<std::complex<long double>>;
-
 template<typename T>
 NIBR::Tractogram2ImageMapper<T>::Tractogram2ImageMapper(NIBR::TractogramReader* _tractogram, NIBR::Image<T>* _img) {
 
@@ -537,3 +518,17 @@ bool NIBR::Tractogram2ImageMapper<T1>::processStreamline(int streamlineId, uint1
     
     return true;
 }
+
+// Explicit instantiations
+template class NIBR::Tractogram2ImageMapper<bool>;
+template class NIBR::Tractogram2ImageMapper<uint8_t>;
+template class NIBR::Tractogram2ImageMapper<int8_t>;
+template class NIBR::Tractogram2ImageMapper<uint16_t>;
+template class NIBR::Tractogram2ImageMapper<int16_t>;
+template class NIBR::Tractogram2ImageMapper<uint32_t>;
+template class NIBR::Tractogram2ImageMapper<int32_t>;
+template class NIBR::Tractogram2ImageMapper<uint64_t>;
+template class NIBR::Tractogram2ImageMapper<int64_t>;
+template class NIBR::Tractogram2ImageMapper<float>;
+template class NIBR::Tractogram2ImageMapper<double>;
+template class NIBR::Tractogram2ImageMapper<long double>;

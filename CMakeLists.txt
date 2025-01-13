@@ -96,25 +96,9 @@ ENDIF()
 target_link_libraries(${libNibrary} PUBLIC ${ZLIB_LIBRARIES} ${GEOGRAM_LIBRARY})
 
 if(OpenMP_FOUND)
-
-    message(STATUS "OpenMP found (Version ${OpenMP_VERSION})")
-    message(STATUS "OpenMP C flags       : ${OpenMP_C_FLAGS}")
-    message(STATUS "OpenMP CXX flags     : ${OpenMP_CXX_FLAGS}")
-    message(STATUS "OpenMP C libraries   : ${OpenMP_C_LIBRARIES}")
-    message(STATUS "OpenMP CXX libraries : ${OpenMP_CXX_LIBRARIES}")
-    message(STATUS "OpenMP include dirs  : ${OpenMP_CXX_INCLUDE_DIRS}")
-    
-
-    if(BUILD_SHARED_LIBS)
-      target_compile_options(${libNibrary} PUBLIC ${OpenMP_CXX_FLAGS})
-      target_link_libraries(${libNibrary} PUBLIC ${OpenMP_CXX_LIB_NAMES})
-      target_include_directories(${libNibrary} PUBLIC ${OpenMP_CXX_INCLUDE_DIRS})
-    else()
-      target_compile_options(${libNibrary} INTERFACE $<$<CONFIG:Debug>:${OpenMP_CXX_FLAGS_DEBUG}> $<$<CONFIG:Release>:${OpenMP_CXX_FLAGS_RELEASE}> $<$<CONFIG:RelWithDebInfo>:${OpenMP_CXX_FLAGS_RELWITHDEBINFO}> $<$<CONFIG:MinSizeRel>:${OpenMP_CXX_FLAGS_MINSIZEREL}>)
-      target_link_libraries(${libNibrary} INTERFACE ${OpenMP_CXX_LIB_NAMES})
-      target_include_directories(${libNibrary} INTERFACE ${OpenMP_CXX_INCLUDE_DIRS})
-    endif()
-
+    target_compile_options(${CMDNAME} PUBLIC ${OpenMP_CXX_FLAGS})
+    target_link_libraries(${CMDNAME} PUBLIC ${OpenMP_CXX_LIB_NAMES})
+    target_include_directories(${CMDNAME} PUBLIC ${OpenMP_CXX_INCLUDE_DIRS})
 else()
     message(FATAL_ERROR "OpenMP required but not found.")
 endif()

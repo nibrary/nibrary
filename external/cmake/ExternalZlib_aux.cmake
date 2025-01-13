@@ -49,4 +49,9 @@ if (NOT ${KEEP_BUILD_SHARED_LIBS})
     conditional_remove_file("${CMAKE_INSTALL_PREFIX}/lib/${nibrary}/libz.1.dylib")
     conditional_remove_file("${CMAKE_INSTALL_PREFIX}/lib/${nibrary}/libz.${ZLIB_MIN_VERSION}.dylib")
 
+elseif()
+
+    conditional_remove_file("${CMAKE_INSTALL_PREFIX}/lib/${nibrary}/libz.a")
+    conditional_remove_file("${CMAKE_INSTALL_PREFIX}/lib/${nibrary}/zlibstatic.lib")
+
 endif()

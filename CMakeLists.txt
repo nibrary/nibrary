@@ -91,15 +91,15 @@ ELSE()
     add_library(${libNibrary} STATIC $<TARGET_OBJECTS:OBJS>)
 ENDIF()
 
-target_link_libraries(${libNibrary} PUBLIC ${ZLIB_LIBRARIES} ${GEOGRAM_LIBRARY})
-
 find_package(OpenMP REQUIRED)
 
 if(OpenMP_FOUND)
     target_compile_options(${libNibrary} PUBLIC ${OpenMP_CXX_FLAGS})
-    target_link_libraries(${libNibrary} OpenMP::OpenMP_CXX)
-    target_include_directories(${libNibrary} PUBLIC ${OpenMP_CXX_INCLUDE_DIRS}) 
+    target_link_libraries(${libNibrary} PUBLIC OpenMP::OpenMP_CXX)
+    target_include_directories(${libNibrary} PUBLIC ${OpenMP_CXX_INCLUDE_DIRS})
 endif()
+
+target_link_libraries(${libNibrary} PUBLIC ${ZLIB_LIBRARIES} ${GEOGRAM_LIBRARY})
 
 IF(ENABLE_CUDA)
     add_library(CUDA_OBJS OBJECT ${CUDA_SRCS})

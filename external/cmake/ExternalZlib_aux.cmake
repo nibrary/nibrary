@@ -38,8 +38,9 @@ conditional_remove_file("${CMAKE_INSTALL_PREFIX}/lib/zlib.lib")
 conditional_remove_file("${CMAKE_INSTALL_PREFIX}/lib/zlib1.dll")
 conditional_remove_file("${CMAKE_INSTALL_PREFIX}/lib/zlibstatic.lib")
 
+
 # Removed shared libraries if BUILD_SHARED_LIBS is OFF
-if (NOT ${KEEP_BUILD_SHARED_LIBS})
+if (NOT BUILD_SHARED_LIBS)
 
     conditional_remove_file("${CMAKE_INSTALL_PREFIX}/lib/${nibrary}/libz.so")
     conditional_remove_file("${CMAKE_INSTALL_PREFIX}/lib/${nibrary}/libz.so.1")
@@ -49,7 +50,7 @@ if (NOT ${KEEP_BUILD_SHARED_LIBS})
     conditional_remove_file("${CMAKE_INSTALL_PREFIX}/lib/${nibrary}/libz.1.dylib")
     conditional_remove_file("${CMAKE_INSTALL_PREFIX}/lib/${nibrary}/libz.${ZLIB_MIN_VERSION}.dylib")
 
-elseif()
+else()
 
     conditional_remove_file("${CMAKE_INSTALL_PREFIX}/lib/${nibrary}/libz.a")
     conditional_remove_file("${CMAKE_INSTALL_PREFIX}/lib/${nibrary}/zlibstatic.lib")

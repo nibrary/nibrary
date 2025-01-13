@@ -1,6 +1,6 @@
 # ZLIB
 
-SET(ZLIB_MIN_VERSION "1.2.13")
+SET(ZLIB_MIN_VERSION "1.2.13" CACHE STRING "Minimum zlib version")
 
 # Try to use the system library if exists
 if (USE_SYSTEM_ZLIB)
@@ -66,7 +66,7 @@ if(NOT ZLIB_FOUND)
 
 endif()
 
-set(KEEP_BUILD_SHARED_LIBS ${BUILD_SHARED_LIBS} CACHE BOOL "")
+
 
 if(BUILDING_ZLIB_FROM_SOURCE)
 
@@ -115,7 +115,7 @@ if(BUILDING_ZLIB_FROM_SOURCE)
     ExternalProject_Add_Step(build_zlib POST_BUILD
         COMMENT "Moving Zlib headers and libraries"
         DEPENDEES install
-        COMMAND ${CMAKE_COMMAND} -D nibrary=${nibrary} -D CMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX} -D ZLIB_MIN_VERSION=${ZLIB_MIN_VERSION} -P "${CMAKE_CURRENT_LIST_DIR}/ExternalZlib_aux.cmake"
+        COMMAND ${CMAKE_COMMAND} -D nibrary=${nibrary} -D CMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX} -D BUILD_SHARED_LIBS=${BUILD_SHARED_LIBS} -D ZLIB_MIN_VERSION=${ZLIB_MIN_VERSION} -P "${CMAKE_CURRENT_LIST_DIR}/ExternalZlib_aux.cmake"
         ALWAYS 0
     )
 

@@ -16,7 +16,6 @@ option(USE_SYSTEM_SIMDE         "Use system simde if exists"            OFF)
 option(USE_SYSTEM_PROXSUITE     "Use system proxsuite if exists"        OFF)
 option(ENABLE_CUDA              "Enable CUDA functions"                 OFF)
 
-
 # Using C++17 standard
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)

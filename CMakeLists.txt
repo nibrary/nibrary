@@ -58,6 +58,11 @@ if(NOT BUILD_SHARED_LIBS)
     add_compile_definitions(PROXSUITE_STATIC)
 endif()
 
+# Set the library
+set(libNibrary "Nibrary")
+
+# Compile the sources
+add_library(OBJS OBJECT ${SRCS})
 
 # Include external dependencies
 add_subdirectory(external)
@@ -74,10 +79,11 @@ if(OPENMP_FOUND)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
+    set_property(TARGET OBJS PROPERTY COMPILE_OPTIONS ${OpenMP_CXX_FLAGS})
+    if(TARGET ${libNibrary})
+        set_property(TARGET ${libNibrary} PROPERTY COMPILE_OPTIONS ${OpenMP_CXX_FLAGS})
+    endif()
 endif()
-
-# Compile the sources
-add_library(OBJS OBJECT ${SRCS})
 
 if(BUILDING_ZLIB_FROM_SOURCE)
     add_dependencies(OBJS build_zlib)
@@ -86,9 +92,6 @@ endif()
 if(BUILDING_GEOGRAM_FROM_SOURCE)
     add_dependencies(OBJS build_geogram)
 endif()
-
-# Set the library
-set(libNibrary "Nibrary")
 
 IF(BUILD_SHARED_LIBS)
     message(STATUS ">> Nibrary::Building shared library")

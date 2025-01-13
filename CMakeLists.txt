@@ -74,8 +74,6 @@ include_directories(${SIMDE_INCLUDE_DIR})
 include_directories(${PROXSUITE_INCLUDE_DIR})
 include_directories(${CUDA_INCLUDE_DIR})
 
-find_package(OpenMP REQUIRED)
-
 if(BUILDING_ZLIB_FROM_SOURCE)
     add_dependencies(OBJS build_zlib)
 endif()
@@ -95,12 +93,12 @@ ENDIF()
 
 target_link_libraries(${libNibrary} PUBLIC ${ZLIB_LIBRARIES} ${GEOGRAM_LIBRARY})
 
+find_package(OpenMP REQUIRED)
+
 if(OpenMP_FOUND)
     target_compile_options(${libNibrary} PUBLIC ${OpenMP_CXX_FLAGS})
-    target_link_libraries(${libNibrary} PUBLIC ${OpenMP_CXX_LIB_NAMES})
-    target_include_directories(${libNibrary} PUBLIC ${OpenMP_CXX_INCLUDE_DIRS})
-else()
-    message(FATAL_ERROR "OpenMP required but not found.")
+    target_link_libraries(${libNibrary} OpenMP::OpenMP_CXX)
+    target_include_directories(${libNibrary} PUBLIC ${OpenMP_CXX_INCLUDE_DIRS}) 
 endif()
 
 IF(ENABLE_CUDA)

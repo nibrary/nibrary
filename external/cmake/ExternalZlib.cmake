@@ -1,6 +1,6 @@
 # ZLIB
 
-SET(ZLIB_MIN_VERSION "1.2.13" CACHE STRING "Minimum zlib version")
+SET(ZLIB_MIN_VERSION "1.3.1" CACHE STRING "Minimum zlib version")
 
 # Try to use the system library if exists
 if (USE_SYSTEM_ZLIB)

@@ -74,16 +74,7 @@ include_directories(${SIMDE_INCLUDE_DIR})
 include_directories(${PROXSUITE_INCLUDE_DIR})
 include_directories(${CUDA_INCLUDE_DIR})
 
-find_package(OpenMP REQUIRED) # Needed for geogram
-if(OPENMP_FOUND)
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
-    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
-    set_property(TARGET OBJS PROPERTY COMPILE_OPTIONS ${OpenMP_CXX_FLAGS})
-    if(TARGET ${libNibrary})
-        set_property(TARGET ${libNibrary} PROPERTY COMPILE_OPTIONS ${OpenMP_CXX_FLAGS})
-    endif()
-endif()
+find_package(OpenMP REQUIRED)
 
 if(BUILDING_ZLIB_FROM_SOURCE)
     add_dependencies(OBJS build_zlib)
@@ -104,6 +95,29 @@ ENDIF()
 
 target_link_libraries(${libNibrary} PUBLIC ${ZLIB_LIBRARIES} ${GEOGRAM_LIBRARY})
 
+if(OpenMP_FOUND)
+
+    message(STATUS "OpenMP found (Version ${OpenMP_VERSION})")
+    message(STATUS "OpenMP C flags       : ${OpenMP_C_FLAGS}")
+    message(STATUS "OpenMP CXX flags     : ${OpenMP_CXX_FLAGS}")
+    message(STATUS "OpenMP C libraries   : ${OpenMP_C_LIBRARIES}")
+    message(STATUS "OpenMP CXX libraries : ${OpenMP_CXX_LIBRARIES}")
+    message(STATUS "OpenMP include dirs  : ${OpenMP_CXX_INCLUDE_DIRS}")
+    
+
+    if(BUILD_SHARED_LIBS)
+      target_compile_options(${libNibrary} PUBLIC ${OpenMP_CXX_FLAGS})
+      target_link_libraries(${libNibrary} PUBLIC ${OpenMP_CXX_LIB_NAMES})
+      target_include_directories(${libNibrary} PUBLIC ${OpenMP_CXX_INCLUDE_DIRS})
+    else()
+      target_compile_options(${libNibrary} INTERFACE $<$<CONFIG:Debug>:${OpenMP_CXX_FLAGS_DEBUG}> $<$<CONFIG:Release>:${OpenMP_CXX_FLAGS_RELEASE}> $<$<CONFIG:RelWithDebInfo>:${OpenMP_CXX_FLAGS_RELWITHDEBINFO}> $<$<CONFIG:MinSizeRel>:${OpenMP_CXX_FLAGS_MINSIZEREL}>)
+      target_link_libraries(${libNibrary} INTERFACE ${OpenMP_CXX_LIB_NAMES})
+      target_include_directories(${libNibrary} INTERFACE ${OpenMP_CXX_INCLUDE_DIRS})
+    endif()
+
+else()
+    message(FATAL_ERROR "OpenMP required but not found.")
+endif()
 
 IF(ENABLE_CUDA)
     add_library(CUDA_OBJS OBJECT ${CUDA_SRCS})

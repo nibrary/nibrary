@@ -32,7 +32,11 @@ void NIBR::recon_transhi2015(Image<float>& FOD, Image<float>& TM,
                              int     maxCrossings               = TRANSHI2015_MAXCROSSINGS,
                              double  noiseFloor                 = TRANSHI2015_NOISEFLOOR)
 {
+    TIC();
     TranShi2015 model(dMRI,grad);
+    TOC(MSG_DETAIL);
+
+    TIC();
     model.setMask(mask);
     model.shOrder                   = shOrder;
     model.deltaStep                 = deltaStep;
@@ -50,8 +54,10 @@ void NIBR::recon_transhi2015(Image<float>& FOD, Image<float>& TM,
     model.xi_stepCount              = xi_stepCount;
     model.maxCrossings              = maxCrossings;
     model.noiseFloor                = noiseFloor;
+    TOC(MSG_DETAIL);
 
     model.print();
+    
     model.recon();
 
     FOD = model.getFOD();
@@ -90,7 +96,9 @@ TranShi2015::TranShi2015(Image<float>& _dMRI,std::vector<std::vector<float>>& _g
 void TranShi2015::recon()
 {
 
+    TIC();
     prep();
+    TOC(MSG_DETAIL);
 
     // std::ofstream file("data.csv");      // Used with the gradient_csv_save function
 

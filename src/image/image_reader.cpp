@@ -20,6 +20,13 @@ bool NIBR::Image<T>::read() {
     if ((fileExtension=="mgh") || (fileExtension=="mgz"))
         return read_mghz();
 
+    if ((fileExtension=="dcm") || (fileExtension=="")) {
+        if (!read_dcm()) {
+            disp(MSG_ERROR,"Can't read image: %s", filePath.c_str());
+            return false;
+        }
+    }
+
     disp(MSG_ERROR,"Can't read image data with this extension yet: %s",fileExtension.c_str());
     return false;
 }
@@ -143,6 +150,7 @@ bool NIBR::Image<T>::read_nii() {
         // case COMPLEX256:    reIdx ? convert<T,std::complex<long long double>)>    (data,nim->data,imgDims,indexOrder,dataScaler,dataOffset,false) : convert<T,std::complex<long long double>>    (data,nim->data,imgDims,dataScaler,dataOffset,false);    break;
 
         default:
+            nifti_image_free(nim);
             disp(MSG_FATAL,"Can't read nifti file. Unknown datatype");
             break;
     }
@@ -254,6 +262,57 @@ bool NIBR::Image<T>::read_mghz() {
             disp(MSG_FATAL,"Can't read file. Unknown datatype");
             break;
     }
+
+    return true;
+
+}
+
+template<typename T>
+bool NIBR::Image<T>::read_dcm() {
+
+    void* dcm_data = static_cast<void*>(dcmConverter.getMRIimg());
+
+    if (dcm_data == NULL) {
+        disp(MSG_FATAL,"Cannot read DICOM image: %s",filePath.c_str());
+        return false;
+    }
+
+    data = new T[numel]();
+
+    bool reIdx = false;
+    for (int i=1; i<7; i++)
+        if (indexOrder[i] != i)
+            reIdx = true;
+
+    switch (inputDataType) {
+ 
+        case BOOL_DT:          reIdx ? convert<T,bool>       (data,dcm_data,imgDims,indexOrder,dataScaler,dataOffset,false) : convert<T,bool>       (data,dcm_data,imgDims,dataScaler,dataOffset,false);    break;
+        case UINT8_DT:         reIdx ? convert<T,uint8_t>    (data,dcm_data,imgDims,indexOrder,dataScaler,dataOffset,false) : convert<T,uint8_t>    (data,dcm_data,imgDims,dataScaler,dataOffset,false);    break;
+        case INT8_DT:          reIdx ? convert<T,int8_t>     (data,dcm_data,imgDims,indexOrder,dataScaler,dataOffset,false) : convert<T,int8_t>     (data,dcm_data,imgDims,dataScaler,dataOffset,false);    break;
+        case UINT16_DT:        reIdx ? convert<T,uint16_t>   (data,dcm_data,imgDims,indexOrder,dataScaler,dataOffset,false) : convert<T,uint16_t>   (data,dcm_data,imgDims,dataScaler,dataOffset,false);    break;
+        case INT16_DT:         reIdx ? convert<T,int16_t>    (data,dcm_data,imgDims,indexOrder,dataScaler,dataOffset,false) : convert<T,int16_t>    (data,dcm_data,imgDims,dataScaler,dataOffset,false);    break;
+        case UINT32_DT:        reIdx ? convert<T,uint32_t>   (data,dcm_data,imgDims,indexOrder,dataScaler,dataOffset,false) : convert<T,uint32_t>   (data,dcm_data,imgDims,dataScaler,dataOffset,false);    break;
+        case INT32_DT:         reIdx ? convert<T,int32_t>    (data,dcm_data,imgDims,indexOrder,dataScaler,dataOffset,false) : convert<T,int32_t>    (data,dcm_data,imgDims,dataScaler,dataOffset,false);    break;
+        case UINT64_DT:        reIdx ? convert<T,uint64_t>   (data,dcm_data,imgDims,indexOrder,dataScaler,dataOffset,false) : convert<T,uint64_t>   (data,dcm_data,imgDims,dataScaler,dataOffset,false);    break;
+        case INT64_DT:         reIdx ? convert<T,int64_t>    (data,dcm_data,imgDims,indexOrder,dataScaler,dataOffset,false) : convert<T,int64_t>    (data,dcm_data,imgDims,dataScaler,dataOffset,false);    break;
+        case FLOAT32_DT:       reIdx ? convert<T,float>      (data,dcm_data,imgDims,indexOrder,dataScaler,dataOffset,false) : convert<T,float>      (data,dcm_data,imgDims,dataScaler,dataOffset,false);    break;
+        case FLOAT64_DT:       reIdx ? convert<T,double>     (data,dcm_data,imgDims,indexOrder,dataScaler,dataOffset,false) : convert<T,double>     (data,dcm_data,imgDims,dataScaler,dataOffset,false);    break;
+        case FLOAT128_DT:      reIdx ? convert<T,long double>(data,dcm_data,imgDims,indexOrder,dataScaler,dataOffset,false) : convert<T,long double>(data,dcm_data,imgDims,dataScaler,dataOffset,false);    break;
+
+        // TODO: Implement converters for complex data types
+        // case COMPLEX64:     reIdx ? convert<T,std::complex<double>)>    (data,dcm_data,imgDims,indexOrder,dataScaler,dataOffset,false) : convert<T,std::complex<double>>    (data,dcm_data,imgDims,dataScaler,dataOffset,false);    break;
+        // case COMPLEX128:    reIdx ? convert<T,std::complex<long double>)>    (data,dcm_data,imgDims,indexOrder,dataScaler,dataOffset,false) : convert<T,std::complex<long double>>    (data,dcm_data,imgDims,dataScaler,dataOffset,false);    break;
+        // case COMPLEX256:    reIdx ? convert<T,std::complex<long long double>)>    (data,dcm_data,imgDims,indexOrder,dataScaler,dataOffset,false) : convert<T,std::complex<long long double>>    (data,dcm_data,imgDims,dataScaler,dataOffset,false);    break;
+
+        default:
+            delete dcmConverter;
+            dcmConverter = NULL;
+            disp(MSG_FATAL,"Can't read DICOM file. Unknown datatype");
+            break;
+    }
+
+    delete dcmConverter;
+    dcmConverter = NULL;
 
     return true;
 

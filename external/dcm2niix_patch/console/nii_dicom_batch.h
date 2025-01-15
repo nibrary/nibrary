@@ -5,7 +5,11 @@
 #define MRIpro_nii_batch_h
 
 #ifdef USING_DCM2NIIXFSWRAPPER
-#include "nifti1.h"
+// ======= NIBRARY PATCH ========
+// #include "nifti1.h"
+#include "niftilib/nifti2/nifti1.h"
+// ==============================
+
 #include "nii_dicom.h"
 #include <vector>
 
@@ -43,7 +47,10 @@ extern "C" {
 #include <stdbool.h> //requires VS 2015 or later
 #include <string.h>
 #ifndef USING_R
-#include "nifti1.h"
+// ======= NIBRARY PATCH ========
+// #include "nifti1.h"
+#include "niftilib/nifti2/nifti1.h"
+// ==============================
 #endif
 #include "nii_dicom.h"
 

@@ -5,6 +5,7 @@
 #include "base/fileOperations.h"
 #include "base/stringOperations.h"
 #include "niftilib/nifti2/nifti2_io.h"
+#include "dcm2niix_patch/console/dcm2niix_fswrapper.h"
 #include "interpolation.h"
 #include "orientation.h"
 #include <cstdint>
@@ -46,7 +47,7 @@ namespace NIBR
         // friend class Interpolator<std::complex<long double>,std::complex<long double>>;
         
         Image();
-        ~Image(){if (data!=NULL) {delete[] data; data = NULL;}}
+        ~Image(){if (data!=NULL) {delete[] data; data = NULL;} if (dcmConverter!=NULL) {delete dcmConverter; dcmConverter = NULL;} }
         Image(std::string _filePath);
         Image(const char* _filePath);
         Image(std::string _filePath, int* _indexOrder);
@@ -187,15 +188,22 @@ namespace NIBR
                 
     private:
         
-        void            init();
-        void            parseHeader();
-        bool            readHeader_nii();
-        bool            readHeader_mghz();
-        bool            read_nii();
-        bool            read_mghz();
-        bool            write_nii(std::string filePath_);
-        bool            write_mghz(std::string filePath_);
-        nifti_1_header* getNiftiHeader();
+        void                init();
+        void                parseHeader();
+
+        bool                readHeader_nii();
+        bool                readHeader_mghz();
+        bool                readHeader_dcm();
+        
+        bool                read_nii();
+        bool                read_mghz();
+        bool                read_dcm();
+        
+        nifti_1_header*     getNiftiHeader();
+        dcm2niix_fswrapper* dcmConverter;
+
+        bool                write_nii(std::string filePath_);
+        bool                write_mghz(std::string filePath_);        
         
     };
 

@@ -1,14 +1,17 @@
 
 // ======= NIBRARY PATCH ========
 // #include "nifti1_io_core.h"
-#include "nifti1_io.h"
-// ======= NIBRARY PATCH ========
+#include "niftilib/nifti2/nifti1.h"
+// ==============================
 
 #include <stdbool.h> //requires VS 2015 or later
 #include <stdint.h>
 #include <string.h>
 #ifndef USING_R
-#include "nifti1.h"
+// ======= NIBRARY PATCH ========
+// #include "nifti1.h"
+#include "niftilib/nifti2/nifti1.h"
+// ==============================
 #endif
 
 #ifndef MRIpro_nii_dcm_h

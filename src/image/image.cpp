@@ -27,6 +27,7 @@ void NIBR::Image<T>::init()
     interpMethod    = LINEAR;
     setInterpolationMethod(LINEAR);
     for (auto i=0; i<7; i++) indexOrder[i]=i;
+    dcmConverter    = NULL;
 }
 
 
@@ -78,6 +79,10 @@ void NIBR::Image<T>::clear() {
     if (data!=NULL) {
         delete[] data;
         data = NULL;
+    };
+    if (dcmConverter!=NULL) {
+        delete dcmConverter;
+        dcmConverter = NULL;
     };
     init();
 }

@@ -74,6 +74,8 @@ include_directories(${SIMDE_INCLUDE_DIR})
 include_directories(${PROXSUITE_INCLUDE_DIR})
 include_directories(${CUDA_INCLUDE_DIR})
 
+add_dependencies(OBJS build_dcm2niix)
+
 if(BUILDING_ZLIB_FROM_SOURCE)
     add_dependencies(OBJS build_zlib)
 endif()
@@ -81,6 +83,7 @@ endif()
 if(BUILDING_GEOGRAM_FROM_SOURCE)
     add_dependencies(OBJS build_geogram)
 endif()
+
 
 IF(BUILD_SHARED_LIBS)
     message(STATUS ">> Nibrary::Building shared library")
@@ -184,10 +187,7 @@ if(BUILDING_PROXSUITE_FROM_SOURCE)
     install(DIRECTORY ${PROXSUITE_INCLUDE_DIR}/proxsuite DESTINATION include/${nibrary})
 endif()
 
-install(CODE "file(REMOVE_RECURSE \"${CMAKE_INSTALL_PREFIX}/doc\")")
-install(CODE "file(REMOVE_RECURSE \"${CMAKE_INSTALL_PREFIX}/share\")")
-install(CODE "file(REMOVE_RECURSE \"${CMAKE_INSTALL_PREFIX}/lib/${nibrary}/cmake\")")
-install(CODE "file(REMOVE_RECURSE \"${CMAKE_INSTALL_PREFIX}/lib/${nibrary}/pkgconfig\")")
+install(CODE "file(REMOVE_RECURSE \"${NIBRARY_EXTERNAL_CMAKE_INSTALL_PREFIX}\")")
 
 add_custom_target(uninstall 
     COMMAND ${CMAKE_COMMAND} -E remove_directory "${CMAKE_INSTALL_PREFIX}/include/${nibrary}"

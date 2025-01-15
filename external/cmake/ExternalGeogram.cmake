@@ -1,6 +1,6 @@
 # GEOGRAM
 
-SET(GEOGRAM_MIN_VERSION "1.9.2") 
+SET(GEOGRAM_MIN_VERSION "1.9.2" CACHE STRING "Minimum geogram version") 
 
 include("${CMAKE_CURRENT_LIST_DIR}/utils.cmake")
 
@@ -17,7 +17,7 @@ if (USE_SYSTEM_GEOGRAM)
         # mesh_fill_holes function actually uses a geogram .cpp file, which is not ideal but
         # for now, this was found to be good solution. Until we have a better solution,
         # we will download the source and compile geogram. So system package is not used for now.
-        conditional_copy_file("${CMAKE_SOURCE_DIR}/external/geogram_config/mesh_fill_holes.cpp" "${CMAKE_SOURCE_DIR}/external/geogram/mesh/mesh_fill_holes.cpp")
+        conditional_copy_file("${CMAKE_SOURCE_DIR}/external/geogram_patch/mesh_fill_holes.cpp" "${CMAKE_SOURCE_DIR}/external/geogram/mesh/mesh_fill_holes.cpp")
         message(STATUS "Using system geogram")
     else()
         message(STATUS "Geogram not found")
@@ -131,10 +131,9 @@ if(BUILDING_GEOGRAM_FROM_SOURCE)
 
         CMAKE_ARGS  -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
                     -DBUILD_SHARED_LIBS=${BUILD_SHARED_LIBS}
-                    -DCMAKE_INSTALL_LIBDIR=${CMAKE_INSTALL_PREFIX}/lib/${nibrary}
                     -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
                     -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
-                    -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}
+                    -DCMAKE_INSTALL_PREFIX=${NIBRARY_EXTERNAL_CMAKE_INSTALL_PREFIX}
                     -DGEOGRAM_LIB_ONLY=ON
                     -DGEOGRAM_WITH_TETGEN=OFF
                     -DGEOGRAM_WITH_EXPLORAGRAM=OFF
@@ -154,7 +153,12 @@ if(BUILDING_GEOGRAM_FROM_SOURCE)
     ExternalProject_Add_Step(build_geogram move_geogram_headers
         COMMENT "Moving Geogram headers from /include/geogram1/geogram to /include/${nibrary}/geogram"
         DEPENDEES install # Assuming 'install' is the last step of building geogram, adjust as needed
-        COMMAND ${CMAKE_COMMAND} -D nibrary=${nibrary} -D CMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX} -P "${CMAKE_CURRENT_LIST_DIR}/ExternalGeogram_aux.cmake"
+        COMMAND ${CMAKE_COMMAND} 
+            -D nibrary=${nibrary} 
+            -D NIBRARY_CMAKE_INSTALL_PREFIX=${NIBRARY_CMAKE_INSTALL_PREFIX} 
+            -D CMAKE_INSTALL_PREFIX=${NIBRARY_EXTERNAL_CMAKE_INSTALL_PREFIX} 
+            -D GEOGRAM_MIN_VERSION=${GEOGRAM_MIN_VERSION}
+            -P "${CMAKE_CURRENT_LIST_DIR}/ExternalGeogram_aux.cmake"
         ALWAYS 0 # This ensures the step is only run when the DEPENDEES are updated, not every build
     )
 

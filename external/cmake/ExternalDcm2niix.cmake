@@ -40,9 +40,9 @@ if (BUILD_DCM2NIIX AND UNIX)
 
         message(STATUS "dcm2niix will be downloaded and built from source")
 
-        set(DCM2NIIX_SOURCE_DIR "${CMAKE_BINARY_DIR}/external/dcm2niix_v${DCM2NIIX_VERSION}")
+        set(DCM2NIIX_SOURCE_DIR "${CMAKE_BINARY_DIR}/external/dcm2niix-${DCM2NIIX_VERSION}")
 
-        set(DOWNLOAD_FNAME "dcm2niix_v${DCM2NIIX_VERSION}.zip")
+        set(DOWNLOAD_FNAME "v${DCM2NIIX_VERSION}.zip")
         set(DOWNLOAD_URL   "https://github.com/rordenlab/dcm2niix/archive/refs/tags/${DOWNLOAD_FNAME}")
         set(DOWNLOAD_PATH  "${CMAKE_BINARY_DIR}/external/download/${DOWNLOAD_FNAME}")
         
@@ -61,9 +61,14 @@ if (BUILD_DCM2NIIX AND UNIX)
                 WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/external"
                 RESULT_VARIABLE extract_result
             )
+            
             if(NOT extract_result EQUAL 0)
                 message(FATAL_ERROR "Error extracting ${DOWNLOAD_FNAME}: ${extract_result}")
             endif()
+
+            conditional_rename("${DCM2NIIX_SOURCE_DIR}/console/nifti1_io_core.cpp" "${DCM2NIIX_SOURCE_DIR}/console/nifti1_io_core_cpp_nibr_bak")
+            conditional_copy_file("${CMAKE_SOURCE_DIR}/external/dcm2niix_patch/nifti1_io_core.cpp" "${DCM2NIIX_SOURCE_DIR}/console/nifti1_io_core.cpp")
+
         endif()
 
     endif()

@@ -65,91 +65,91 @@ bool readHeader_nii_wrapper(nifti_image* nim, NIBR::Image<T>* img) {
 
     if (nim==NULL) return false;
 
-    img.description = std::string(nim->descrip);
+    img->description = std::string(nim->descrip);
 
     switch (nim->xyz_units) {
-        case NIFTI_UNITS_METER:     spaceUnit = METER;              break;
-        case NIFTI_UNITS_MM:        spaceUnit = MM;                 break;
-        case NIFTI_UNITS_MICRON:    spaceUnit = MICRON;             break;
-        default:                    spaceUnit = UNKNOWNSPACEUNIT;   break;
+        case NIFTI_UNITS_METER:     img->spaceUnit = METER;              break;
+        case NIFTI_UNITS_MM:        img->spaceUnit = MM;                 break;
+        case NIFTI_UNITS_MICRON:    img->spaceUnit = MICRON;             break;
+        default:                    img->spaceUnit = UNKNOWNSPACEUNIT;   break;
     }
 
     switch (nim->time_units) {
-        case NIFTI_UNITS_SEC:       timeUnit = SEC;             break;
-        case NIFTI_UNITS_MSEC:      timeUnit = MSEC;            break;
-        case NIFTI_UNITS_USEC:      timeUnit = USEC;            break;
-        case NIFTI_UNITS_HZ:        timeUnit = HZ;              break;
-        case NIFTI_UNITS_PPM:       timeUnit = PPM;             break;
-        case NIFTI_UNITS_RADS:      timeUnit = RADS;            break;
-        default:                    timeUnit = UNKNOWNTIMEUNIT; break;
+        case NIFTI_UNITS_SEC:       img->timeUnit = SEC;             break;
+        case NIFTI_UNITS_MSEC:      img->timeUnit = MSEC;            break;
+        case NIFTI_UNITS_USEC:      img->timeUnit = USEC;            break;
+        case NIFTI_UNITS_HZ:        img->timeUnit = HZ;              break;
+        case NIFTI_UNITS_PPM:       img->timeUnit = PPM;             break;
+        case NIFTI_UNITS_RADS:      img->timeUnit = RADS;            break;
+        default:                    img->timeUnit = UNKNOWNTIMEUNIT; break;
     }
 
-    img.dataScaler = nim->scl_slope;
-    img.dataOffset = nim->scl_inter;
+    img->dataScaler = nim->scl_slope;
+    img->dataOffset = nim->scl_inter;
 
     switch (nim->datatype) {
 
-        case DT_UINT8:         img.inputDataType=UINT8_DT;      break;
-        case DT_INT8:          img.inputDataType=INT8_DT;       break;
-        case DT_UINT16:        img.inputDataType=UINT16_DT;     break;
-        case DT_INT16:         img.inputDataType=INT16_DT;      break;
-        case DT_UINT32:        img.inputDataType=UINT32_DT;     break;
-        case DT_INT32:         img.inputDataType=INT32_DT;      break;
-        case DT_UINT64:        img.inputDataType=UINT64_DT;     break;
-        case DT_INT64:         img.inputDataType=INT64_DT;      break;
-        case DT_FLOAT32:       img.inputDataType=FLOAT32_DT;    break;
-        case DT_FLOAT64:       img.inputDataType=FLOAT64_DT;    break;
-        case DT_FLOAT128:      img.inputDataType=FLOAT128_DT;   break;
+        case DT_UINT8:         img->inputDataType=UINT8_DT;      break;
+        case DT_INT8:          img->inputDataType=INT8_DT;       break;
+        case DT_UINT16:        img->inputDataType=UINT16_DT;     break;
+        case DT_INT16:         img->inputDataType=INT16_DT;      break;
+        case DT_UINT32:        img->inputDataType=UINT32_DT;     break;
+        case DT_INT32:         img->inputDataType=INT32_DT;      break;
+        case DT_UINT64:        img->inputDataType=UINT64_DT;     break;
+        case DT_INT64:         img->inputDataType=INT64_DT;      break;
+        case DT_FLOAT32:       img->inputDataType=FLOAT32_DT;    break;
+        case DT_FLOAT64:       img->inputDataType=FLOAT64_DT;    break;
+        case DT_FLOAT128:      img->inputDataType=FLOAT128_DT;   break;
 
         case DT_COMPLEX64:
-            img.inputDataType=COMPLEX64_DT;
+            img->inputDataType=COMPLEX64_DT;
             disp(MSG_ERROR,"Nifti datatype: complex64 is not an accepted datatype");
             return false;
 
         case DT_COMPLEX128:
-            img.inputDataType=COMPLEX128_DT;
+            img->inputDataType=COMPLEX128_DT;
             disp(MSG_ERROR,"Nifti datatype: complex128 is not an accepted datatype");
             return false;
 
         case DT_COMPLEX256:
-            img.inputDataType=COMPLEX256_DT;
+            img->inputDataType=COMPLEX256_DT;
             disp(MSG_ERROR,"Nifti datatype: complex256 is not an accepted datatype");
             return false;
 
         case DT_BINARY:
-            img.inputDataType=UNKNOWN_DT;
+            img->inputDataType=UNKNOWN_DT;
             disp(MSG_ERROR,"Nifti datatype: binary is not an accepted datatype");
             return false;
 
         case DT_RGB:
-            img.inputDataType=UNKNOWN_DT;
+            img->inputDataType=UNKNOWN_DT;
             disp(MSG_ERROR,"Nifti datatype: rgb24 is not an accepted datatype");
             return false;
 
         case DT_RGBA32:
-            img.inputDataType=UNKNOWN_DT;
+            img->inputDataType=UNKNOWN_DT;
             disp(MSG_ERROR,"Nifti datatype: rgba32 is not an accepted datatype");
             return false;
 
         case DT_ALL:
-            img.inputDataType=UNKNOWN_DT;
+            img->inputDataType=UNKNOWN_DT;
             disp(MSG_ERROR,"Nifti datatype: all is not an accepted datatype");
             return false;
 
         default:
-            img.inputDataType=UNKNOWN_DT; 
+            img->inputDataType=UNKNOWN_DT; 
             disp(MSG_ERROR,"Nifti datatype: unknown or not applicable is not an accepted datatype");
             return false;
     }
 
     // Get dims and pixDims
-    img.numberOfDimensions = nim->dim[0];
+    img->numberOfDimensions = nim->dim[0];
 
-    if (img.numberOfDimensions>0) {
+    if (img->numberOfDimensions>0) {
         for (int i=0; i<7; i++) {
-            img.imgDims[i] = nim->dim[i+1];
-            img.pixDims[i] = (img.imgDims[i]==0) ? 1 : nim->pixdim[i+1];
-            img.imgDims[i] = (img.imgDims[i]==0) ? 1 : img.imgDims[i];
+            img->imgDims[i] = nim->dim[i+1];
+            img->pixDims[i] = (img->imgDims[i]==0) ? 1 : nim->pixdim[i+1];
+            img->imgDims[i] = (img->imgDims[i]==0) ? 1 : img->imgDims[i];
         }
     }
 
@@ -157,15 +157,15 @@ bool readHeader_nii_wrapper(nifti_image* nim, NIBR::Image<T>* img) {
     if (nim->sform_code>0) {
         for (int i=0; i<3; i++)
             for (int j=0; j<4; j++) {
-                img.xyz2ijk[i][j] = nim->sto_ijk.m[i][j];
-                img.ijk2xyz[i][j] = nim->sto_xyz.m[i][j];
+                img->xyz2ijk[i][j] = nim->sto_ijk.m[i][j];
+                img->ijk2xyz[i][j] = nim->sto_xyz.m[i][j];
             }
     }
     else {
         for (int i=0; i<3; i++)
             for (int j=0; j<4; j++) {
-                img.xyz2ijk[i][j] = nim->qto_ijk.m[i][j];
-                img.ijk2xyz[i][j] = nim->qto_xyz.m[i][j];
+                img->xyz2ijk[i][j] = nim->qto_ijk.m[i][j];
+                img->ijk2xyz[i][j] = nim->qto_xyz.m[i][j];
             }
     }
 
@@ -384,13 +384,13 @@ bool NIBR::Image<T>::readHeader_dcm() {
 
     dcmConverter = new dcm2niix_fswrapper();
 
-    if (!dcmConverter.isDICOM(filePath)) return false;
+    if (!dcmConverter->isDICOM(filePath.c_str())) return false;
     
-    dcmConverter.setOpts(getFolderPath(filePath).c_str(),NULL);
+    dcmConverter->setOpts(getFolderPath(filePath).c_str(),NULL);
 
-    dcmConverter.dcm2NiiOneSeries(getFolderPath(filePath).c_str());
+    dcmConverter->dcm2NiiOneSeries(getFolderPath(filePath).c_str());
 
-    nifti_image* nim = nifti_convert_n1hdr2nim(*dcmConverter.getNiiHeader(), filePath.c_str());
+    nifti_image* nim = nifti_convert_n1hdr2nim(*dcmConverter->getNiiHeader(), filePath.c_str());
 
     if(!readHeader_nii_wrapper(nim, this)) {
         nifti_image_free(nim);

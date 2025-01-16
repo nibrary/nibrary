@@ -5,7 +5,7 @@
 #include "base/fileOperations.h"
 #include "base/stringOperations.h"
 #include "niftilib/nifti2/nifti2_io.h"
-#include "dcm2niix_patch/console/dcm2niix_fswrapper.h"
+#include "dcm2niix_fswrapper.h"
 #include "interpolation.h"
 #include "orientation.h"
 #include <cstdint>

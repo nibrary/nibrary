@@ -1,8 +1,7 @@
 #ifndef DCM2NIIX_FSWRAPPER_H
 #define DCM2NIIX_FSWRAPPER_H
 
-#include "nii_dicom.h"
-#include "nii_dicom_batch.h"
+#include "niftilib/nifti2/nifti1.h"
 
 /*
  * This is a wrapper class to interface with dcm2niix functions.
@@ -25,30 +24,16 @@ class dcm2niix_fswrapper {
 	// and convert dicom files with the same series as given file.
 	static int dcm2NiiOneSeries(const char *dcmfile);
 
-	// interface to nii_getMrifsStruct()
-	static MRIFSSTRUCT *getMrifsStruct(void);
-
 	// return nifti header saved in MRIFSSTRUCT
 	static nifti_1_header *getNiiHeader(void);
-
-	// interface to nii_getMrifsStructVector()
-	static std::vector<MRIFSSTRUCT> *getMrifsStructVector(void);
 
 	// return image data saved in MRIFSSTRUCT
 	static const unsigned char *getMRIimg(void);
 
 	static void dicomDump(const char *dicomdir, const char *series_info, bool max = false, bool extrainfo = false);
 
-	//
-	static void seriesInfoDump(FILE *fpdump, const MRIFSSTRUCT *pmrifsStruct);
-
 	static const char *mfrCode2Str(int code);
 
-  private:
-	static struct TDCMopts tdcmOpts;
-
-	//
-	static void __setDcm2niixOpts(const char *dcm2niixopts);
 };
 
 #endif

@@ -4,10 +4,9 @@ SET(DCM2NIIX_VERSION "1.0.20241211" CACHE STRING "Minimum dcm2niix version")
 
 include("${CMAKE_CURRENT_LIST_DIR}/utils.cmake")
 
-
-set(DCM2NIIX_LIBRARY ${CMAKE_INSTALL_PREFIX}/lib/${nibrary}/dcm2niix.a CACHE INTERNAL "")
-set(DCM2NIIX_LIBRARY_DIR ${CMAKE_INSTALL_PREFIX}/lib/${nibrary} CACHE INTERNAL "")
-set(DCM2NIIX_INCLUDE_DIR ${CMAKE_INSTALL_PREFIX}/include/${nibrary}/dcm2niix CACHE INTERNAL "")
+set(DCM2NIIX_LIBRARY        ${CMAKE_INSTALL_PREFIX}/lib/${nibrary}/libdcm2niixfs.a  CACHE INTERNAL "")
+set(DCM2NIIX_LIBRARY_DIR    ${CMAKE_INSTALL_PREFIX}/lib/${nibrary}                  CACHE INTERNAL "")
+set(DCM2NIIX_INCLUDE_DIR    ${CMAKE_INSTALL_PREFIX}/include/${nibrary}/dcm2niix     CACHE INTERNAL "")
 
 if (EXISTS "${CMAKE_SOURCE_DIR}/external/dcm2niix/CMakeLists.txt")
     
@@ -90,9 +89,6 @@ if(BUILDING_DCM2NIIX_FROM_SOURCE)
             -P "${CMAKE_CURRENT_LIST_DIR}/ExternalDcm2niix_aux.cmake"
         ALWAYS 0
     )
-
-    set(DCM2NIIX_LIBRARY ${CMAKE_INSTALL_PREFIX}/lib/${nibrary}/libdcm2niix.a CACHE INTERNAL "")
-    set(DCM2NIIX_INCLUDE_DIR ${CMAKE_INSTALL_PREFIX}/include/${nibrary}/dcm2niix CACHE INTERNAL "")
 
 endif()
 

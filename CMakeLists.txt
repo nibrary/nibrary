@@ -73,6 +73,7 @@ include_directories(${LIBIGL_INCLUDE_DIR})
 include_directories(${SIMDE_INCLUDE_DIR})
 include_directories(${PROXSUITE_INCLUDE_DIR})
 include_directories(${CUDA_INCLUDE_DIR})
+include_directories(${DCM2NIIX_INCLUDE_DIR})
 
 add_dependencies(OBJS build_dcm2niix)
 

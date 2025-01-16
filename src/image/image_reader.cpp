@@ -270,7 +270,7 @@ bool NIBR::Image<T>::read_mghz() {
 template<typename T>
 bool NIBR::Image<T>::read_dcm() {
 
-    void* dcm_data = static_cast<void*>(dcmConverter.getMRIimg());
+    void* dcm_data = (void*)(dcmConverter->getMRIimg());
 
     if (dcm_data == NULL) {
         disp(MSG_FATAL,"Cannot read DICOM image: %s",filePath.c_str());

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "base/nibr.h"
+#include "base/verbose.h"
 #include "base/config.h"
 #include "base/fileOperations.h"
 #include "base/stringOperations.h"
@@ -28,6 +29,10 @@
 // Note that in order to use this functionality, the input point must have the same data type as the output.
 // e.g. Image<double> img; float a[3]={0.1,0.2,0.3}; double A=img(a); performs the interpolation in float precision and return a double.
 
+#if defined(HAS_DCM2NIIX)
+class dcm2niix_fswrapper;
+#endif
+
 namespace NIBR
 {
 
@@ -46,7 +51,7 @@ namespace NIBR
         // friend class Interpolator<std::complex<long double>,std::complex<long double>>;
         
         Image();
-        ~Image(){if (data!=NULL) {delete[] data; data = NULL;}}
+        ~Image(){clear();}
         Image(std::string _filePath);
         Image(const char* _filePath);
         Image(std::string _filePath, int* _indexOrder);
@@ -187,15 +192,26 @@ namespace NIBR
                 
     private:
         
-        void            init();
-        void            parseHeader();
-        bool            readHeader_nii();
-        bool            readHeader_mghz();
-        bool            read_nii();
-        bool            read_mghz();
-        bool            write_nii(std::string filePath_);
-        bool            write_mghz(std::string filePath_);
-        nifti_1_header* getNiftiHeader();
+        void                init();
+        void                parseHeader();
+
+        bool                readHeader_nii();
+        bool                readHeader_mghz();
+        
+        bool                read_nii();
+        bool                read_mghz();
+
+        #if defined(HAS_DCM2NIIX)
+        bool                readHeader_dcm();
+        bool                read_dcm();
+        dcm2niix_fswrapper* dcmConverter;
+        #endif
+        
+        nifti_1_header*     getNiftiHeader();
+        
+
+        bool                write_nii(std::string filePath_);
+        bool                write_mghz(std::string filePath_);        
         
     };
 

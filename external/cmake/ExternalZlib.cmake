@@ -81,8 +81,21 @@ if(BUILDING_ZLIB_FROM_SOURCE)
                     -DBUILD_SHARED_LIBS=${BUILD_SHARED_LIBS}
                     -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
                     -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
-                    -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}
+                    -DCMAKE_INSTALL_PREFIX=${NIBRARY_EXTERNAL_CMAKE_INSTALL_PREFIX}
 
+    )
+
+    ExternalProject_Add_Step(build_zlib POST_BUILD
+        COMMENT "Moving Zlib headers and libraries"
+        DEPENDEES install
+        COMMAND ${CMAKE_COMMAND} 
+            -D nibrary=${nibrary} 
+            -D NIBRARY_CMAKE_INSTALL_PREFIX=${NIBRARY_CMAKE_INSTALL_PREFIX} 
+            -D CMAKE_INSTALL_PREFIX=${NIBRARY_EXTERNAL_CMAKE_INSTALL_PREFIX} 
+            -D BUILD_SHARED_LIBS=${BUILD_SHARED_LIBS} 
+            -D ZLIB_MIN_VERSION=${ZLIB_MIN_VERSION} 
+            -P "${CMAKE_CURRENT_LIST_DIR}/ExternalZlib_aux.cmake"
+        ALWAYS 0
     )
 
     # Define variables based on conditions
@@ -111,13 +124,6 @@ if(BUILDING_ZLIB_FROM_SOURCE)
             set(ZLIB_LIBRARY_TO_USE "${CMAKE_INSTALL_PREFIX}/lib/${nibrary}/zlibstatic.lib")
         endif()
     endif()
-
-    ExternalProject_Add_Step(build_zlib POST_BUILD
-        COMMENT "Moving Zlib headers and libraries"
-        DEPENDEES install
-        COMMAND ${CMAKE_COMMAND} -D nibrary=${nibrary} -D CMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX} -D BUILD_SHARED_LIBS=${BUILD_SHARED_LIBS} -D ZLIB_MIN_VERSION=${ZLIB_MIN_VERSION} -P "${CMAKE_CURRENT_LIST_DIR}/ExternalZlib_aux.cmake"
-        ALWAYS 0
-    )
 
     set(ZLIB_INCLUDE_DIRS ${CMAKE_INSTALL_PREFIX}/include/${nibrary}/zlib CACHE INTERNAL "")
     set(ZLIB_LIBRARIES "${ZLIB_LIBRARY_TO_USE}" CACHE INTERNAL "ZLIB libraries to link against")

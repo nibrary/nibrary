@@ -78,8 +78,8 @@ void NIBR::wait(const char *format, ...) {
 }
 
 
-// Use a saved stdout_fd
-int saved_stdout_fd = -1;
+static int saved_stdout_fd  = -1;
+static FILE* null_fd        = nullptr;
 
 void NIBR::disableTerminalOutput() 
 {
@@ -87,16 +87,32 @@ void NIBR::disableTerminalOutput()
     #ifdef BUILD_FOR_WINDOWS
     // freopen("NUL", "w", stdout);
     #else
-    if (saved_stdout_fd == -1) {
-        saved_stdout_fd = dup(1);
-    }
-    freopen("/dev/null", "w", stdout);
+
+        if (saved_stdout_fd == -1) {
+            saved_stdout_fd = dup(1);
+        }
+
+        if (saved_stdout_fd == -1) {
+            saved_stdout_fd = dup(fileno(stdout));
+        }
+        
+        if (!null_fd) {
+            null_fd = fopen("/dev/null", "w");
+        }
+
+        fflush(stdout);
+        setvbuf(stdout, nullptr, _IONBF, 0); // Disable buffering for stdout
+
+        dup2(fileno(null_fd), fileno(stdout));
+
     #endif
+
 }
 
 
 void NIBR::enableTerminalOutput() 
 {
+
     #ifdef BUILD_FOR_WINDOWS
     // We consider the simple case for the console.
     // There might be need to use Windows API functions for more complex cases.
@@ -104,11 +120,19 @@ void NIBR::enableTerminalOutput()
     #else
     // freopen("/dev/tty", "w", stdout);
     if (saved_stdout_fd != -1) {
-        dup2(saved_stdout_fd,1);
-        close(saved_stdout_fd);
-        saved_stdout_fd = -1;
+        if (saved_stdout_fd != -1) {
+            fflush(stdout);
+            dup2(saved_stdout_fd, fileno(stdout));
+            close(saved_stdout_fd);
+            saved_stdout_fd = -1;
+        }
+        if (null_fd) {
+            fclose(null_fd);
+            null_fd = nullptr;
+        }
     }
     #endif
+
 }
 
 

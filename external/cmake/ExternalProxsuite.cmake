@@ -23,13 +23,13 @@ if(NOT PROXSUITE_FOUND)
     if (EXISTS "${CMAKE_SOURCE_DIR}/external/proxsuite/CMakeLists.txt")
 
         set(PROXSUITE_SOURCE_DIR "${CMAKE_SOURCE_DIR}/external/proxsuite/include")
-        conditional_copy_file("${CMAKE_SOURCE_DIR}/external/proxsuite_config/config.hpp" "${PROXSUITE_SOURCE_DIR}/proxsuite/config.hpp")
+        conditional_copy_file("${CMAKE_SOURCE_DIR}/external/proxsuite_patch/config.hpp" "${PROXSUITE_SOURCE_DIR}/proxsuite/config.hpp")
         set(BUILDING_PROXSUITE_FROM_SOURCE TRUE CACHE INTERNAL "Proxsuite will be built from local source")
 
     elseif (EXISTS "${CMAKE_SOURCE_DIR}/external/proxsuite-${PROXSUITE_MIN_VERSION}/CMakeLists.txt")
 
         set(PROXSUITE_SOURCE_DIR "${CMAKE_SOURCE_DIR}/external/proxsuite-${PROXSUITE_MIN_VERSION}/include")
-        conditional_copy_file("${CMAKE_SOURCE_DIR}/external/proxsuite_config/config.hpp" "${PROXSUITE_SOURCE_DIR}/proxsuite/config.hpp")
+        conditional_copy_file("${CMAKE_SOURCE_DIR}/external/proxsuite_patch/config.hpp" "${PROXSUITE_SOURCE_DIR}/proxsuite/config.hpp")
         set(BUILDING_PROXSUITE_FROM_SOURCE TRUE CACHE INTERNAL "Proxsuite will be built from local source")
 
     else()    
@@ -61,7 +61,7 @@ if(NOT PROXSUITE_FOUND)
             endif()
         endif()
         
-        conditional_copy_file("${CMAKE_SOURCE_DIR}/external/proxsuite_config/config.hpp" "${PROXSUITE_SOURCE_DIR}/proxsuite/config.hpp")
+        conditional_copy_file("${CMAKE_SOURCE_DIR}/external/proxsuite_patch/config.hpp" "${PROXSUITE_SOURCE_DIR}/proxsuite/config.hpp")
 
     endif()
 

@@ -15,6 +15,7 @@ option(USE_SYSTEM_LIBIGL        "Use system libigl if exists"           OFF)
 option(USE_SYSTEM_SIMDE         "Use system simde if exists"            OFF)
 option(USE_SYSTEM_PROXSUITE     "Use system proxsuite if exists"        OFF)
 option(ENABLE_CUDA              "Enable CUDA functions"                 OFF)
+option(BUILD_DCM2NIIX           "Build dcm2niix (Unix only)"            ON)
 
 # Using C++17 standard
 set(CMAKE_CXX_STANDARD 17)
@@ -74,6 +75,15 @@ include_directories(${SIMDE_INCLUDE_DIR})
 include_directories(${PROXSUITE_INCLUDE_DIR})
 include_directories(${CUDA_INCLUDE_DIR})
 
+if (BUILD_DCM2NIIX AND UNIX)  # For now let's experiment only in Unix
+    message(STATUS ">> Nibrary::Building dcm2niix")
+    add_compile_definitions(HAS_DCM2NIIX)
+    include_directories(${DCM2NIIX_INCLUDE_DIR})
+    add_dependencies(OBJS build_dcm2niix)
+else()
+    message(STATUS ">> Nibrary::dcm2niix will not be built")
+endif()
+
 if(BUILDING_ZLIB_FROM_SOURCE)
     add_dependencies(OBJS build_zlib)
 endif()
@@ -81,6 +91,7 @@ endif()
 if(BUILDING_GEOGRAM_FROM_SOURCE)
     add_dependencies(OBJS build_geogram)
 endif()
+
 
 IF(BUILD_SHARED_LIBS)
     message(STATUS ">> Nibrary::Building shared library")
@@ -109,17 +120,13 @@ ENDIF(ENABLE_CUDA)
 
 
 
-if (CMAKE_CXX_COMPILER_ID MATCHES "GNU")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -march=native")
+if ((CMAKE_CXX_COMPILER_ID MATCHES "GNU") OR (CMAKE_CXX_COMPILER_ID MATCHES "Clang") )
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -W -Wno-long-long -Wno-stringop-truncation -Wno-dev -Wno-unknown-pragmas -Wno-unused-result -Wall -Wextra -pedantic -pedantic-errors" CACHE STRING "C++ Compiler Flags" FORCE)
+endif()
 
-    if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS "9")
-        target_link_libraries(${libNibrary} PUBLIC stdc++fs)
-    endif()
-
-elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 -mtune=native")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -W -Wno-long-long -Wno-stringop-truncation -Wno-dev -Wno-unknown-pragmas -Wno-unused-result -Wall -Wextra -pedantic -pedantic-errors" CACHE STRING "C++ Compiler Flags" FORCE)
+if ((CMAKE_CXX_COMPILER_ID MATCHES "GNU") AND (CMAKE_CXX_COMPILER_VERSION VERSION_LESS "9"))
+    target_link_libraries(${libNibrary} PUBLIC stdc++fs)
 endif()
 
 if (UNIX)
@@ -132,6 +139,7 @@ endif()
 
 if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
 
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native")
     message(STATUS ">> Nibrary::Building for Unix")
 
 elseif (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
@@ -184,10 +192,7 @@ if(BUILDING_PROXSUITE_FROM_SOURCE)
     install(DIRECTORY ${PROXSUITE_INCLUDE_DIR}/proxsuite DESTINATION include/${nibrary})
 endif()
 
-install(CODE "file(REMOVE_RECURSE \"${CMAKE_INSTALL_PREFIX}/doc\")")
-install(CODE "file(REMOVE_RECURSE \"${CMAKE_INSTALL_PREFIX}/share\")")
-install(CODE "file(REMOVE_RECURSE \"${CMAKE_INSTALL_PREFIX}/lib/${nibrary}/cmake\")")
-install(CODE "file(REMOVE_RECURSE \"${CMAKE_INSTALL_PREFIX}/lib/${nibrary}/pkgconfig\")")
+install(CODE "file(REMOVE_RECURSE \"${NIBRARY_EXTERNAL_CMAKE_INSTALL_PREFIX}\")")
 
 add_custom_target(uninstall 
     COMMAND ${CMAKE_COMMAND} -E remove_directory "${CMAKE_INSTALL_PREFIX}/include/${nibrary}"

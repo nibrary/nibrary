@@ -1,6 +1,10 @@
 #include "image.h"
 #include "zlib.h"
 
+#if defined(HAS_DCM2NIIX)
+#include "dcm2niix_fswrapper.h"
+#endif
+
 using namespace NIBR;
 
 template<typename T>
@@ -18,12 +22,16 @@ bool NIBR::Image<T>::readHeader() {
         if ((fileExtension=="mgh") || (fileExtension=="mgz"))
             return readHeader_mghz();
 
+#if defined(HAS_DCM2NIIX)
         if ((fileExtension=="dcm") || (fileExtension=="")) {
             if (!readHeader_dcm()) {
                 disp(MSG_ERROR,"Can't read image: %s", filePath.c_str());
                 return false;
+            } else {
+                return true;
             }
         }
+#endif
 
         disp(MSG_ERROR,"Unknown file extension: %s", fileExtension.c_str());
         return false;
@@ -379,31 +387,62 @@ bool NIBR::Image<T>::readHeader_mghz() {
 
 }
 
+#if defined(HAS_DCM2NIIX)
 template<typename T>
 bool NIBR::Image<T>::readHeader_dcm() {
 
     dcmConverter = new dcm2niix_fswrapper();
 
-    if (!dcmConverter->isDICOM(filePath.c_str())) return false;
+    if (VERBOSE() < VERBOSE_DETAIL) {disableTerminalOutput();}
+
+    if (!dcm2niix_fswrapper::isDICOM(filePath.c_str())) {
+       if (VERBOSE() < VERBOSE_DETAIL) {enableTerminalOutput();}
+        disp(MSG_FATAL, "Inverified DICOM: %s", filePath.c_str());
+        return false;
+    } else {
+        if (VERBOSE() < VERBOSE_DETAIL) {enableTerminalOutput();}
+        disp(MSG_DETAIL, "Verified DICOM: %s", filePath.c_str());
+    }
     
-    dcmConverter->setOpts(getFolderPath(filePath).c_str(),NULL);
+    disp(MSG_DETAIL, "Setting dcm2niix options");
 
-    dcmConverter->dcm2NiiOneSeries(getFolderPath(filePath).c_str());
+    if (VERBOSE() < VERBOSE_DETAIL) {disableTerminalOutput();}
+    string opts = "v=0";
+    dcmConverter->setOpts(getFolderPath(filePath).c_str(),opts.c_str());
+    if (VERBOSE() < VERBOSE_DETAIL) {enableTerminalOutput();}
 
+    disp(MSG_DETAIL, "Converting DICOM to nifti");
+
+    if (VERBOSE() < VERBOSE_DETAIL) {disableTerminalOutput();}
+    dcmConverter->dcm2NiiOneSeries(filePath.c_str());
+    if (VERBOSE() < VERBOSE_DETAIL) {enableTerminalOutput();}
+
+
+    disp(MSG_DETAIL, "Creating nibrary image");
+
+    if (VERBOSE() < VERBOSE_DETAIL) {disableTerminalOutput();}
     nifti_image* nim = nifti_convert_n1hdr2nim(*dcmConverter->getNiiHeader(), filePath.c_str());
+    if (VERBOSE() < VERBOSE_DETAIL) {enableTerminalOutput();}
 
     if(!readHeader_nii_wrapper(nim, this)) {
+        disp(MSG_DETAIL, "Can't read converted nifti header");
         nifti_image_free(nim);
         return false;
+    } else {
+        disp(MSG_DETAIL, "Read converted nifti header");
     }
 
+    disp(MSG_DETAIL, "Clearing temporary nifti image");
     nifti_image_free(nim);
 
+    disp(MSG_DETAIL, "Parsing image header");
     parseHeader();
 
+    disp(MSG_DETAIL, "DICOM header read");
     return true;
 
 }
+#endif
 
 // Explicit instantiations
 template class NIBR::Image<bool>;

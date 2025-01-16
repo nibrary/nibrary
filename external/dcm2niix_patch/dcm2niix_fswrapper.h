@@ -1,6 +1,11 @@
 #ifndef DCM2NIIX_FSWRAPPER_H
 #define DCM2NIIX_FSWRAPPER_H
 
+// Nibrary modified libdcm2niixfs.a
+// The modification removes some of the functions 
+// in order to prevent conflicts with 
+// the existing nifti headers included in nibrary
+
 #include "niftilib/nifti2/nifti1.h"
 
 /*

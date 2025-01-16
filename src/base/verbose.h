@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <iomanip>
+#include <functional>
     
 #if defined(BUILD_FOR_WINDOWS)
     #define FUNC_NAME __FUNCTION__
@@ -79,3 +80,4 @@ namespace NIBR
     void wait(const char *format, ...);
 
 }
+

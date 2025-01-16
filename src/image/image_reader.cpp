@@ -4,6 +4,10 @@
 #include <ostream>
 #include <vector>
 
+#if defined(HAS_DCM2NIIX)
+#include "dcm2niix_fswrapper.h"
+#endif
+
 using namespace NIBR;
 
 template<typename T>
@@ -20,12 +24,16 @@ bool NIBR::Image<T>::read() {
     if ((fileExtension=="mgh") || (fileExtension=="mgz"))
         return read_mghz();
 
+#if defined(HAS_DCM2NIIX)
     if ((fileExtension=="dcm") || (fileExtension=="")) {
         if (!read_dcm()) {
             disp(MSG_ERROR,"Can't read image: %s", filePath.c_str());
             return false;
+        } else {
+            return true;
         }
     }
+#endif
 
     disp(MSG_ERROR,"Can't read image data with this extension yet: %s",fileExtension.c_str());
     return false;
@@ -267,10 +275,13 @@ bool NIBR::Image<T>::read_mghz() {
 
 }
 
+#if defined(HAS_DCM2NIIX)
 template<typename T>
 bool NIBR::Image<T>::read_dcm() {
 
+    if (VERBOSE() < VERBOSE_DETAIL) {disableTerminalOutput();}
     void* dcm_data = (void*)(dcmConverter->getMRIimg());
+    if (VERBOSE() < VERBOSE_DETAIL) {enableTerminalOutput();}
 
     if (dcm_data == NULL) {
         disp(MSG_FATAL,"Cannot read DICOM image: %s",filePath.c_str());
@@ -317,6 +328,7 @@ bool NIBR::Image<T>::read_dcm() {
     return true;
 
 }
+#endif
 
 // Explicit instantiations
 template class NIBR::Image<bool>;

@@ -88,6 +88,10 @@ PROXSUITE_TEST_FOLDER="${RELEASE_FOLDER}/external/proxsuite/test"
 echo "Removing proxsuite test folder: $PROXSUITE_TEST_FOLDER"
 rm -rf $PROXSUITE_TEST_FOLDER
 
+DCM2NIIX_GIT_FOLDER="${RELEASE_FOLDER}/external/dcm2niix/.git"
+echo "Removing dcm2niix git folder: $DCM2NIIX_GIT_FOLDER"
+rm -rf $DCM2NIIX_GIT_FOLDER
+
 
 
 # ======================================================
@@ -95,7 +99,7 @@ rm -rf $PROXSUITE_TEST_FOLDER
 echo "Creating zip archive of release folder..."
 ZIP_FILE="$RELEASE_DIR/nibrary_v$VERSION.zip"
 cd "$RELEASE_FOLDER/.." || exit
-zip -r "$ZIP_FILE" "nibrary_v$VERSION"
+zip -q -r "$ZIP_FILE" "nibrary_v$VERSION"
 
 # Check for errors
 if [ $? -ne 0 ]; then

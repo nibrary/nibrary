@@ -9,8 +9,6 @@ using namespace NIBR;
 // - no one_sided
 // - no stop rules
 // - no stopAtMax
-// - no req_exit
-// - no discard_if_exits
 //
 // With these we allow:
 // - minLength
@@ -20,6 +18,8 @@ using namespace NIBR;
 // - discard_if_ends_inside     (has to be defined with A/B)
 // - req_entry                  (cannot have A/B)
 // - discard_if_enters          (cannot have A/B)
+// - req_exit                   (cannot have A/B)
+// - discard_if_exits           (cannot have A/B)
 
 void NIBR::Pathway::seedlessProcess(NIBR::Walker* w) {
 
@@ -123,10 +123,10 @@ void NIBR::Pathway::seedlessProcess(NIBR::Walker* w) {
     }
 
 
-    // Check end for req_entry
+    // checkReqOrder
     int reqOrder = 0;
 
-    auto checkReqEntry = [&](int n)->NIBR::WalkerAction {
+    auto checkReqOrder = [&](int n)->NIBR::WalkerAction {
 
         if (satisfy_requirements_in_order == IN_ORDER) {
             if (order_of_prules[reqOrder] != n) {
@@ -139,14 +139,31 @@ void NIBR::Pathway::seedlessProcess(NIBR::Walker* w) {
             }
         }
 
-        w->entry_status[n]  = entered;
-        w->isDone[n]        = true;
-
         return CONTINUE;
 
     };
 
-    auto checkEndForReqEntry = [&](float* p)->NIBR::WalkerAction {
+    auto setReqEntry = [&](int n)->NIBR::WalkerAction {
+
+        if (checkReqOrder(n) == DISCARD)
+            return DISCARD;
+
+        w->entry_status[n]  = entered;
+        w->isDone[n]        = true;
+        return CONTINUE;
+    };
+
+    auto setReqExit = [&](int n)->NIBR::WalkerAction {
+
+        if (checkReqOrder(n) == DISCARD)
+            return DISCARD;
+
+        w->entry_status[n]  = exited;
+        w->isDone[n]        = true;
+        return CONTINUE;
+    };
+
+    auto checkEndForEntry = [&](float* p)->NIBR::WalkerAction {
         
         reqOrder = 0; // Let's initialize this here to start following the reqOrder
 
@@ -154,11 +171,21 @@ void NIBR::Pathway::seedlessProcess(NIBR::Walker* w) {
 
             bool isInside = isPointInsideRule(p,n);
 
-            if ((prules[n].type == req_entry) && isInside) { 
+            if (isInside) {
 
-                if (checkReqEntry(n) == DISCARD) 
-                    return DISCARD;
+                if (prules[n].type == req_entry) { 
+                    if (setReqEntry(n) == DISCARD) 
+                        return DISCARD;
 
+                }
+
+                if (prules[n].type == req_exit) { 
+                    w->entry_status[n]  = entered;
+                }
+
+                if (prules[n].type == discard_if_exits) { 
+                    w->entry_status[n]  = entered;
+                }
             }
 
         }
@@ -195,20 +222,56 @@ void NIBR::Pathway::seedlessProcess(NIBR::Walker* w) {
 
             setEntryStatus(w, n);   // Returns false only when stop rules can't be met, which is not a case we need to consider here
 
-            if (w->entry_status[n] != entered) // notEnteredYet, notExitedYet, exited states are not relevant in this case
-			    continue;
+            // There is nothing to do if the there is no entry or exit
+            if ((w->entry_status[n] == notEnteredYet) || (w->entry_status[n] == notExitedYet))
+                continue;
 
-            if (prules[n].type == discard_if_enters) {
-                w->action 			= DISCARD;
-                w->discardingReason = DISCARD_REGION_REACHED;
-                disp(MSG_DEBUG,"Rule %d. Segment %d - %d. DISCARD - DISCARD_REGION_REACHED", n, b, e);
-                return DISCARD;
-            }
 
-            if (prules[n].type == req_entry) {
-                if (checkReqEntry(n) == DISCARD) 
+            // Segment either entered or exited
+            if (w->entry_status[n] == entered) {
+
+                disp(MSG_DEBUG,"Rule %d. Segment %d - %d. Entered", ruleCnt, b, e);
+
+                if (prules[n].type == discard_if_enters) {
+                    w->action 			= DISCARD;
+                    w->discardingReason = DISCARD_REGION_REACHED;
+                    disp(MSG_DEBUG,"Rule %d. Segment %d - %d. DISCARD - DISCARD_REGION_REACHED", ruleCnt, b, e);
                     return DISCARD;
+                }
+
+                if (prules[n].type == req_entry) {
+                    if (setReqEntry(n) == DISCARD) 
+                        return DISCARD;
+                }
+
+                if (prules[n].type == req_exit) {
+                    w->entry_status[n]  = entered;
+                }
+
+                if (prules[n].type == discard_if_exits) {
+                    w->entry_status[n]  = entered;
+                }
+
             }
+
+            if (w->entry_status[n] == exited) {
+
+                disp(MSG_DEBUG,"Rule %d. Segment %d - %d. Exited", ruleCnt, b, e);
+
+                if (prules[n].type == req_exit) {
+                    if (setReqExit(n) == DISCARD) 
+                        return DISCARD;
+                }
+
+                if (prules[n].type == discard_if_exits) {
+                    w->action 			= DISCARD;
+                    w->discardingReason = DISCARD_REGION_REACHED;
+                    disp(MSG_DEBUG,"Rule %d. Segment %d - %d. DISCARD - DISCARD_REGION_REACHED", ruleCnt, b, e);
+                    return DISCARD;
+                }
+				
+		    }
+
 
         }
 
@@ -218,7 +281,7 @@ void NIBR::Pathway::seedlessProcess(NIBR::Walker* w) {
 
 
     // Walk one way
-    if (checkEndForReqEntry(firstPoint) == CONTINUE) {
+    if (checkEndForEntry(firstPoint) == CONTINUE) {
 
         for (size_t i = 1; i < w->streamline->size(); i++) {
             if (checkSegment(i-1,i) != CONTINUE) 
@@ -236,7 +299,7 @@ void NIBR::Pathway::seedlessProcess(NIBR::Walker* w) {
             w->isDone[n]       = false;
         }
 
-        if (checkEndForReqEntry(lastPoint) == CONTINUE) {
+        if (checkEndForEntry(lastPoint) == CONTINUE) {
             for (size_t i = w->streamline->size()-1; i > 0; i--) {
                 if (checkSegment(i,i-1) != CONTINUE) 
                     break;
@@ -248,7 +311,7 @@ void NIBR::Pathway::seedlessProcess(NIBR::Walker* w) {
 
     // Check all req_entry rules were met
     for (size_t n = 0; n < prules.size(); n++) {
-        if ((prules[n].type == req_entry) && (!w->isDone[n])) {
+        if (((prules[n].type == req_entry) || (prules[n].type == req_exit)) && (!w->isDone[n])) {
             w->action 			= DISCARD;
             w->discardingReason = REQUIRED_ROI_NOT_MET;
         }

@@ -4,10 +4,8 @@ using namespace NIBR;
 
 // This function returns either DISCARD or CONTINUE, and w->side is set to side_A/_B at the seed immediately.
 // This function handles the following:
-//    1. no seed, one_sided -> YES
-//    2. no seed, two_sided -> YES
-//    3.    seed, one_sided -> YES
-//    4.    seed, two_sided -> NO. This case is handled by checkSeed(Walker *w)
+//  1. one_sided -> YES
+//  2. two_sided -> NO. This case is handled by checkSeed(Walker *w)
 NIBR::WalkerAction NIBR::Pathway::checkSeed(NIBR::Walker *w, NIBR::Tracking_Side side)
 {
 	// Prepare segment
@@ -160,14 +158,12 @@ NIBR::WalkerAction NIBR::Pathway::checkSeed(NIBR::Walker *w, NIBR::Tracking_Side
 
 // This function returns either DISCARD or CONTINUE, and w->side can be set to either, side_A or side_B depending on the situation.
 // This function handles the following:
-//    1. no seed, one_sided -> NO.  This case is handled by checkSeed(Walker *w, Tracking_Side side)
-//    2. no seed, two_sided -> NO.  This case is handled by checkSeed(Walker *w, Tracking_Side side)
-//    3.    seed, one_sided -> NO.  This case is handled by checkSeed(Walker *w, Tracking_Side side)
-//    4.    seed, two_sided -> YES. This case is handled by checkSeed(Walker *w)
+//  1. one_sided -> NO.  This case is handled by checkSeed(Walker *w, Tracking_Side side)
+//  2. two_sided -> YES. This case is handled by checkSeed(Walker *w)
 //
 // The following assignments can be made by the function.
-//    1. If rules have side "either", then w->side also always have "either" side.
-//    2. If rules have A/B side, then w->side can either remain as "either" or the side of the rule.
+//  1. If rules have side "either", then w->side also always have "either" side.
+//  2. If rules have A/B side, then w->side can either remain as "either" or the side of the rule.
 
 NIBR::WalkerAction NIBR::Pathway::checkSeed(NIBR::Walker *w)
 {

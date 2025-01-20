@@ -187,18 +187,8 @@ bool NIBR::Pathway::verify() {
 
         for(size_t i=0; i<prules.size(); ++i) {
             
-            if (prules[i].type==discard_seed) { // discard_seed requires a seed to be defined first
+            if (prules[i].type==discard_seed) {
                 disp(MSG_ERROR,"Seed must be provided first to use \"discard_seed\".");
-                return false;
-            }
-
-            if (prules[i].type==req_exit) { // req_exit requires a seed to be defined first
-                disp(MSG_ERROR,"Seed must be provided to use \"require_exit\", please try \"discard_if_ends_inside\" instead.");
-                return false;
-            }
-
-            if (prules[i].type==discard_if_exits) { // discard_if_exits requires a seed to be defined first
-                disp(MSG_ERROR,"Seed must be provided to use \"discard_if_exits\", please try \"require_end_inside\" instead.");
                 return false;
             }
 
@@ -212,6 +202,16 @@ bool NIBR::Pathway::verify() {
                 return false;
             }
 
+            if ((prules[i].type==req_exit) && (prules[i].side != either) ) {
+                disp(MSG_ERROR,"\"req_exit\" can't have a side definition without a seed");
+                return false;
+            }
+
+            if ((prules[i].type==discard_if_exits) && (prules[i].side != either) ) {
+                disp(MSG_ERROR,"\"discard_if_exits\" can't have a side definition without a seed");
+                return false;
+            }
+
             if ((prules[i].type==req_end_inside) && (prules[i].side == either) ) {
                 disp(MSG_ERROR,"\"req_end_inside\" must have a side definition when used without a seed");
                 return false;
@@ -221,6 +221,7 @@ bool NIBR::Pathway::verify() {
                 disp(MSG_ERROR,"\"discard_if_ends_inside\" must have a side definition when used without a seed");
                 return false;
             }
+
 
         }
 

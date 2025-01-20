@@ -10,7 +10,7 @@ bool NIBR::Pathway::getSeedInd(NIBR::Walker* walker)
         return false;
     }
 
-    bool is2Dsurf = (srcType[theOneSeed]==surf_src) && (surf[theOneSeed]->interpretAs2D == true);
+    bool is2Dsurf = (srcType[seedRuleNo]==surf_src) && (surf[seedRuleNo]->interpretAs2D == true);
 
     // If a seed search was not done before, then do it
     if (walker->seedRange.empty()) {
@@ -66,11 +66,11 @@ bool NIBR::Pathway::getSeedInd(NIBR::Walker* walker)
                 resetSegment();
 
                 // First check whether beginning of the segment is inside or outside
-                if(surf[theOneSeed]->isPointInside(walker->segment.beg)) appendPointAndCropSegment(0.0);
+                if(surf[seedRuleNo]->isPointInside(walker->segment.beg)) appendPointAndCropSegment(0.0);
 
                 // Walk through the segment
                 while (walker->segment.len > 0.0f) {
-                    auto [isBegInside,isEndInside,distance,intersectingFaceInd,towardsOutside,boundaryTransitionDist] = surf[theOneSeed]->intersectSegment(&walker->segment);
+                    auto [isBegInside,isEndInside,distance,intersectingFaceInd,towardsOutside,boundaryTransitionDist] = surf[seedRuleNo]->intersectSegment(&walker->segment);
                     
                     // There is intersection 
                     if (!isnan(distance)) {
@@ -90,7 +90,7 @@ bool NIBR::Pathway::getSeedInd(NIBR::Walker* walker)
                 }
 
                 // Check the end point
-                if((walker->segment.len > 0.0f) && (surf[theOneSeed]->isPointInside(walker->segment.end))) appendPointAndCropSegment(walker->segment.len);
+                if((walker->segment.len > 0.0f) && (surf[seedRuleNo]->isPointInside(walker->segment.end))) appendPointAndCropSegment(walker->segment.len);
 
             }
 
@@ -108,12 +108,12 @@ bool NIBR::Pathway::getSeedInd(NIBR::Walker* walker)
             float ascInd = 0;
             bool hit = false;
 
-            if (!isPointInsideRule(&(walker->streamline->front().x), theOneSeed)) {
+            if (!isPointInsideRule(&(walker->streamline->front().x), seedRuleNo)) {
                 for (ascInd=0; ascInd<(walker->streamline->size()-1.5); ascInd++) {
                     walker->segment.beg = &(walker->streamline->at(ascInd).x);
                     walker->segment.end = &(walker->streamline->at(ascInd+1).x);
                     prepSegment(walker);
-                    auto [isEntering, entryLength] = isSegmentEntering(walker->segment,theOneSeed);
+                    auto [isEntering, entryLength] = isSegmentEntering(walker->segment,seedRuleNo);
                     if (isEntering) {                
                         ascInd += entryLength / walker->segment.len;
                         hit = true;
@@ -135,12 +135,12 @@ bool NIBR::Pathway::getSeedInd(NIBR::Walker* walker)
                 float desInd = float(walker->streamline->size()-1);
                 hit = false;
 
-                if (!isPointInsideRule(&(walker->streamline->back().x), theOneSeed)) {
+                if (!isPointInsideRule(&(walker->streamline->back().x), seedRuleNo)) {
                     for (desInd=float(walker->streamline->size()-1); desInd>0.5; desInd--) {
                         walker->segment.beg = &(walker->streamline->at(desInd).x);
                         walker->segment.end = &(walker->streamline->at(desInd-1).x);
                         prepSegment(walker);
-                        auto [isEntering, entryLength] = isSegmentEntering(walker->segment,theOneSeed);
+                        auto [isEntering, entryLength] = isSegmentEntering(walker->segment,seedRuleNo);
                         if (isEntering) {  
                             desInd -= entryLength / walker->segment.len;
                             hit = true;
@@ -253,7 +253,7 @@ bool NIBR::Pathway::getSeedInd(NIBR::Walker* walker)
     seedPos = walker->seedRange.back(); // (walker->seedRange.back()-walker->seedRange.front())*0.5;
     calcSeedPoint();
     setSeed();
-    // disp(INFO, "debug seedPos: %.4f - %d", seedPos, int(isPointInsideRule(p,theOneSeed)));
+    // disp(INFO, "debug seedPos: %.4f - %d", seedPos, int(isPointInsideRule(p,seedRuleNo)));
     return true;
     */    
     
@@ -268,16 +268,16 @@ bool NIBR::Pathway::getSeedInd(NIBR::Walker* walker)
         }
 
         calcSeedPoint();
-        // disp(MSG_DEBUG, "seedPos (2): %.4f - %d", seedPos, int(isPointInsideRule(p,theOneSeed)));
-        seedFound = isPointInsideRule(p,theOneSeed);
+        // disp(MSG_DEBUG, "seedPos (2): %.4f - %d", seedPos, int(isPointInsideRule(p,seedRuleNo)));
+        seedFound = isPointInsideRule(p,seedRuleNo);
         trial++;
     }
 
     if (trial==maxTrial) {
         seedPos = (r.uniform_m05_p05()>0) ? walker->seedRange.front() : walker->seedRange.back();
         calcSeedPoint();
-        seedFound = isPointInsideRule(p,theOneSeed);
-        // disp(MSG_DEBUG, "seedPos (3): %.4f - %d", seedPos, int(isPointInsideRule(p,theOneSeed)));
+        seedFound = isPointInsideRule(p,seedRuleNo);
+        // disp(MSG_DEBUG, "seedPos (3): %.4f - %d", seedPos, int(isPointInsideRule(p,seedRuleNo)));
     }
 
     if (seedFound == false) return false;

@@ -22,7 +22,6 @@ NIBR::Pathway::Pathway() {
     ruleCnt                       = 0;
     uniqueIdCnt                   = 0;
     stopFlag                      = false;
-    isSided                       = false;
     isTracking                    = false;
     isVerified                    = false;
     B_pulled                      = false;
@@ -36,7 +35,7 @@ NIBR::Pathway::~Pathway() {
     disp(MSG_DEBUG,"Removing pathway rules");
 
     for(int i=(prules.size()-1); i>=0; --i) {
-        if (i != theOneSeed)
+        if (i != seedRuleNo)
             remove(i);
     }
 
@@ -52,7 +51,7 @@ NIBR::Pathway::~Pathway() {
 
     disp(MSG_DEBUG,"Removing seed rule");
     for(int i=(prules.size()-1); i>=0; --i) {
-        if (i == theOneSeed)
+        if (i == seedRuleNo)
             remove(i);
     }
 
@@ -132,8 +131,7 @@ NIBR::Pathway::~Pathway() {
     isVerified = false;
     isTracking = false;
     stopFlag = false;
-    isSided = false;
-    theOneSeed = -1;
+    seedRuleNo = -1;
     pathwaySeed.clear();
     order_of_prules.clear();
     order_of_side_A_prules.clear();

@@ -22,7 +22,6 @@ bool NIBR::Pathway::remove(int ruleInd) {
             if (prules[i].type != seed)
                 prules[i].side  = prules[i].orig_side;
 
-        isSided  = false;
         B_pulled = false;
     }
 

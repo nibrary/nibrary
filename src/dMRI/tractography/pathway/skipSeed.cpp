@@ -24,7 +24,7 @@ bool NIBR::Pathway::skipSeed(NIBR::Walker *walker, bool reverseDir)
 
             // Already the last segment is inside the seed region
             
-            auto [isEntering, entryLength] = isSegmentEntering(walker->segment,theOneSeed);
+            auto [isEntering, entryLength] = isSegmentEntering(walker->segment,seedRuleNo);
 
             if (isEntering) {
 
@@ -77,7 +77,7 @@ bool NIBR::Pathway::skipSeed(NIBR::Walker *walker, bool reverseDir)
             prepSegment(walker);
 
             // disp(MSG_DEBUG,"ind: %.2f, beg: %.2f, end: %.2f", desInd, walker->segment.beg[0], walker->segment.end[0]);            
-            auto [isEntering, entryLength] = isSegmentEntering(walker->segment,theOneSeed);
+            auto [isEntering, entryLength] = isSegmentEntering(walker->segment,seedRuleNo);
 
             if (isEntering) {
 
@@ -128,7 +128,7 @@ bool NIBR::Pathway::skipSeed(NIBR::Walker *walker, bool reverseDir)
             prepSegment(walker);
 
             // Already the last segment is inside the seed region
-            auto [isEntering, entryLength] = isSegmentEntering(walker->segment,theOneSeed);
+            auto [isEntering, entryLength] = isSegmentEntering(walker->segment,seedRuleNo);
 
             if (isEntering) {
 
@@ -172,7 +172,7 @@ bool NIBR::Pathway::skipSeed(NIBR::Walker *walker, bool reverseDir)
             walker->segment.end = &(walker->streamline->at(ascInd+1).x);
             prepSegment(walker);
             
-            auto [isEntering, entryLength] = isSegmentEntering(walker->segment,theOneSeed);
+            auto [isEntering, entryLength] = isSegmentEntering(walker->segment,seedRuleNo);
 
             if (isEntering) {
 

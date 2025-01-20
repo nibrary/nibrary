@@ -34,7 +34,7 @@ NIBR::WalkerAction NIBR::Pathway::checkSeed(NIBR::Walker *w, NIBR::Tracking_Side
 			return DISCARD;
 		}
 
-		if (hasOneSeed() && (n == theOneSeed) && isPointAtEdgeOfRule(&(w->streamline->at(w->seedInd).x),n,EPS3)) 
+		if (hasSeed() && (n == seedRuleNo) && isPointAtEdgeOfRule(&(w->streamline->at(w->seedInd).x),n,EPS3)) 
 		{
 			w->action = DISCARD;
 			w->discardingReason = IMPROPER_SEED;
@@ -194,7 +194,7 @@ NIBR::WalkerAction NIBR::Pathway::checkSeed(NIBR::Walker *w)
 			return DISCARD;
 		}
 
-		if (hasOneSeed() && (n == theOneSeed) && isPointAtEdgeOfRule(&(w->streamline->at(w->seedInd).x),n,EPS3)) 
+		if (hasSeed() && (n == seedRuleNo) && isPointAtEdgeOfRule(&(w->streamline->at(w->seedInd).x),n,EPS3)) 
 		{
 			w->action = DISCARD;
 			w->discardingReason = IMPROPER_SEED;

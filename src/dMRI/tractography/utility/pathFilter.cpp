@@ -59,7 +59,11 @@ std::tuple<std::vector<size_t>,std::vector<float>,std::vector<float>> NIBR::path
 
         disp(MSG_DEBUG,"Created");
 
-        pw->walk(walker);
+        if (pw->hasSeed()) {
+            pw->seededProcess(walker);
+        } else {
+            pw->seedlessProcess(walker);
+        }
 
         disp(MSG_DEBUG,"Walked");
 

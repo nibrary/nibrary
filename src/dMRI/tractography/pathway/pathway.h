@@ -137,17 +137,18 @@ namespace NIBR
         bool    verify();
         void    enableTracking(bool p)     {isTracking = p;}
         bool    isverified()               {return isVerified;  }
-        bool    canStop()                  {return stopFlag;    }
-        bool    hasOneSeed()               {return (theOneSeed != -1) ? true : false; }
+        bool    hasStop()                  {return stopFlag;    }
+        bool    hasSeed()                  {return (seedRuleNo != -1) ? true : false; }
         Seeder* getSeeder(int ruleInd)     {return seeds[ruleInd];}
-        Seeder* getSeeder()                {if (hasOneSeed()) return seeds[theOneSeed]; else return NULL;} 
-        int     getSeedRuleInd()           {return theOneSeed;}
+        Seeder* getSeeder()                {if (hasSeed()) return seeds[seedRuleNo]; else return NULL;} 
+        int     getSeedRuleInd()           {return seedRuleNo;}
         void    print();
 
         // Pathway checking functions
         Walker*                     createWalker(std::vector<Point>* streamline);
         Walker*                     createWalker(std::vector<Point>* streamline, int ind);
-        void                        walk(Walker* walker);
+        void                        seedlessProcess(Walker* walker);
+        void                        seededProcess(Walker* walker);
         WalkerAction                checkSeed(Walker *w);                           // For seeded, two_sided case
         WalkerAction                checkSeed(Walker *walker, Tracking_Side side);  // For other seeded, two_sided case
         WalkerAction                checkWalker(Walker* walker, int b, int e);            // b: segment begin index. e: segment end index
@@ -208,8 +209,7 @@ private:
         // Every time verify() is called, the following variables are reinitialized using "prules" and nothing else.      
         bool                        isVerified;
         bool                        stopFlag;
-        bool                        isSided;
-        int                         theOneSeed{-1}; // If pathwaySeed has only one seed, theOneSeed is the index of that rule. Otherwise it is -1
+        int                         seedRuleNo{-1}; // If pathwaySeed has only one seed, seedRuleNo is the index of that rule. Otherwise it is -1
         std::vector<int>            pathwaySeed;
         std::vector<int>            order_of_prules;
         std::vector<int>            order_of_side_A_prules;

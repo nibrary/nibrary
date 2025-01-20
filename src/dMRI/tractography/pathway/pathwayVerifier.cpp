@@ -9,18 +9,19 @@ bool NIBR::Pathway::verify() {
 
     isVerified        = false;
     stopFlag          = false;
-    isSided           = false;
-    theOneSeed        = -1;
+    seedRuleNo        = -1;
     pathwaySeed.clear();
     order_of_prules.clear();
     order_of_side_A_prules.clear();
-    order_of_side_B_prules.clear();    
+    order_of_side_B_prules.clear();
 
+    bool isSided = false; 
+
+    // In seededProcess
     // B_pulled means that an internal modification of rules was made during the previous verify() call. 
-    // The internal modification pulls the "either" sided rules to "B" side in three cases:
-    //   i.   If seeded, two_sided, IN_ORDER
-    //   ii.  If seeded, one_sided
-    //   iii. If there is no seed, two_sided, IN_ORDER
+    // The internal modification pulls the "either" sided rules to "B" side in two cases:
+    //   i.   two_sided, IN_ORDER
+    //   ii.  one_sided
     // We will now revert the B pulling back.
     if (B_pulled) {
         for(size_t i=0;i<prules.size(); ++i)
@@ -28,7 +29,6 @@ bool NIBR::Pathway::verify() {
                 prules[i].side  = prules[i].orig_side;
 
         order_of_side_B_prules.clear();
-        isSided  = false;
         B_pulled = false;
     }
 
@@ -131,64 +131,10 @@ bool NIBR::Pathway::verify() {
 
     }
 
-    theOneSeed = (pathwaySeed.size()==1) ? pathwaySeed[0] : -1;
-
-    for(size_t i=0; i<prules.size(); ++i) {
-        if((prules.size()>1) && (prules[i].type != seed) && (prules[i].type != discard_seed) ) {
-            if ( ( (isSided && (prules[i].side == either) ) ) ||  ( (!isSided && (prules[i].side != either) ) ) ) {
-                disp(MSG_ERROR,"Pathway rule side defined wrongly. All rules must have a side, or non of them can have a side. ");
-                return false;
-            }
-        }
-        if (!hasOneSeed() && (prules[i].type==discard_seed) ) {               // discard_seed requires a seed to be defined first
-            disp(MSG_ERROR,"Seed must be provided first to use \"discard_seed\".");
-            return false;
-        }
-    }
-
-    // if (atMaxLength == ATMAXLENGTH_STOP)    stopFlag = true;
-    if (skipSeedROI)                        stopFlag = true;
-    if (directionality == ONE_SIDED)        stopFlag = true;
+    seedRuleNo = (pathwaySeed.size()==1) ? pathwaySeed[0] : -1;
 
     if (seedTrials<0) {
         disp(MSG_ERROR,"seedTrials can't be negative");
-        return false;
-    }
-
-    // Check noEdgeSeeds
-    // if ( noEdgeSeeds && !hasOneSeed() ) {
-    //     disp(MSG_ERROR,"Seed must be provided to prevent seeding at edges.");
-    //     return false;
-    // }
-
-    // Check atMaxLength
-    if ( (atMaxLength == ATMAXLENGTH_STOP) && !hasOneSeed() ) {
-        disp(MSG_ERROR,"Seed must be provided to stop at max length.");
-        return false;
-    }
-
-    // Check skipSeedROI
-    if ( skipSeedROI && !hasOneSeed() ) {
-        disp(MSG_ERROR,"Seed must be provided to skip it at the output.");
-        return false;
-    }
-
-    if ( skipSeedROI && (directionality==TWO_SIDED) ) {
-        disp(MSG_ERROR,"Tracking must be \"one_sided\" to skip writing of the seed region.");
-        return false;
-    }
-
-    // Check stop rules
-    if (stopFlag) disp(MSG_DETAIL," stopFlag"); else disp(MSG_DETAIL," no stopFlag");
-    if (isSided)  disp(MSG_DETAIL," isSided");  else disp(MSG_DETAIL," no isSided");
-
-    if (stopFlag && !hasOneSeed()) {
-        disp(MSG_ERROR,"stop options can only be used with a seed.");
-        return false;
-    }
-
-    if (stopFlag && (directionality==TWO_SIDED) && !isSided) {
-        disp(MSG_ERROR,"stop options can be used with seeded \"two_sided\" tracking only when rules are defined for each side.");
         return false;
     }
 
@@ -203,74 +149,161 @@ bool NIBR::Pathway::verify() {
     }
 
 
-    // Check seed, directionality, sides, and apply B_pulling if needed.
-    // B_pulling basically assigns sides to all prules if they are not given by the user.
+    // Handle stop rules
+    if (skipSeedROI)                        stopFlag = true;
+    if (directionality == ONE_SIDED)        stopFlag = true;
+    if (stopFlag) disp(MSG_DETAIL," stopFlag"); else disp(MSG_DETAIL," no stopFlag");
     
-    // With seed
-    // if ( hasOneSeed() && (directionality==TWO_SIDED) && !isSided ) {} // Allowed     - B_pulling is needed when IN_ORDER is used
-    // if ( hasOneSeed() && (directionality==TWO_SIDED) &&  isSided ) {} // Allowed     - B_pulling is NOT needed
-    // if ( hasOneSeed() && (directionality==ONE_SIDED) && !isSided ) {} // Allowed     - B_pulling is needed
-    // if ( hasOneSeed() && (directionality==ONE_SIDED) &&  isSided ) {} // Not allowed
-    
-    // Without seed
-    // if (!hasOneSeed() && (directionality==TWO_SIDED) && !isSided ) {} // Allowed     - B_pulling is needed when IN_ORDER is used
-    // if (!hasOneSeed() && (directionality==TWO_SIDED) &&  isSided ) {} // Not allowed
-    // if (!hasOneSeed() && (directionality==ONE_SIDED) && !isSided ) {} // Not allowed
-    // if (!hasOneSeed() && (directionality==ONE_SIDED) &&  isSided ) {} // Not allowed
 
-    if ( hasOneSeed() && (directionality==ONE_SIDED) &&  isSided ) {     // Not allowed
-        disp(MSG_ERROR,"Rules can't have sides when \"one_sided\" option is used.");
-        return false;
-    }
+    // Verify seedlessProcess
+    if (!hasSeed()) {
 
-    if (!hasOneSeed() && (directionality==TWO_SIDED) &&  isSided ) {     // Not allowed
-        disp(MSG_ERROR,"Rules can't have sides without seed.");
-        return false;
-    }
-    if (!hasOneSeed() && (directionality==ONE_SIDED) ) {                 // Not allowed (for both isSided and !isSided)
-        disp(MSG_ERROR,"Seed must be provided to use \"one_sided\" option.");
-        return false;
-    }
-
-    // --- Prepare B_pulled rules ---
-    if ( hasOneSeed() && (directionality==TWO_SIDED) && !isSided && (satisfy_requirements_in_order==IN_ORDER)) {
-    
-        int i=0;
-        while (prules[i].type != seed) {
-            prules[i].side = side_A;
-            if ( (prules[i].type == req_entry) || (prules[i].type == req_exit) || (prules[i].type == req_end_inside) )
-                    order_of_side_A_prules.push_back(i);
-            i++;
-        }
-        std::reverse(order_of_side_A_prules.begin(),order_of_side_A_prules.end());
-        i++;
-        while (i<int(prules.size())) {
-            prules[i].side = side_B;
-            if ( (prules[i].type == req_entry) || (prules[i].type == req_exit) || (prules[i].type == req_end_inside) )
-                    order_of_side_B_prules.push_back(i);
-            i++;
+        // Check atMaxLength
+        if (atMaxLength == ATMAXLENGTH_STOP) {
+            disp(MSG_ERROR,"Seed must be provided to stop at max length.");
+            return false;
         }
 
-        order_of_prules.clear();
-        isSided                = true;
-        B_pulled               = true;
-    
+        if (stopFlag) {
+            disp(MSG_ERROR,"Stop rules can only be used with a seed.");
+            return false;
+        }
+        
+        // Check noEdgeSeeds
+        // if (noEdgeSeeds) {
+        //     disp(MSG_ERROR,"Seed must be provided to prevent seeding at edges.");
+        //     return false;
+        // }
+
+        if (skipSeedROI) {
+            disp(MSG_ERROR,"Seed must be provided to skip it at the output.");
+            return false;
+        }
+
+        if (directionality==ONE_SIDED) { // Not allowed
+            disp(MSG_ERROR,"Seed must be provided to use \"one_sided\" option.");
+            return false;
+        }
+
+        for(size_t i=0; i<prules.size(); ++i) {
+            
+            if (prules[i].type==discard_seed) { // discard_seed requires a seed to be defined first
+                disp(MSG_ERROR,"Seed must be provided first to use \"discard_seed\".");
+                return false;
+            }
+
+            if (prules[i].type==req_exit) { // req_exit requires a seed to be defined first
+                disp(MSG_ERROR,"Seed must be provided to use \"require_exit\", please try \"discard_if_ends_inside\" instead.");
+                return false;
+            }
+
+            if (prules[i].type==discard_if_exits) { // discard_if_exits requires a seed to be defined first
+                disp(MSG_ERROR,"Seed must be provided to use \"discard_if_exits\", please try \"require_end_inside\" instead.");
+                return false;
+            }
+
+            if ((prules[i].type==req_entry) && (prules[i].side != either) ) {
+                disp(MSG_ERROR,"\"require_entry\" can't have a side definition without a seed");
+                return false;
+            }
+
+            if ((prules[i].type==discard_if_enters) && (prules[i].side != either) ) {
+                disp(MSG_ERROR,"\"discard_if_enters\" can't have a side definition without a seed");
+                return false;
+            }
+
+            if ((prules[i].type==req_end_inside) && (prules[i].side == either) ) {
+                disp(MSG_ERROR,"\"req_end_inside\" must have a side definition when used without a seed");
+                return false;
+            }
+
+            if ((prules[i].type==discard_if_ends_inside) && (prules[i].side == either) ) {
+                disp(MSG_ERROR,"\"discard_if_ends_inside\" must have a side definition when used without a seed");
+                return false;
+            }
+
+        }
+
     }
 
-    if (( hasOneSeed() && (directionality == ONE_SIDED) ) ||
-        (!hasOneSeed() && (directionality == TWO_SIDED) && (satisfy_requirements_in_order == IN_ORDER))) {
+    
 
-        for(size_t i=0;i<prules.size(); ++i)
-            if (prules[i].type != seed)
+    // Verify seededProcess
+    if (hasSeed()) {
+
+        // Check skipSeedROI
+        if ( skipSeedROI && (directionality==TWO_SIDED) ) {
+            disp(MSG_ERROR,"Tracking must be \"one_sided\" to skip writing of the seed region.");
+            return false;
+        }
+
+        if (stopFlag && (directionality==TWO_SIDED) && !isSided) {
+            disp(MSG_ERROR,"stop options can be used with seeded \"two_sided\" tracking only when rules are defined for each side.");
+            return false;
+        }
+
+        for(size_t i=0; i<prules.size(); ++i) {
+            if((prules.size()>1) && (prules[i].type != seed) && (prules[i].type != discard_seed) ) {
+                if ( ( (isSided && (prules[i].side == either) ) ) ||  ( (!isSided && (prules[i].side != either) ) ) ) {
+                    disp(MSG_ERROR,"Pathway rule side defined wrongly. All rules must have a side, or non of them can have a side. ");
+                    return false;
+                }
+            }            
+        }
+
+        // Check seed, directionality, sides, and apply B_pulling if needed.
+        // B_pulling basically assigns sides to all prules if they are not given by the user.
+        
+        // With seed
+        // if ( (directionality==TWO_SIDED) && !isSided ) {} // Allowed     - B_pulling is needed when IN_ORDER is used
+        // if ( (directionality==TWO_SIDED) &&  isSided ) {} // Allowed     - B_pulling is NOT needed
+        // if ( (directionality==ONE_SIDED) && !isSided ) {} // Allowed     - B_pulling is needed
+        // if ( (directionality==ONE_SIDED) &&  isSided ) {} // Not allowed
+
+        if ( (directionality==ONE_SIDED) &&  isSided ) {     // Not allowed
+            disp(MSG_ERROR,"Rules can't have sides when \"one_sided\" option is used.");
+            return false;
+        }
+
+
+        // --- Prepare B_pulled rules ---
+        if ( (directionality==TWO_SIDED) && !isSided && (satisfy_requirements_in_order==IN_ORDER)) {
+        
+            int i=0;
+            while (prules[i].type != seed) {
+                prules[i].side = side_A;
+                if ( (prules[i].type == req_entry) || (prules[i].type == req_exit) || (prules[i].type == req_end_inside) )
+                        order_of_side_A_prules.push_back(i);
+                i++;
+            }
+            std::reverse(order_of_side_A_prules.begin(),order_of_side_A_prules.end());
+            i++;
+            while (i<int(prules.size())) {
                 prules[i].side = side_B;
+                if ( (prules[i].type == req_entry) || (prules[i].type == req_exit) || (prules[i].type == req_end_inside) )
+                        order_of_side_B_prules.push_back(i);
+                i++;
+            }
 
-        order_of_side_B_prules = order_of_prules;
+            order_of_prules.clear();
+            B_pulled = true;
+        
+        }
 
-        order_of_side_A_prules.clear();
-        order_of_prules.clear();
+        if (directionality == ONE_SIDED) {
 
-        isSided                = true;
-        B_pulled               = true;
+            for(size_t i=0;i<prules.size(); ++i)
+                if (prules[i].type != seed)
+                    prules[i].side = side_B;
+
+            order_of_side_B_prules = order_of_prules;
+
+            order_of_side_A_prules.clear();
+            order_of_prules.clear();
+
+            B_pulled = true;
+
+        }
 
     }
 

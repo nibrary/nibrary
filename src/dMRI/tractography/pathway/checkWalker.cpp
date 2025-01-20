@@ -13,24 +13,13 @@ NIBR::WalkerAction NIBR::Pathway::checkWalker(NIBR::Walker *w) {
 NIBR::WalkerAction NIBR::Pathway::checkWalker(NIBR::Walker *w, int b, int e)
 {
 
-	// Prepare segment
-	w->segment.beg   = &(w->streamline->at(b).x);
-    w->segment.end   = &(w->streamline->at(e).x);
-
-	vec3sub(w->segment.dir,w->segment.end,w->segment.beg);
-    w->segment.len   = norm(w->segment.dir);
-	w->segStopLength = w->segment.len;
-	normalize(w->segment.dir);
+	bool isSegmentReady = false;
 
 	for (int n = 0; n < ruleCnt; n++) {
 
-		if (prules[n].type==seed) continue;
+		if ((prules[n].type==seed) || (w->isDone[n])) continue;
 
-		disp(MSG_DEBUG,"Rule %d. Segment %d - %d. Checking...", ruleCnt, b, e);
-
-		// No need to continue if the rule is done already
-		if (w->isDone[n])
-			continue;
+		disp(MSG_DEBUG,"Rule %d. Segment %d - %d. Checking...", ruleCnt, b, e);		
 
 		// disp(MSG_DEBUG,"Rule: %d, check 1", ruleCnt);
 		// disp(MSG_DEBUG,"  w->side: %d, rule->side: %d", w->side, prules[n].side);
@@ -42,6 +31,20 @@ NIBR::WalkerAction NIBR::Pathway::checkWalker(NIBR::Walker *w, int b, int e)
 		//    4. prules.side = side_B and w->size_B too
 		if ((prules[n].side!=either) && (w->side != either) && (prules[n].side != w->side))
 			continue;
+
+		// Prepare segment
+		if (isSegmentReady == false) {
+			
+			w->segment.beg   = &(w->streamline->at(b).x);
+			w->segment.end   = &(w->streamline->at(e).x);
+
+			vec3sub(w->segment.dir,w->segment.end,w->segment.beg);
+			w->segment.len   = norm(w->segment.dir);
+			w->segStopLength = w->segment.len;
+			normalize(w->segment.dir);
+
+			isSegmentReady = true;
+		}
 
 		// disp(MSG_DEBUG,"Rule: %d, check 2", ruleCnt);
 

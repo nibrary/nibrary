@@ -112,7 +112,7 @@ std::tuple<bool,float> NIBR::Pathway::isSegmentEntering(const LineSegment& segme
 
         // Undefined src
         case undef_src: {
-            disp(MSG_FATAL,"Unexpected seed type \"undef_src\"");    // This should never happen, if pathway is updated
+            disp(MSG_FATAL,"Unexpected source type \"undef_src\"");    // This should never happen, if pathway is updated
             return std::make_tuple(false,NAN);
         }
 

@@ -62,7 +62,7 @@ void Trekker::seed_surface_useNormForDir(bool useNorm) {TRACKER::seed.useSurfNor
 // Pathway options
 bool Trekker::pathway_addSeed(std::vector<std::string> rule) { 
 
-    if (TRACKER::pw.hasOneSeed()) {
+    if (TRACKER::pw.hasSeed()) {
         TRACKER::pw.remove(TRACKER::pw.getSeedRuleInd());
     } 
     

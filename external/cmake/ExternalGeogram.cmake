@@ -156,7 +156,8 @@ if(BUILDING_GEOGRAM_FROM_SOURCE)
         COMMAND ${CMAKE_COMMAND} 
             -D nibrary=${nibrary} 
             -D NIBRARY_CMAKE_INSTALL_PREFIX=${NIBRARY_CMAKE_INSTALL_PREFIX} 
-            -D CMAKE_INSTALL_PREFIX=${NIBRARY_EXTERNAL_CMAKE_INSTALL_PREFIX} 
+            -D CMAKE_INSTALL_PREFIX=${NIBRARY_EXTERNAL_CMAKE_INSTALL_PREFIX}
+            -D BUILD_SHARED_LIBS=${BUILD_SHARED_LIBS} 
             -D GEOGRAM_MIN_VERSION=${GEOGRAM_MIN_VERSION}
             -P "${CMAKE_CURRENT_LIST_DIR}/ExternalGeogram_aux.cmake"
         ALWAYS 0 # This ensures the step is only run when the DEPENDEES are updated, not every build

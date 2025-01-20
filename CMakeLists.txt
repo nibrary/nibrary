@@ -75,7 +75,7 @@ include_directories(${SIMDE_INCLUDE_DIR})
 include_directories(${PROXSUITE_INCLUDE_DIR})
 include_directories(${CUDA_INCLUDE_DIR})
 
-if (BUILD_DCM2NIIX AND UNIX)  # For now let's experiment only in Unix
+if (BUILD_DCM2NIIX AND UNIX AND NOT BUILD_SHARED_LIBS)  # For now let's experiment only in Unix
     message(STATUS ">> Nibrary::Building dcm2niix")
     add_compile_definitions(HAS_DCM2NIIX)
     include_directories(${DCM2NIIX_INCLUDE_DIR})

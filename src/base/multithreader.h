@@ -1,6 +1,6 @@
 #pragma once
 
-#ifdef BUILD_FOR_WINDOWS
+#ifdef _WIN32
 #include <windows.h>
 #include <io.h>
 #undef max

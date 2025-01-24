@@ -84,7 +84,7 @@ static FILE* null_fd        = nullptr;
 void NIBR::disableTerminalOutput() 
 {
 
-    #ifdef BUILD_FOR_WINDOWS
+    #ifdef _WIN32
     // freopen("NUL", "w", stdout);
     #else
 
@@ -113,7 +113,7 @@ void NIBR::disableTerminalOutput()
 void NIBR::enableTerminalOutput() 
 {
 
-    #ifdef BUILD_FOR_WINDOWS
+    #ifdef _WIN32
     // We consider the simple case for the console.
     // There might be need to use Windows API functions for more complex cases.
     // freopen("CON", "w", stdout);

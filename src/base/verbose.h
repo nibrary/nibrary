@@ -11,7 +11,7 @@
 #include <iomanip>
 #include <functional>
     
-#if defined(BUILD_FOR_WINDOWS)
+#if defined(_WIN32)
     #define FUNC_NAME __FUNCTION__
     #define FILE_NAME __FILE__
     #define LINE_NO __LINE__

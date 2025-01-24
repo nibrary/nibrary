@@ -1,5 +1,5 @@
 #pragma once
-#ifdef BUILD_FOR_WINDOWS
+#ifdef _WIN32
 #include <math.h>
 #endif
 

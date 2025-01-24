@@ -37,7 +37,7 @@ void NIBR::MT::MTINIT()
     // Ensure initialization happens only once
     static std::once_flag MT_init_flag;
     std::call_once(MT_init_flag, []() {
-        #ifdef BUILD_FOR_WINDOWS
+        #ifdef _WIN32
             SYSTEM_INFO sysinfo;
             GetSystemInfo(&sysinfo);
             NIBR::MT::maxNumberOfThreads = sysinfo.dwNumberOfProcessors;

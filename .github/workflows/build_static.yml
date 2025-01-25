@@ -81,7 +81,7 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: nibrary_macOS_x86_64_static.tar.gz
-        path: ${{ env.build-output-dir }}/nibrary_macOS_x86_64_static.tar.gz
+        path: ${{ env.build-output-dir }}/install/nibrary_macOS_x86_64_static.tar.gz
         if-no-files-found: error
         retention-days: 5
 
@@ -149,7 +149,7 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: nibrary_macOS_arm64_static.tar.gz
-        path: ${{ env.build-output-dir }}/nibrary_macOS_arm64_static.tar.gz
+        path: ${{ env.build-output-dir }}/install/nibrary_macOS_arm64_static.tar.gz
         if-no-files-found: error
         retention-days: 5
 

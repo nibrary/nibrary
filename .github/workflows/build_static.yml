@@ -264,7 +264,8 @@ jobs:
       - name: Install LLVM 18, CMake, and Ninja
         shell: powershell
         run: |
-          choco install llvm --version 18.1.8 cmake ninja -y --force
+          choco install llvm --version 18.1.8 -y --force
+          choco install cmake ninja -y --force
           $env:PATH = "C:\Program Files\LLVM\bin;" + $env:PATH
           Write-Host "LLVM added to PATH: $env:PATH"
 

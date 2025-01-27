@@ -261,10 +261,10 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.ref || github.ref_name }}
 
-      - name: Install LLVM, CMake, and Ninja
+      - name: Install LLVM 18, CMake, and Ninja
         shell: powershell
         run: |
-          choco install llvm cmake ninja -y
+          choco install llvm --version 18.1.8 cmake ninja -y --force
           $env:PATH = "C:\Program Files\LLVM\bin;" + $env:PATH
           Write-Host "LLVM added to PATH: $env:PATH"
 
@@ -284,7 +284,7 @@ jobs:
       - name: Configure CMake with Ninja
         shell: powershell
         run: |
-          & "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+          & "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
           cmake -B $env:build_output_dir `
             -G "Ninja" `
             -DCMAKE_BUILD_TYPE=$env:build_type `
@@ -299,7 +299,7 @@ jobs:
       - name: Build
         shell: powershell
         run: |
-          & "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+          & "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
           cmake --build $env:build_output_dir --config $env:build_type --target install
 
       - name: Create zip archive

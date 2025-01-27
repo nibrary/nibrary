@@ -279,7 +279,7 @@ jobs:
         - name: Configure CMake
           shell: cmd
           run: |
-            "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+            call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
             cmake -B %build_output_dir% ^
               -DCMAKE_BUILD_TYPE=%build_type% ^
               -DBUILD_SHARED_LIBS=OFF ^
@@ -289,11 +289,13 @@ jobs:
         - name: Build
           shell: cmd
           run: |
+            call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
             cmake --build %build_output_dir% --config %build_type% --target install
 
         - name: Create artifact
           shell: cmd
           run: |
+            call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
             7z a -tzip %build_output_dir%\nibrary_windows_static.zip %build_output_dir%\install\include\* %build_output_dir%\install\lib\*
 
         - name: Upload binaries as artifact
@@ -303,3 +305,5 @@ jobs:
             path: ${{ env.build_output_dir }}\nibrary_windows_static.zip
             if-no-files-found: error
             retention-days: 5
+
+        

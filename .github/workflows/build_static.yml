@@ -266,10 +266,10 @@ jobs:
           run: |
             $env:artifact_prefix="windows"
             $env:build_type="Release"
-            $env:build_output_dir="${{ github.workspace }}\build_windows"
+            $env:build-output-dir="${{ github.workspace }}\build_windows"
             Write-Host ("artifact_prefix=" + $env:artifact_prefix) >> $env:GITHUB_ENV
             Write-Host ("build_type=" + $env:build_type) >> $env:GITHUB_ENV
-            Write-Host ("build-output-dir=" + $env:build_output_dir) >> $env:GITHUB_ENV
+            Write-Host ("build-output-dir=" + $env:build-output-dir) >> $env:GITHUB_ENV
             
         - name: Configure CMake
           shell: cmd

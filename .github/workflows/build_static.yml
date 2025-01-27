@@ -270,6 +270,11 @@ jobs:
             Write-Host ("artifact_prefix=" + $env:artifact_prefix) >> $env:GITHUB_ENV
             Write-Host ("build_type=" + $env:build_type) >> $env:GITHUB_ENV
             Write-Host ("build_output_dir=" + $env:build_output_dir) >> $env:GITHUB_ENV
+
+        - name: Create build directory
+          shell: pwsh
+          run: |
+            New-Item -ItemType Directory -Path ${{ env.build_output_dir }}
             
         - name: Configure CMake
           shell: cmd
@@ -280,6 +285,7 @@ jobs:
               -DBUILD_SHARED_LIBS=OFF ^
               -DDEFINE_CUDA=OFF ^
               -S %GITHUB_WORKSPACE%
+
         - name: Build
           run: |
             cmake --build %build_output_dir% --config %build_type% --target install

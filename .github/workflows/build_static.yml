@@ -271,7 +271,7 @@ jobs:
 
           # Check LLVM installation and OpenMP support
           clang --version
-          clang -fopenmp -v -x c - -o NUL < NUL
+          cmd.exe /c "clang -fopenmp -v -x c - -o NUL < NUL"
 
       - name: Set up Developer Command Prompt
         uses: microsoft/setup-msbuild@v1.3.1

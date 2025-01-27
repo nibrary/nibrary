@@ -261,13 +261,6 @@ jobs:
           with:
             ref: ${{ github.event.pull_request.head.ref || github.ref_name }}
 
-        - name: Install LLVM, CMake, and Ninja
-          shell: powershell
-          run: |
-            choco install llvm cmake ninja -y --force
-            $env:PATH = "C:\Program Files\LLVM\bin;" + $env:PATH
-            Write-Host "LLVM added to PATH: $env:PATH"
-
         - name: Set up build directory and environment
           shell: cmd
           run: |
@@ -288,14 +281,9 @@ jobs:
           run: |
             call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
             cmake -B %build_output_dir% ^
-              -G "Ninja" ^
               -DCMAKE_BUILD_TYPE=%build_type% ^
-              -DCMAKE_C_COMPILER=clang ^
-              -DCMAKE_CXX_COMPILER=clang++ ^
               -DBUILD_SHARED_LIBS=OFF ^
               -DDEFINE_CUDA=OFF ^
-              -DOpenMP_C_FLAGS="/openmp" ^
-              -DOpenMP_CXX_FLAGS="/openmp" ^
               -S %GITHUB_WORKSPACE%
 
         - name: Build
@@ -319,3 +307,69 @@ jobs:
             retention-days: 5
 
         
+
+
+      # build_windows:
+      #   runs-on: windows-latest
+
+      #   steps:
+      #     - uses: actions/checkout@v3
+      #       with:
+      #         ref: ${{ github.event.pull_request.head.ref || github.ref_name }}
+
+      #     - name: Install LLVM, CMake, and Ninja
+      #       shell: powershell
+      #       run: |
+      #         choco install llvm cmake ninja -y --force
+      #         $env:PATH = "C:\Program Files\LLVM\bin;" + $env:PATH
+      #         Write-Host "LLVM added to PATH: $env:PATH"
+
+      #     - name: Set up build directory and environment
+      #       shell: cmd
+      #       run: |
+      #         set artifact_prefix=windows
+      #         set build_type=Release
+      #         set build_output_dir=%GITHUB_WORKSPACE%\build_windows
+      #         echo artifact_prefix=%artifact_prefix% >> %GITHUB_ENV%
+      #         echo build_type=%build_type% >> %GITHUB_ENV%
+      #         echo build_output_dir=%build_output_dir% >> %GITHUB_ENV%
+
+      #     - name: Create build directory
+      #       shell: cmd
+      #       run: |
+      #         mkdir %build_output_dir%
+
+      #     - name: Configure CMake
+      #       shell: cmd
+      #       run: |
+      #         call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+      #         cmake -B %build_output_dir% ^
+      #           -G "Ninja" ^
+      #           -DCMAKE_BUILD_TYPE=%build_type% ^
+      #           -DCMAKE_C_COMPILER=clang ^
+      #           -DCMAKE_CXX_COMPILER=clang++ ^
+      #           -DBUILD_SHARED_LIBS=OFF ^
+      #           -DDEFINE_CUDA=OFF ^
+      #           -DOpenMP_C_FLAGS="/openmp" ^
+      #           -DOpenMP_CXX_FLAGS="/openmp" ^
+      #           -S %GITHUB_WORKSPACE%
+
+      #     - name: Build
+      #       shell: cmd
+      #       run: |
+      #         call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+      #         cmake --build %build_output_dir% --config %build_type% --target install
+
+      #     - name: Create artifact
+      #       shell: cmd
+      #       run: |
+      #         call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+      #         7z a -tzip %build_output_dir%\nibrary_windows_static.zip %build_output_dir%\install\include\* %build_output_dir%\install\lib\*
+
+      #     - name: Upload binaries as artifact
+      #       uses: actions/upload-artifact@v4
+      #       with:
+      #         name: nibrary_windows_static.zip
+      #         path: ${{ env.build_output_dir }}\nibrary_windows_static.zip
+      #         if-no-files-found: error
+      #         retention-days: 5

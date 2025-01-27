@@ -261,6 +261,13 @@ jobs:
           with:
             ref: ${{ github.event.pull_request.head.ref || github.ref_name }}
 
+        - name: Install LLVM, CMake, and Ninja
+          shell: powershell
+          run: |
+            choco install llvm cmake ninja -y --force
+            $env:PATH = "C:\Program Files\LLVM\bin;" + $env:PATH
+            Write-Host "LLVM added to PATH: $env:PATH"
+
         - name: Set up build directory and environment
           shell: cmd
           run: |
@@ -281,9 +288,14 @@ jobs:
           run: |
             call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
             cmake -B %build_output_dir% ^
+              -G "Ninja" ^
               -DCMAKE_BUILD_TYPE=%build_type% ^
+              -DCMAKE_C_COMPILER=clang ^
+              -DCMAKE_CXX_COMPILER=clang++ ^
               -DBUILD_SHARED_LIBS=OFF ^
               -DDEFINE_CUDA=OFF ^
+              -DOpenMP_C_FLAGS="/openmp" ^
+              -DOpenMP_CXX_FLAGS="/openmp" ^
               -S %GITHUB_WORKSPACE%
 
         - name: Build

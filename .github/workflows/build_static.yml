@@ -300,6 +300,6 @@ jobs:
           uses: actions/upload-artifact@v4
           with:
             name: nibrary_windows_static.zip
-            path: %build_output_dir%\nibrary_windows_static.zip
+            path: ${{ env.build_output_dir }}\nibrary_windows_static.zip
             if-no-files-found: error
             retention-days: 5

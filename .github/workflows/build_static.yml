@@ -266,33 +266,33 @@ jobs:
           run: |
             $env:artifact_prefix="windows"
             $env:build_type="Release"
-            $env:build-output-dir="${{ github.workspace }}\build_windows"
+            $env:buildoutput-dir="${{ github.workspace }}\build_windows"
             Write-Host ("artifact_prefix=" + $env:artifact_prefix) >> $env:GITHUB_ENV
             Write-Host ("build_type=" + $env:build_type) >> $env:GITHUB_ENV
-            Write-Host ("build-output-dir=" + $env:build-output-dir) >> $env:GITHUB_ENV
+            Write-Host ("build_output_dir=" + $env:build_output_dir) >> $env:GITHUB_ENV
             
         - name: Configure CMake
           shell: cmd
           run: |
             "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
-            cmake -B %build-output-dir% ^
+            cmake -B %build_output_dir% ^
               -DCMAKE_BUILD_TYPE=%build_type% ^
               -DBUILD_SHARED_LIBS=OFF ^
               -DDEFINE_CUDA=OFF ^
               -S %GITHUB_WORKSPACE%
         - name: Build
           run: |
-            cmake --build %build-output-dir% --config %build_type% --target install
+            cmake --build %build_output_dir% --config %build_type% --target install
 
         - name: Create artifact
           shell: pwsh
           run: |
-            Compress-Archive -Path ${{ env.build-output-dir }}\install\include\, ${{ env.build-output-dir }}\install\lib\ -DestinationPath ${{ env.build-output-dir }}\nibrary_windows_static.zip -Force
+            Compress-Archive -Path ${{ env.build_output_dir }}\install\include\, ${{ env.build_output_dir }}\install\lib\ -DestinationPath ${{ env.build_output_dir }}\nibrary_windows_static.zip -Force
 
         - name: Upload binaries as artifact
           uses: actions/upload-artifact@v4
           with:
             name: nibrary_windows_static.zip
-            path: ${{ env.build-output-dir }}\nibrary_windows_static.zip
+            path: ${{ env.build_output_dir }}\nibrary_windows_static.zip
             if-no-files-found: error
             retention-days: 5

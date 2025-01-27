@@ -1,0 +1,253 @@
+name: Static build
+
+on:
+  push:
+    branches:
+      - build
+
+jobs:
+
+  build_macOS_x86_64:
+    runs-on: macos-latest
+
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        ref: ${{ github.event.pull_request.head.ref || github.ref_name }}
+
+    - name: Install x86_64 Homebrew
+      shell: bash
+      run: |
+        arch -x86_64 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)"
+        echo >> /Users/runner/.bash_profile
+        echo 'eval "$(/usr/local/bin/brew shellenv)"' >> /Users/runner/.bash_profile
+        eval "$(/usr/local/bin/brew shellenv)"
+
+    - name: Install dependencies
+      shell: bash
+      run: |
+        arch -x86_64 /usr/local/bin/brew install llvm@18 libomp cmake
+        echo "/usr/local/opt/llvm@18/bin:$PATH" >> $GITHUB_PATH
+        echo "LDFLAGS=-L/usr/local/opt/llvm@18/lib -L/usr/local/opt/libomp/lib -Wl,-rpath,/usr/local/opt/libomp/lib" >> $GITHUB_ENV
+        echo "CPPFLAGS=-I/usr/local/opt/llvm@18/include -I/usr/local/opt/libomp/include" >> $GITHUB_ENV
+        echo "OpenMP_C_FLAGS=-I/usr/local/opt/llvm@18/include -I/usr/local/opt/libomp/include -Xclang -fopenmp" >> $GITHUB_ENV
+        echo "OpenMP_CXX_FLAGS=-I/usr/local/opt/llvm@18/include -I/usr/local/opt/libomp/include -Xclang -fopenmp" >> $GITHUB_ENV
+        echo "OpenMP_C_LIB_NAMES=omp" >> $GITHUB_ENV
+        echo "OpenMP_CXX_LIB_NAMES=omp" >> $GITHUB_ENV
+        echo "OpenMP_omp_LIBRARY=/usr/local/opt/libomp/lib/libomp.dylib" >> $GITHUB_ENV
+
+    - name: Set up build directory and environment
+      shell: bash
+      run: |
+        echo "arch=x86_64" >> $GITHUB_ENV
+        echo "artifact_prefix=macOS_x86_64" >> $GITHUB_ENV
+        echo "build_type=Release" >> $GITHUB_ENV
+        echo "build-output-dir=${{ github.workspace }}/build_macOS_x86_64" >> $GITHUB_ENV
+        
+
+    - name: Configure CMake
+      shell: bash
+      run: |
+        eval "$(/usr/local/bin/brew shellenv)"
+        arch -x86_64 /usr/local/bin/cmake -B ${{ env.build-output-dir }} \
+          -DCMAKE_BUILD_TYPE=${{ env.build_type }} \
+          -DCMAKE_C_COMPILER=/usr/local/opt/llvm@18/bin/clang \
+          -DCMAKE_CXX_COMPILER=/usr/local/opt/llvm@18/bin/clang++ \
+          -DCMAKE_OSX_ARCHITECTURES=${{ env.arch }} \
+          -DBUILD_SHARED_LIBS=OFF \
+          -DDEFINE_CUDA=OFF \
+          -DOpenMP_C_FLAGS="${{ env.OpenMP_C_FLAGS }}" \
+          -DOpenMP_CXX_FLAGS="${{ env.OpenMP_CXX_FLAGS }}" \
+          -DOpenMP_C_LIB_NAMES="${{ env.OpenMP_C_LIB_NAMES }}" \
+          -DOpenMP_CXX_LIB_NAMES="${{ env.OpenMP_CXX_LIB_NAMES }}" \
+          -DOpenMP_omp_LIBRARY="${{ env.OpenMP_omp_LIBRARY }}" \
+          -S ${{ github.workspace }}
+
+
+    - name: Build
+      run: arch -x86_64 /usr/local/bin/cmake --build ${{ env.build-output-dir }} --config ${{ env.build_type }} --target install
+
+    - name: Rename executable
+      shell: bash
+      run: |
+        cd ${{ env.build-output-dir }}/install
+        tar -czvf nibrary_macOS_x86_64_static.tar.gz include lib
+
+    - name: Upload binaries as artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: nibrary_macOS_x86_64_static.tar.gz
+        path: ${{ env.build-output-dir }}/install/nibrary_macOS_x86_64_static.tar.gz
+        if-no-files-found: error
+        retention-days: 5
+
+
+
+  build_macOS_arm64:
+    runs-on: macOS-latest
+
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        ref: ${{ github.event.pull_request.head.ref || github.ref_name }}
+
+    - name: Install dependencies
+      shell: bash
+      run: |
+        brew install llvm@18 libomp
+        echo "PATH=/opt/homebrew/opt/llvm@18/bin:$PATH" >> $GITHUB_PATH
+        echo "LDFLAGS=-L/opt/homebrew/opt/llvm@18/lib -L/opt/homebrew/opt/libomp/lib -Wl,-rpath,/opt/homebrew/opt/libomp/lib" >> $GITHUB_ENV
+        echo "CPPFLAGS=-I/opt/homebrew/opt/llvm@18/include -I/opt/homebrew/opt/libomp/include" >> $GITHUB_ENV
+        echo "OpenMP_C_FLAGS=-I/opt/homebrew/opt/llvm@18/include -I/opt/homebrew/opt/libomp/include -Xclang -fopenmp" >> $GITHUB_ENV
+        echo "OpenMP_CXX_FLAGS=-I/opt/homebrew/opt/llvm@18/include -I/opt/homebrew/opt/libomp/include -Xclang -fopenmp" >> $GITHUB_ENV
+        echo "OpenMP_C_LIB_NAMES=omp" >> $GITHUB_ENV
+        echo "OpenMP_CXX_LIB_NAMES=omp" >> $GITHUB_ENV
+        echo "OpenMP_omp_LIBRARY=/opt/homebrew/opt/libomp/lib/libomp.dylib" >> $GITHUB_ENV
+
+    - name: Set up build directory and environment
+      shell: bash
+      run: |
+        echo "arch=arm64" >> $GITHUB_ENV
+        echo "artifact_prefix=macOS_arm64" >> $GITHUB_ENV
+        echo "build_type=Release" >> $GITHUB_ENV
+        echo "build-output-dir=${{ github.workspace }}/build_macOS_arm64" >> $GITHUB_ENV
+        
+
+    - name: Configure CMake
+      shell: bash
+      run: |
+        cmake -B ${{ env.build-output-dir }} \
+          -DCMAKE_BUILD_TYPE=${{ env.build_type }} \
+          -DCMAKE_C_COMPILER=/opt/homebrew/opt/llvm@18/bin/clang \
+          -DCMAKE_CXX_COMPILER=/opt/homebrew/opt/llvm@18/bin/clang++ \
+          -DCMAKE_OSX_ARCHITECTURES=${{ env.arch }} \
+          -DBUILD_SHARED_LIBS=OFF \
+          -DDEFINE_CUDA=OFF \
+          -DOpenMP_C_FLAGS="${{ env.OpenMP_C_FLAGS }}" \
+          -DOpenMP_CXX_FLAGS="${{ env.OpenMP_CXX_FLAGS }}" \
+          -DOpenMP_C_LIB_NAMES="${{ env.OpenMP_C_LIB_NAMES }}" \
+          -DOpenMP_CXX_LIB_NAMES="${{ env.OpenMP_CXX_LIB_NAMES }}" \
+          -DOpenMP_omp_LIBRARY="${{ env.OpenMP_omp_LIBRARY }}" \
+          -S ${{ github.workspace }}
+
+
+    - name: Build
+      run: cmake --build ${{ env.build-output-dir }} --config ${{ env.build_type }} --target install
+
+    - name: Rename executable
+      shell: bash
+      run: |
+        cd ${{ env.build-output-dir }}/install
+        tar -czvf nibrary_macOS_arm64_static.tar.gz include lib
+
+    - name: Upload binaries as artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: nibrary_macOS_arm64_static.tar.gz
+        path: ${{ env.build-output-dir }}/install/nibrary_macOS_arm64_static.tar.gz
+        if-no-files-found: error
+        retention-days: 5
+
+
+  create-universal-macOS-library:
+    needs: [build_macOS_arm64, build_macOS_x86_64]
+    runs-on: macOS-latest
+    steps:
+      - name: Set up build directory
+        shell: bash
+        run: echo "build-output-dir=${{ github.workspace }}/build_universal" >> $GITHUB_ENV
+
+      - name: Download arm64 artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: nibrary_macOS_arm64_static.tar.gz
+          path: ${{ env.build-output-dir }}/arm64
+
+      - name: Download x86_64 artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: nibrary_macOS_x86_64_static.tar.gz
+          path: ${{ env.build-output-dir }}/x86_64
+
+      - name: Create Universal Library with lipo
+        run: |
+          cd ${{ env.build-output-dir }}/arm64       
+          tar -xzvf ${{ env.build-output-dir }}/arm64/nibrary_macOS_arm64_static.tar.gz
+          cd ${{ env.build-output-dir }}/x86_64
+          tar -xzvf ${{ env.build-output-dir }}/x86_64/nibrary_macOS_x86_64_static.tar.gz
+          lib1_arm=${{ env.build-output-dir }}/arm64/lib/nibrary_v0.3.0/libdcm2niixfs.a
+          lib2_arm=${{ env.build-output-dir }}/arm64/lib/nibrary_v0.3.0/libgeogram.a
+          lib3_arm=${{ env.build-output-dir }}/arm64/lib/nibrary_v0.3.0/libNibrary.a
+          lib4_arm=${{ env.build-output-dir }}/arm64/lib/nibrary_v0.3.0/libz.a
+          lib1_x86_64=${{ env.build-output-dir }}/x86_64/lib/nibrary_v0.3.0/libdcm2niixfs.a
+          lib2_x86_64=${{ env.build-output-dir }}/x86_64/lib/nibrary_v0.3.0/libgeogram.a
+          lib3_x86_64=${{ env.build-output-dir }}/x86_64/lib/nibrary_v0.3.0/libNibrary.a
+          lib4_x86_64=${{ env.build-output-dir }}/x86_64/lib/nibrary_v0.3.0/libz.a
+          mkdir -p ${{ env.build-output-dir }}/lib/nibrary_v0.3.0
+          lib1_comb=${{ env.build-output-dir }}/lib/nibrary_v0.3.0/libdcm2niixfs.a
+          lib2_comb=${{ env.build-output-dir }}/lib/nibrary_v0.3.0/libgeogram.a
+          lib3_comb=${{ env.build-output-dir }}/lib/nibrary_v0.3.0/libNibrary.a
+          lib4_comb=${{ env.build-output-dir }}/lib/nibrary_v0.3.0/libz.a
+          lipo -create ${lib1_arm} ${lib1_x86_64} -output ${lib1_comb}
+          lipo -create ${lib2_arm} ${lib2_x86_64} -output ${lib2_comb}
+          lipo -create ${lib3_arm} ${lib3_x86_64} -output ${lib3_comb}
+          lipo -create ${lib4_arm} ${lib4_x86_64} -output ${lib4_comb}
+          cp -r ${{ env.build-output-dir }}/x86_64/include/ ${{ env.build-output-dir }}/include/
+          cd ${{ env.build-output-dir }}
+          tar -czvf nibrary_macOS_universal_static.tar.gz include lib
+
+      - name: Upload universal library
+        uses: actions/upload-artifact@v4
+        with:
+          name: nibrary_macOS_universal_static.tar.gz
+          path: ${{ env.build-output-dir }}/nibrary_macOS_universal_static.tar.gz
+          if-no-files-found: error
+          retention-days: 5
+
+  build_ubuntu:
+    runs-on: ubuntu-20.04
+
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        ref: ${{ github.event.pull_request.head.ref || github.ref_name }}
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y gcc-9 g++-9 libomp-dev cmake
+        
+    - name: Set up build directory and environment
+      shell: bash
+      run: |
+        echo "artifact_prefix=linux" >> $GITHUB_ENV
+        echo "build_type=Release" >> $GITHUB_ENV
+        echo "build-output-dir=${{ github.workspace }}/build_linux" >> $GITHUB_ENV
+
+    - name: Configure CMake (Ubuntu)
+      shell: bash
+      run: |
+        cmake -B ${{ env.build-output-dir }} \
+          -DCMAKE_BUILD_TYPE=${{ env.build_type }} \
+          -DCMAKE_C_COMPILER=gcc-9 \
+          -DCMAKE_CXX_COMPILER=g++-9 \
+          -DBUILD_SHARED_LIBS=OFF \
+          -DDEFINE_CUDA=OFF \
+          -S ${{ github.workspace }}
+
+    - name: Build
+      run: cmake --build ${{ env.build-output-dir }} --config ${{ env.build_type }} --target install
+
+    - name: Rename executable
+      shell: bash
+      run: |
+        cd ${{ env.build-output-dir }}/install
+        tar -czvf nibrary_linux_static.tar.gz include lib
+
+    - name: Upload binaries as artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: nibrary_linux_static.tar.gz
+        path: ${{ env.build-output-dir }}/install/nibrary_linux_static.tar.gz
+        if-no-files-found: error
+        retention-days: 5

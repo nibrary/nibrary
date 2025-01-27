@@ -145,7 +145,7 @@ if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
 elseif (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
 
     message(STATUS ">> Nibrary::Building for MacOs")
-    add_compile_definitions(APPLE)
+    add_compile_definitions(APPLE __APPLE__ MACH __MACH__)
 
 elseif (CMAKE_SYSTEM_NAME STREQUAL "Windows")
 
@@ -154,7 +154,7 @@ elseif (CMAKE_SYSTEM_NAME STREQUAL "Windows")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /std:c++17 /permissive- /bigobj")
 
     # For definitions
-    add_compile_definitions(BUILD_FOR_WINDOWS _USE_MATH_DEFINES _WIN32 WIN32 _WIN64 WIN64)
+    add_compile_definitions(_USE_MATH_DEFINES _WIN32 WIN32 _WIN64 WIN64)
 
     # Disable some compiler warnings
     set(DISABLED_WARNINGS "/wd4244 /wd4267 /wd4996 /wd4305 /wd4101 /wd4068 /wd4661 /wd4477 /wd4804 /wd4700")

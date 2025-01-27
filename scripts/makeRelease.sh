@@ -83,13 +83,21 @@ echo "Copied items to release directory."
 
 
 # ======================================================
-# 4. Remove proxsuite/test directories from within submodules
+# 4. Remove unnecessary directories from within submodules
 PROXSUITE_TEST_FOLDER="${RELEASE_FOLDER}/external/proxsuite/test"
 echo "Removing proxsuite test folder: $PROXSUITE_TEST_FOLDER"
 rm -rf $PROXSUITE_TEST_FOLDER
 
+PROXSUITE_EXAMPLE_FOLDER="${RELEASE_FOLDER}/external/proxsuite/examples"
+echo "Removing proxsuite example folder: $PROXSUITE_EXAMPLE_FOLDER"
+rm -rf $PROXSUITE_EXAMPLE_FOLDER
+
+SIMDE_TEST_FOLDER="${RELEASE_FOLDER}/external/simde/test"
+echo "Removing simde test folder: $SIMDE_TEST_FOLDER"
+rm -rf $SIMDE_TEST_FOLDER
+
 DCM2NIIX_GIT_FOLDER="${RELEASE_FOLDER}/external/dcm2niix/.git"
-echo "Removing dcm2niix git folder: $DCM2NIIX_GIT_FOLDER"
+echo "Removing dcm2niix .git folder: $DCM2NIIX_GIT_FOLDER"
 rm -rf $DCM2NIIX_GIT_FOLDER
 
 

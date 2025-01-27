@@ -265,13 +265,8 @@ jobs:
         shell: powershell
         run: |
           choco install llvm cmake ninja -y
-          # Add LLVM to PATH for current and future steps
           $env:PATH = "C:\Program Files\LLVM\bin;" + $env:PATH
           Write-Host "LLVM added to PATH: $env:PATH"
-
-          # Check LLVM installation and OpenMP support
-          clang --version
-          cmd.exe /c "clang -fopenmp -v -x c - -o NUL < NUL"
 
       - name: Set up Developer Command Prompt
         uses: microsoft/setup-msbuild@v1.3.1

@@ -92,8 +92,6 @@ if(BUILDING_GEOGRAM_FROM_SOURCE)
     add_dependencies(OBJS build_geogram)
 endif()
 
-target_compile_features(OBJS PUBLIC cxx_std_17)
-
 IF(BUILD_SHARED_LIBS)
     message(STATUS ">> Nibrary::Building shared library")
     set_property(TARGET OBJS PROPERTY POSITION_INDEPENDENT_CODE ON)

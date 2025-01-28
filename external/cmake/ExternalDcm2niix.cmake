@@ -17,8 +17,10 @@ if (BUILD_DCM2NIIX AND UNIX AND NOT BUILD_SHARED_LIBS)
         set(DCM2NIIX_SOURCE_DIR "${CMAKE_SOURCE_DIR}/external/dcm2niix")
 
         conditional_rename("${CMAKE_SOURCE_DIR}/external/dcm2niix/console/nifti1_io_core.cpp" "${CMAKE_SOURCE_DIR}/external/dcm2niix/console/nifti1_io_core_cpp_nibr_bak")
-
         conditional_copy_file("${CMAKE_SOURCE_DIR}/external/dcm2niix_patch/nifti1_io_core.cpp" "${CMAKE_SOURCE_DIR}/external/dcm2niix/console/nifti1_io_core.cpp")
+
+        conditional_rename("${CMAKE_SOURCE_DIR}/external/dcm2niix/console/CMakeLists.txt" "${CMAKE_SOURCE_DIR}/external/dcm2niix/console/CMakeLists_txt_nibr_bak")
+        conditional_copy_file("${CMAKE_SOURCE_DIR}/external/dcm2niix_patch/CMakeLists.txt" "${CMAKE_SOURCE_DIR}/external/dcm2niix/console/CMakeLists.txt")
 
         set(BUILDING_DCM2NIIX_FROM_SOURCE TRUE CACHE INTERNAL "dcm2niix will be built from local source")
 
@@ -29,8 +31,10 @@ if (BUILD_DCM2NIIX AND UNIX AND NOT BUILD_SHARED_LIBS)
         set(DCM2NIIX_SOURCE_DIR "${CMAKE_SOURCE_DIR}/external/dcm2niix_v${DCM2NIIX_VERSION}")
 
         conditional_rename("${CMAKE_SOURCE_DIR}/external/dcm2niix/console/nifti1_io_core.cpp" "${CMAKE_SOURCE_DIR}/external/dcm2niix/console/nifti1_io_core_cpp_nibr_bak")
-
         conditional_copy_file("${CMAKE_SOURCE_DIR}/external/dcm2niix_patch/nifti1_io_core.cpp" "${CMAKE_SOURCE_DIR}/external/dcm2niix/console/nifti1_io_core.cpp")
+
+        conditional_rename("${CMAKE_SOURCE_DIR}/external/dcm2niix/console/CMakeLists.txt" "${CMAKE_SOURCE_DIR}/external/dcm2niix/console/CMakeLists_txt_nibr_bak")
+        conditional_copy_file("${CMAKE_SOURCE_DIR}/external/dcm2niix_patch/CMakeLists.txt" "${CMAKE_SOURCE_DIR}/external/dcm2niix/console/CMakeLists.txt")
 
         set(BUILDING_DCM2NIIX_FROM_SOURCE TRUE CACHE INTERNAL "dcm2niix will be built from local source")
 
@@ -68,6 +72,10 @@ if (BUILD_DCM2NIIX AND UNIX AND NOT BUILD_SHARED_LIBS)
 
             conditional_rename("${DCM2NIIX_SOURCE_DIR}/console/nifti1_io_core.cpp" "${DCM2NIIX_SOURCE_DIR}/console/nifti1_io_core_cpp_nibr_bak")
             conditional_copy_file("${CMAKE_SOURCE_DIR}/external/dcm2niix_patch/nifti1_io_core.cpp" "${DCM2NIIX_SOURCE_DIR}/console/nifti1_io_core.cpp")
+
+            
+            conditional_rename("${CMAKE_SOURCE_DIR}/console/CMakeLists.txt" "${CMAKE_SOURCE_DIR}/console/CMakeLists_txt_nibr_bak")
+            conditional_copy_file("${CMAKE_SOURCE_DIR}/external/dcm2niix_patch/CMakeLists.txt" "${CMAKE_SOURCE_DIR}/console/CMakeLists.txt")
 
         endif()
 

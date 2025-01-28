@@ -6,8 +6,6 @@
 #include <vector>
 #include <cmath>
 
-using namespace std;
-
 namespace NIBR 
 {
 
@@ -26,10 +24,10 @@ namespace NIBR
         std::sort(idx.begin(),idx.end());
 
         auto   beg    = inp.begin();
-        size_t offset = 0;
+        std::size_t offset = 0;
 
         for (auto it = idx.begin(); it < idx.end(); it++) {
-            size_t next = (it + 1 == idx.cend() ? inp.size() : *(it + 1));
+            std::size_t next = (it + 1 == idx.cend() ? inp.size() : *(it + 1));
             std::move(beg+*it+1, beg+next, beg+*it-offset);
             offset++;
         }
@@ -56,7 +54,7 @@ namespace NIBR
     }
 
     template<typename T>
-    std::vector<T> linspace(T start, T end, size_t N) {
+    std::vector<T> linspace(T start, T end, std::size_t N) {
         std::vector<T> result;
 
         if (N == 0) return result;
@@ -68,7 +66,7 @@ namespace NIBR
 
         T step = (end - start) / static_cast<T>(N - 1);
 
-        for (size_t i = 0; i < N; ++i) {
+        for (std::size_t i = 0; i < N; ++i) {
             result.push_back(start + i * step);
         }
 
@@ -77,14 +75,14 @@ namespace NIBR
 
 
     template<typename T>
-    std::vector<T> getEvenlySeparatedSamples(const std::vector<T>& vec, size_t M) {
+    std::vector<T> getEvenlySeparatedSamples(const std::vector<T>& vec, std::size_t M) {
         std::vector<T> samples;
-        size_t N = vec.size();
+        std::size_t N = vec.size();
         
         double step = double(N-1)/double(M-1);
 
-        for (size_t i = 0; i < M; ++i) {
-            size_t index = size_t(std::round(i * step));
+        for (std::size_t i = 0; i < M; ++i) {
+            std::size_t index = std::size_t(std::round(i * step));
             if (index < N) {
                 samples.push_back(vec[index]);
             }
@@ -94,16 +92,16 @@ namespace NIBR
     }
 
     template<typename T>
-    size_t findClosestIndex(const std::vector<T>& vec, const T& query) {
+    std::size_t findClosestIndex(const std::vector<T>& vec, const T& query) {
         if (vec.empty()) {
             disp(MSG_ERROR,"Vector is empty. Cannot find closest element.");
-            return std::numeric_limits<size_t>::max(); // return an invalid index
+            return std::numeric_limits<std::size_t>::max(); // return an invalid index
         }
 
-        size_t closestIndex = 0;
+        std::size_t closestIndex = 0;
         T minDifference = std::numeric_limits<T>::max();
 
-        for (size_t i = 0; i < vec.size(); ++i) {
+        for (std::size_t i = 0; i < vec.size(); ++i) {
             T difference = std::abs(vec[i] - query);
             if (difference < minDifference) {
                 minDifference = difference;
@@ -115,36 +113,36 @@ namespace NIBR
     }
 
     template<typename T>
-    size_t findFirstGreaterIndex(const std::vector<T>& vec, const T& query) {
+    std::size_t findFirstGreaterIndex(const std::vector<T>& vec, const T& query) {
         if (vec.empty()) {
             disp(MSG_ERROR, "Vector is empty. Cannot find element greater than input.");
-            return std::numeric_limits<size_t>::max(); // return an invalid index
+            return std::numeric_limits<std::size_t>::max(); // return an invalid index
         }
 
-        for (size_t i = 0; i < vec.size(); ++i) {
+        for (std::size_t i = 0; i < vec.size(); ++i) {
             if (vec[i] >= query) {
                 return i; 
             }
         }
 
-        return std::numeric_limits<size_t>::max();  // return an invalid index
+        return std::numeric_limits<std::size_t>::max();  // return an invalid index
     }
 
 
     template<typename T>
-    size_t findFirstSmallerIndex(const std::vector<T>& vec, const T& query) {
+    std::size_t findFirstSmallerIndex(const std::vector<T>& vec, const T& query) {
         if (vec.empty()) {
             disp(MSG_ERROR, "Vector is empty. Cannot find element smaller than input.");
-            return std::numeric_limits<size_t>::max(); // return an invalid index
+            return std::numeric_limits<std::size_t>::max(); // return an invalid index
         }
 
-        for (size_t i = 0; i < vec.size(); ++i) {
+        for (std::size_t i = 0; i < vec.size(); ++i) {
             if (vec[i] <= query) {
                 return i;
             }
         }
 
-        return std::numeric_limits<size_t>::max();  // return an invalid index
+        return std::numeric_limits<std::size_t>::max();  // return an invalid index
     }
 
 

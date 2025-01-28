@@ -3,8 +3,6 @@
 #include "sphericalFunctions.h"
 #include <algorithm>
 
-using namespace std;
-
 namespace NIBR {
     namespace SF {
         std::vector<std::vector<float>>                      sfCoords;
@@ -63,20 +61,20 @@ void NIBR::SF::init(bool _sfIsEven, int _sfDim)
             for (float z=zs; z<=R; z++) {
                 float dist = std::sqrt(x*x+y*y+z*z);
                 if (std::abs(dist-sfRadius)<(std::sqrt(3)/2)) {
-                    sfInds[size_t((x+R)+((y+R)+(z-zs)*sfDim)*sfDim)] = ind++;                  
+                    sfInds[std::size_t((x+R)+((y+R)+(z-zs)*sfDim)*sfDim)] = ind++;                  
                     float p[3] = {x,y,z}; 
                     normalize(p);
                     std::vector<float> vertex{p[0],p[1],p[2]};
                     sfCoords.push_back(vertex);
                 }
                 else
-                    sfInds[size_t((x+R)+((y+R)+(z-zs)*sfDim)*sfDim)] = -1;
+                    sfInds[std::size_t((x+R)+((y+R)+(z-zs)*sfDim)*sfDim)] = -1;
                 
             }
 
     sfNeighbors.resize(sfCoords.size());
-    for (size_t v=0; v<sfCoords.size(); v++) {
-        for (size_t u=0; u<sfCoords.size(); u++)
+    for (std::size_t v=0; v<sfCoords.size(); v++) {
+        for (std::size_t u=0; u<sfCoords.size(); u++)
             sfNeighbors[v].push_back(std::make_tuple(u,distS2(sfCoords[v],sfCoords[u])));
         std::sort(sfNeighbors[v].begin(), sfNeighbors[v].end(), [](auto a, auto b) {return std::get<1>(a) < std::get<1>(b);} );
     }
@@ -93,9 +91,9 @@ void NIBR::SF::init(std::vector<std::vector<float>>& coordinates, bool _sfIsEven
     sfNeighbors.resize(sfCoords.size());
 
     float dist = 0;
-    for (size_t v=0; v<sfCoords.size(); v++) {
+    for (std::size_t v=0; v<sfCoords.size(); v++) {
 
-        for (size_t u=0; u<sfCoords.size(); u++) {
+        for (std::size_t u=0; u<sfCoords.size(); u++) {
             if (sfIsEven) {
                 std::vector<float> reverseDir = {-sfCoords[u][0],-sfCoords[u][1],-sfCoords[u][2]};
                 dist = std::min(distS2(sfCoords[v],sfCoords[u]), distS2(sfCoords[v],reverseDir));

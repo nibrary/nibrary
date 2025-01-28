@@ -3,8 +3,6 @@
 #include "base/multithreader.h"
 #include "sphericalHarmonics.h"
 
-using namespace std;
-
 namespace NIBR {
 
     namespace SH {
@@ -13,8 +11,8 @@ namespace NIBR {
         bool    isEven                                  = true;
         int 	numberOfSphericalHarmonicCoefficients  	= 0;
 
-        size_t  numberOfSamples_phi 					= 0;
-        size_t  numberOfSamples_theta 					= 0;
+        std::size_t  numberOfSamples_phi 			    = 0;
+        std::size_t  numberOfSamples_theta 				= 0;
 
         float   scalingFactor_phi 						= 0;
         float   scalingFactor_theta 				    = 0;
@@ -101,7 +99,7 @@ void NIBR::SH::clean() {
 }
 
 
-void NIBR::SH::precompute(int _sphericalHarmonicOrder, OrderOfDirections _orderOfDirs, size_t _num) {
+void NIBR::SH::precompute(int _sphericalHarmonicOrder, OrderOfDirections _orderOfDirs, std::size_t _num) {
     
     if (NIBR::SH::precomputedPhiComponent != NULL) {return;}
 
@@ -133,10 +131,10 @@ void NIBR::SH::precompute(int _sphericalHarmonicOrder, OrderOfDirections _orderO
      
     auto preComputePhi = [&](NIBR::MT::TASK task)->void {
 
-        size_t c        = task.no*NIBR::SH::numberOfSamples_phi*NIBR::SH::numberOfSphericalHarmonicCoefficients;
+        std::size_t c        = task.no*NIBR::SH::numberOfSamples_phi*NIBR::SH::numberOfSphericalHarmonicCoefficients;
 		double x 		= (double)(task.no)*delta_phi-1;
         
-		for (size_t j=0; j<NIBR::SH::numberOfSamples_phi; j++) {
+		for (std::size_t j=0; j<NIBR::SH::numberOfSamples_phi; j++) {
 
 			double y 		= (double)j*delta_phi-1;
 			double phi 		= std::atan2(y,x);
@@ -170,7 +168,7 @@ void NIBR::SH::precompute(int _sphericalHarmonicOrder, OrderOfDirections _orderO
     
 	auto preComputeTheta = [&](NIBR::MT::TASK task)->void {
 
-        size_t c        = task.no*NIBR::SH::numberOfSphericalHarmonicCoefficients;
+        std::size_t c        = task.no*NIBR::SH::numberOfSphericalHarmonicCoefficients;
         
         double *plm     = new double[NIBR::SH::numberOfSphericalHarmonicCoefficients];
 		double theta    = (double)(task.no)*delta_theta-1;
@@ -218,7 +216,7 @@ void NIBR::SH_basis(std::vector<std::vector<float>>& Ylm, std::vector<std::vecto
     int coeffCount = (order%2 == 0) ? (order+3)*order/2+1 : (order+1)*(order+1);
     double *plm    = new double[coeffCount];
        
-    for (size_t i=0; i<inpCoords.size(); i++) {
+    for (std::size_t i=0; i<inpCoords.size(); i++) {
 
         std::vector<float> basis;
         
@@ -268,11 +266,11 @@ float NIBR::SH::toSF(float *sh, float *dir) {
     unit_dir[1]     = dir[1];
     unit_dir[2]     = dir[2];
 
-    auto getPhiIndex = [&]()->size_t {
-        return  numberOfSphericalHarmonicCoefficients*((size_t)((unit_dir[0]+1)*scalingFactor_phi)*numberOfSamples_phi + (size_t)((unit_dir[1]+1)*scalingFactor_phi));
+    auto getPhiIndex = [&]()->std::size_t {
+        return  numberOfSphericalHarmonicCoefficients*((std::size_t)((unit_dir[0]+1)*scalingFactor_phi)*numberOfSamples_phi + (std::size_t)((unit_dir[1]+1)*scalingFactor_phi));
     };
 
-    auto getThetaIndex = [&]()->size_t {
+    auto getThetaIndex = [&]()->std::size_t {
         return  (int)((unit_dir[2]+1)*scalingFactor_theta)*numberOfSphericalHarmonicCoefficients;
     };
     

@@ -4,8 +4,6 @@
 #include "trackerThread.h"
 #include "tracker.h"
 
-#include <cstdint>
-
 using namespace NIBR;
 
 TrackingThread::TrackingThread(int _id) 
@@ -386,7 +384,7 @@ bool TrackingThread::track()
 		{
 			std::lock_guard<std::mutex> lock(NIBR::MT::PROC_MX());
 
-			TRACKER::countIsReached = (TRACKER::tractogram.size()==size_t(TRACKER::seed.getCount()));
+			TRACKER::countIsReached = (TRACKER::tractogram.size()==std::size_t(TRACKER::seed.getCount()));
 
 			if (!TRACKER::countIsReached) {
 
@@ -404,7 +402,7 @@ bool TrackingThread::track()
 
 			}
 
-			TRACKER::countIsReached = (TRACKER::tractogram.size()==size_t(TRACKER::seed.getCount()));
+			TRACKER::countIsReached = (TRACKER::tractogram.size()==std::size_t(TRACKER::seed.getCount()));
 
 		}
 

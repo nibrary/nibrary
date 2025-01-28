@@ -9,12 +9,7 @@
 #include <complex>
 #include <set>
 
-#ifdef _WIN32
-#include <windows.h>
-#include <io.h>
-#undef max
-#undef min
-#else
+#ifndef _WIN32
 #include <unistd.h>
 #endif
 

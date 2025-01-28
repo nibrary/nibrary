@@ -1,10 +1,6 @@
 #pragma once
 
-#ifdef _WIN32
-#include <windows.h>
-#include <io.h>
-#undef max
-#else
+#ifndef _WIN32
 #include <unistd.h>
 #endif
 

@@ -149,9 +149,9 @@ elseif (CMAKE_SYSTEM_NAME STREQUAL "Windows")
     message(STATUS ">> Nibrary::Building for Windows")
 
     if (BUILD_SHARED_LIBS)
-        set(CMAKE_MSVC_RUNTIME_LIBRARY "$<$<CONFIG:Release>:MultiThreadedDLL>$<$<CONFIG:Debug>:MultiThreadedDebugDLL>")
+        set_target_properties(${libNibrary} PROPERTIES MSVC_RUNTIME_LIBRARY "MultiThreadedDLL")
     else()
-        set(CMAKE_MSVC_RUNTIME_LIBRARY "$<$<CONFIG:Release>:MultiThreaded>$<$<CONFIG:Debug>:MultiThreadedDebug>")
+        set_target_properties(${libNibrary} PROPERTIES MSVC_RUNTIME_LIBRARY "MultiThreaded")
     endif()
 
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /std:c++17 /permissive- /bigobj")

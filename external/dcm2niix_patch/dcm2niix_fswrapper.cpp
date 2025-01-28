@@ -24,8 +24,11 @@ char* dirname(char* path) {
     }
 }
 
+#define strtok_portable(str, delim, context) strtok_s(str, delim, context)
+
 #else
 #include <libgen.h> // For dirname on non-Windows systems
+#define strtok_portable(str, delim, context) strtok_r(str, delim, context)
 #endif
 
 struct TDCMopts dcm2niix_fswrapper::tdcmOpts;
@@ -144,7 +147,7 @@ void dcm2niix_fswrapper::__setDcm2niixOpts(const char *dcm2niixopts) {
 	memset(restOpts, 0, strlen(dcm2niixopts) + 1);
 	memcpy(restOpts, dcm2niixopts, strlen(dcm2niixopts));
 
-	char *nextOpt = strtok_r((char *)dcm2niixopts, ",", &restOpts);
+	char *nextOpt = strtok_portable((char *)dcm2niixopts, ",", &restOpts);
 	while (nextOpt != NULL) {
 		char *k = nextOpt;
 		char *v = strchr(nextOpt, '=');
@@ -204,7 +207,7 @@ void dcm2niix_fswrapper::__setDcm2niixOpts(const char *dcm2niixopts) {
 			printf("[WARN] dcm2niix option %s=%s skipped\n", k, v);
 		}
 
-		nextOpt = strtok_r(NULL, ",", &restOpts);
+		nextOpt = strtok_portable(NULL, ",", &restOpts);
 	}
 }
 

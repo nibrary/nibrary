@@ -10,7 +10,10 @@ conditional_make_directory("${NIBRARY_CMAKE_INSTALL_PREFIX}/include/${nibrary}/d
 conditional_copy_file("${NIBRARY_CMAKE_SOURCE_DIR}/external/dcm2niix_patch/dcm2niix_fswrapper.h" "${NIBRARY_CMAKE_INSTALL_PREFIX}/include/${nibrary}/dcm2niix/dcm2niix_fswrapper.h")
 
 # Rename libraries
-conditional_copy_file("${CMAKE_BINARY_DIR}/dcm2niix/src/build_dcm2niix-build/lib/libdcm2niixfs.a" "${NIBRARY_CMAKE_INSTALL_PREFIX}/lib/${nibrary}/libdcm2niixfs.a")
-conditional_copy_file("${CMAKE_BINARY_DIR}/dcm2niix/src/build_dcm2niix-build/lib/dcm2niixfs.lib" "${NIBRARY_CMAKE_INSTALL_PREFIX}/lib/${nibrary}/dcm2niixfs.lib")
+if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
+    conditional_copy_file("${CMAKE_BINARY_DIR}/dcm2niix/src/build_dcm2niix-build/lib/dcm2niixfs.lib" "${NIBRARY_CMAKE_INSTALL_PREFIX}/lib/${nibrary}/dcm2niixfs.lib")
+else()
+    conditional_copy_file("${CMAKE_BINARY_DIR}/dcm2niix/src/build_dcm2niix-build/lib/libdcm2niixfs.a" "${NIBRARY_CMAKE_INSTALL_PREFIX}/lib/${nibrary}/libdcm2niixfs.a")
+endif()
 
 

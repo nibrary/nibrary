@@ -9,7 +9,7 @@ if (BUILD_DCM2NIIX AND NOT BUILD_SHARED_LIBS)
     if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
         set(DCM2NIIX_LIBRARY        ${CMAKE_INSTALL_PREFIX}/lib/${nibrary}/dcm2niixfs.lib  CACHE INTERNAL "")
     else()
-    set(DCM2NIIX_LIBRARY        ${CMAKE_INSTALL_PREFIX}/lib/${nibrary}/libdcm2niixfs.a  CACHE INTERNAL "")
+        set(DCM2NIIX_LIBRARY        ${CMAKE_INSTALL_PREFIX}/lib/${nibrary}/libdcm2niixfs.a  CACHE INTERNAL "")
     endif()
 
     set(DCM2NIIX_LIBRARY_DIR    ${CMAKE_INSTALL_PREFIX}/lib/${nibrary}                  CACHE INTERNAL "")

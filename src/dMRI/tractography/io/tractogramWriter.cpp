@@ -7,6 +7,10 @@
 #include <iostream>
 #include <ratio>
 
+#ifdef _WIN32
+#undef byte
+#endif
+
 using namespace NIBR;
 
 bool NIBR::writeTractogram(std::string fname,NIBR::TractogramReader* tractogram) 

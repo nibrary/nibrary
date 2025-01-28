@@ -9,8 +9,6 @@
 
 #define DEFAULT_IDLETIMELIMIT 120 // If not streamline is computed in the last 120 sec idleTimeLimitReached will be set to true
 
-using namespace std;
-
 namespace NIBR {
 
 namespace TRACKER 
@@ -38,24 +36,24 @@ extern bool                                         countIsReached;
 extern int                                          ready_thread_id;
 
 // Loggers
-extern std::atomic<size_t> log_success_REACHED_MAXLENGTH_LIMIT;
-extern std::atomic<size_t> log_success_REACHED_MINDATASUPPORT_LIMIT;
-extern std::atomic<size_t> log_success_SATISFIED_PATHWAY_RULES;
+extern std::atomic<std::size_t> log_success_REACHED_MAXLENGTH_LIMIT;
+extern std::atomic<std::size_t> log_success_REACHED_MINDATASUPPORT_LIMIT;
+extern std::atomic<std::size_t> log_success_SATISFIED_PATHWAY_RULES;
 
-extern std::atomic<size_t> log_discard_TOO_SHORT;
-extern std::atomic<size_t> log_discard_TOO_LONG;
-extern std::atomic<size_t> log_discard_DISCARD_ROI_REACHED;
-extern std::atomic<size_t> log_discard_REQUIRED_ROI_NOT_MET;
-extern std::atomic<size_t> log_discard_REQUIRED_ROI_ORDER_NOT_MET;
-extern std::atomic<size_t> log_discard_CANT_MEET_STOP_CONDITION;
-extern std::atomic<size_t> log_discard_ENDED_INSIDE_DISCARD_ROI;
-extern std::atomic<size_t> log_discard_REACHED_TIME_LIMIT;
+extern std::atomic<std::size_t> log_discard_TOO_SHORT;
+extern std::atomic<std::size_t> log_discard_TOO_LONG;
+extern std::atomic<std::size_t> log_discard_DISCARD_ROI_REACHED;
+extern std::atomic<std::size_t> log_discard_REQUIRED_ROI_NOT_MET;
+extern std::atomic<std::size_t> log_discard_REQUIRED_ROI_ORDER_NOT_MET;
+extern std::atomic<std::size_t> log_discard_CANT_MEET_STOP_CONDITION;
+extern std::atomic<std::size_t> log_discard_ENDED_INSIDE_DISCARD_ROI;
+extern std::atomic<std::size_t> log_discard_REACHED_TIME_LIMIT;
 
-extern std::atomic<size_t> log_failed_UNKNOWN_REASON;
-extern std::atomic<size_t> log_failed_BY_THE_ALGORITHM_AT_INITIALIZATION;
-extern std::atomic<size_t> log_failed_BY_THE_ALGORITHM;
+extern std::atomic<std::size_t> log_failed_UNKNOWN_REASON;
+extern std::atomic<std::size_t> log_failed_BY_THE_ALGORITHM_AT_INITIALIZATION;
+extern std::atomic<std::size_t> log_failed_BY_THE_ALGORITHM;
 
-extern std::atomic<size_t> log_unexpected_TRACKING_STATUS;
+extern std::atomic<std::size_t> log_unexpected_TRACKING_STATUS;
 
 std::vector<std::vector<std::vector<float>>>& getTractogram();
 TractogramField& getSeedIndexField();

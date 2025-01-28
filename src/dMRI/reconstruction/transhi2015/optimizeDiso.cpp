@@ -51,6 +51,7 @@
 #pragma clang diagnostic pop
 #endif
 
+#include <optional>
 
 using namespace NIBR;
 

@@ -50,6 +50,7 @@
 #pragma clang diagnostic pop
 #endif
 
+#include <optional>
 
 // Below implements orientation handling functions, inspired from:
 // https://github.com/nipy/nibabel/blob/d23a8336582d07d683d3af73cf097c3be2de9af8/nibabel/orientations.py#L356

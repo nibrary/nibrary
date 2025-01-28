@@ -53,6 +53,8 @@
 #pragma clang diagnostic pop
 #endif
 
+#include <optional>
+
 using namespace NIBR;
 
 using namespace proxsuite::proxqp;

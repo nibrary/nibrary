@@ -11,6 +11,6 @@ conditional_copy_file("${NIBRARY_CMAKE_SOURCE_DIR}/external/dcm2niix_patch/dcm2n
 
 # Rename libraries
 conditional_copy_file("${CMAKE_BINARY_DIR}/dcm2niix/src/build_dcm2niix-build/lib/libdcm2niixfs.a" "${NIBRARY_CMAKE_INSTALL_PREFIX}/lib/${nibrary}/libdcm2niixfs.a")
-conditional_copy_file("${CMAKE_BINARY_DIR}/dcm2niix/src/build_dcm2niix-build/lib/libdcm2niixfs.lib" "${NIBRARY_CMAKE_INSTALL_PREFIX}/lib/${nibrary}/libdcm2niixfs.lib")
+conditional_copy_file("${CMAKE_BINARY_DIR}/dcm2niix/src/build_dcm2niix-build/lib/dcm2niixfs.lib" "${NIBRARY_CMAKE_INSTALL_PREFIX}/lib/${nibrary}/dcm2niixfs.lib")
 
 

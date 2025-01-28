@@ -6,7 +6,12 @@ if (BUILD_DCM2NIIX AND NOT BUILD_SHARED_LIBS)
 
     include("${CMAKE_CURRENT_LIST_DIR}/utils.cmake")
 
+    if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
+        set(DCM2NIIX_LIBRARY        ${CMAKE_INSTALL_PREFIX}/lib/${nibrary}/dcm2niixfs.lib  CACHE INTERNAL "")
+    else()
     set(DCM2NIIX_LIBRARY        ${CMAKE_INSTALL_PREFIX}/lib/${nibrary}/libdcm2niixfs.a  CACHE INTERNAL "")
+    endif()
+
     set(DCM2NIIX_LIBRARY_DIR    ${CMAKE_INSTALL_PREFIX}/lib/${nibrary}                  CACHE INTERNAL "")
     set(DCM2NIIX_INCLUDE_DIR    ${CMAKE_INSTALL_PREFIX}/include/${nibrary}/dcm2niix     CACHE INTERNAL "")
 
@@ -18,6 +23,9 @@ if (BUILD_DCM2NIIX AND NOT BUILD_SHARED_LIBS)
 
         conditional_rename("${CMAKE_SOURCE_DIR}/external/dcm2niix/console/nifti1_io_core.cpp" "${CMAKE_SOURCE_DIR}/external/dcm2niix/console/nifti1_io_core_cpp_nibr_bak")
         conditional_copy_file("${CMAKE_SOURCE_DIR}/external/dcm2niix_patch/nifti1_io_core.cpp" "${CMAKE_SOURCE_DIR}/external/dcm2niix/console/nifti1_io_core.cpp")
+
+        conditional_rename("${CMAKE_SOURCE_DIR}/external/dcm2niix/console/dcm2niix_fswrapper.cpp" "${CMAKE_SOURCE_DIR}/external/dcm2niix/console/dcm2niix_fswrapper_cpp_nibr_bak")
+        conditional_copy_file("${CMAKE_SOURCE_DIR}/external/dcm2niix_patch/dcm2niix_fswrapper.cpp" "${CMAKE_SOURCE_DIR}/external/dcm2niix/console/dcm2niix_fswrapper.cpp")
 
         conditional_rename("${CMAKE_SOURCE_DIR}/external/dcm2niix/console/CMakeLists.txt" "${CMAKE_SOURCE_DIR}/external/dcm2niix/console/CMakeLists_txt_nibr_bak")
         conditional_copy_file("${CMAKE_SOURCE_DIR}/external/dcm2niix_patch/CMakeLists.txt" "${CMAKE_SOURCE_DIR}/external/dcm2niix/console/CMakeLists.txt")
@@ -32,6 +40,9 @@ if (BUILD_DCM2NIIX AND NOT BUILD_SHARED_LIBS)
 
         conditional_rename("${CMAKE_SOURCE_DIR}/external/dcm2niix/console/nifti1_io_core.cpp" "${CMAKE_SOURCE_DIR}/external/dcm2niix/console/nifti1_io_core_cpp_nibr_bak")
         conditional_copy_file("${CMAKE_SOURCE_DIR}/external/dcm2niix_patch/nifti1_io_core.cpp" "${CMAKE_SOURCE_DIR}/external/dcm2niix/console/nifti1_io_core.cpp")
+
+        conditional_rename("${CMAKE_SOURCE_DIR}/external/dcm2niix/console/dcm2niix_fswrapper.cpp" "${CMAKE_SOURCE_DIR}/external/dcm2niix/console/dcm2niix_fswrapper_cpp_nibr_bak")
+        conditional_copy_file("${CMAKE_SOURCE_DIR}/external/dcm2niix_patch/dcm2niix_fswrapper.cpp" "${CMAKE_SOURCE_DIR}/external/dcm2niix/console/dcm2niix_fswrapper.cpp")
 
         conditional_rename("${CMAKE_SOURCE_DIR}/external/dcm2niix/console/CMakeLists.txt" "${CMAKE_SOURCE_DIR}/external/dcm2niix/console/CMakeLists_txt_nibr_bak")
         conditional_copy_file("${CMAKE_SOURCE_DIR}/external/dcm2niix_patch/CMakeLists.txt" "${CMAKE_SOURCE_DIR}/external/dcm2niix/console/CMakeLists.txt")
@@ -73,6 +84,8 @@ if (BUILD_DCM2NIIX AND NOT BUILD_SHARED_LIBS)
             conditional_rename("${DCM2NIIX_SOURCE_DIR}/console/nifti1_io_core.cpp" "${DCM2NIIX_SOURCE_DIR}/console/nifti1_io_core_cpp_nibr_bak")
             conditional_copy_file("${CMAKE_SOURCE_DIR}/external/dcm2niix_patch/nifti1_io_core.cpp" "${DCM2NIIX_SOURCE_DIR}/console/nifti1_io_core.cpp")
 
+            conditional_rename("${CMAKE_SOURCE_DIR}/console/dcm2niix_fswrapper.cpp" "${CMAKE_SOURCE_DIR}/console/dcm2niix_fswrapper_cpp_nibr_bak")
+            conditional_copy_file("${CMAKE_SOURCE_DIR}/external/dcm2niix_patch/dcm2niix_fswrapper.cpp" "${CMAKE_SOURCE_DIR}/console/dcm2niix_fswrapper.cpp")
             
             conditional_rename("${CMAKE_SOURCE_DIR}/console/CMakeLists.txt" "${CMAKE_SOURCE_DIR}/console/CMakeLists_txt_nibr_bak")
             conditional_copy_file("${CMAKE_SOURCE_DIR}/external/dcm2niix_patch/CMakeLists.txt" "${CMAKE_SOURCE_DIR}/console/CMakeLists.txt")

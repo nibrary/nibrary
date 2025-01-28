@@ -77,11 +77,11 @@ option(USE_JPEGLS "Build with JPEG-LS support using CharLS" OFF)
 
 option(BATCH_VERSION "Build dcm2niibatch for multiple conversions" OFF)
 
-option(BUILD_DCM2NIIXFSLIB "Build libdcm2niixfs.a" OFF)
+option(BUILD_DCM2NIIXFSLIB "Build libdcm2niixfs" OFF)
 
 if(USE_OPENJPEG OR USE_TURBOJPEG OR USE_JASPER)
     message("-- Set BUILD_DCM2NIIXFSLIB to OFF since USE_TURBOJPEG/USE_JASPER/USE_OPENJPEG is ON.")
-    set(BUILD_DCM2NIIXFSLIB OFF CACHE BOOL "Build libdcm2niixfs.a" FORCE)
+    set(BUILD_DCM2NIIXFSLIB OFF CACHE BOOL "Build libdcm2niixfs" FORCE)
 endif()
 
 set(DCM2NIIX_SRCS

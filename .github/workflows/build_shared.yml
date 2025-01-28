@@ -1,4 +1,4 @@
-name: Static build
+name: Shared build
 
 on:
   push:
@@ -53,7 +53,7 @@ jobs:
           -DCMAKE_C_COMPILER=/usr/local/opt/llvm@18/bin/clang \
           -DCMAKE_CXX_COMPILER=/usr/local/opt/llvm@18/bin/clang++ \
           -DCMAKE_OSX_ARCHITECTURES=${{ env.arch }} \
-          -DBUILD_SHARED_LIBS=OFF \
+          -DBUILD_SHARED_LIBS=ON \
           -DBUILD_NATIVE=OFF \
           -DOpenMP_C_FLAGS="${{ env.OpenMP_C_FLAGS }}" \
           -DOpenMP_CXX_FLAGS="${{ env.OpenMP_CXX_FLAGS }}" \
@@ -119,7 +119,7 @@ jobs:
           -DCMAKE_C_COMPILER=/opt/homebrew/opt/llvm@18/bin/clang \
           -DCMAKE_CXX_COMPILER=/opt/homebrew/opt/llvm@18/bin/clang++ \
           -DCMAKE_OSX_ARCHITECTURES=${{ env.arch }} \
-          -DBUILD_SHARED_LIBS=OFF \
+          -DBUILD_SHARED_LIBS=ON \
           -DBUILD_NATIVE=OFF \
           -DOpenMP_C_FLAGS="${{ env.OpenMP_C_FLAGS }}" \
           -DOpenMP_CXX_FLAGS="${{ env.OpenMP_CXX_FLAGS }}" \
@@ -228,7 +228,7 @@ jobs:
           -DCMAKE_BUILD_TYPE=${{ env.build_type }} \
           -DCMAKE_C_COMPILER=gcc-9 \
           -DCMAKE_CXX_COMPILER=g++-9 \
-          -DBUILD_SHARED_LIBS=OFF \
+          -DBUILD_SHARED_LIBS=ON \
           -DBUILD_NATIVE=OFF \
           -S ${{ github.workspace }}
 
@@ -275,7 +275,7 @@ jobs:
           call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
           cmake -B %build_output_dir% ^
             -DCMAKE_BUILD_TYPE=%build_type% ^
-            -DBUILD_SHARED_LIBS=OFF ^
+            -DBUILD_SHARED_LIBS=ON ^
             -DBUILD_NATIVE=OFF ^
             -S %GITHUB_WORKSPACE%
 

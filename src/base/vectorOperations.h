@@ -97,7 +97,7 @@ namespace NIBR
     size_t findClosestIndex(const std::vector<T>& vec, const T& query) {
         if (vec.empty()) {
             disp(MSG_ERROR,"Vector is empty. Cannot find closest element.");
-            std::numeric_limits<size_t>::max(); // return an invalid index
+            return std::numeric_limits<size_t>::max(); // return an invalid index
         }
 
         size_t closestIndex = 0;
@@ -118,7 +118,7 @@ namespace NIBR
     size_t findFirstGreaterIndex(const std::vector<T>& vec, const T& query) {
         if (vec.empty()) {
             disp(MSG_ERROR, "Vector is empty. Cannot find element greater than input.");
-            std::numeric_limits<size_t>::max(); // return an invalid index
+            return std::numeric_limits<size_t>::max(); // return an invalid index
         }
 
         for (size_t i = 0; i < vec.size(); ++i) {
@@ -135,7 +135,7 @@ namespace NIBR
     size_t findFirstSmallerIndex(const std::vector<T>& vec, const T& query) {
         if (vec.empty()) {
             disp(MSG_ERROR, "Vector is empty. Cannot find element smaller than input.");
-            std::numeric_limits<size_t>::max(); // return an invalid index
+            return std::numeric_limits<size_t>::max(); // return an invalid index
         }
 
         for (size_t i = 0; i < vec.size(); ++i) {

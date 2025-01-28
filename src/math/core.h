@@ -6,8 +6,6 @@
 #undef max
 #endif
 
-#endif
-
 #include <stdlib.h>
 #include <limits.h>
 #include <iostream>

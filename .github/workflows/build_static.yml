@@ -295,8 +295,10 @@ jobs:
         - name: Create artifact
           shell: cmd
           run: |
-            call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
-            7z a -tzip ${{ env.build_output_dir }}\nibrary_windows_static.zip ${{ env.build_output_dir }}\install\include\* ${{ env.build_output_dir }}\install\lib\*
+            echo Creating archive: %build_output_dir%\nibrary_windows_static.zip
+            echo Archiving: %build_output_dir%\install\include\
+            echo Archiving: %build_output_dir%\install\lib\
+            7z a -tzip %build_output_dir%\nibrary_windows_static.zip %build_output_dir%\install\include\ %build_output_dir%\install\lib\
 
         - name: Upload binaries as artifact
           uses: actions/upload-artifact@v4

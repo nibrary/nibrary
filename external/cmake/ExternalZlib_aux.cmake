@@ -13,9 +13,7 @@ conditional_rename("${CMAKE_INSTALL_PREFIX}/include/zlib.h" "${NIBRARY_CMAKE_INS
 # Rename libraries
 if (NOT BUILD_SHARED_LIBS)
     conditional_rename("${CMAKE_INSTALL_PREFIX}/lib/libz.a" "${NIBRARY_CMAKE_INSTALL_PREFIX}/lib/${nibrary}/libz.a")
-    conditional_rename("${CMAKE_INSTALL_PREFIX}/lib/zlib.lib" "${NIBRARY_CMAKE_INSTALL_PREFIX}/lib/${nibrary}/zlib.lib")
     conditional_rename("${CMAKE_INSTALL_PREFIX}/lib/zlibstatic.lib" "${NIBRARY_CMAKE_INSTALL_PREFIX}/lib/${nibrary}/zlibstatic.lib")
-    conditional_rename("${CMAKE_INSTALL_PREFIX}/lib/zlib1.dll" "${NIBRARY_CMAKE_INSTALL_PREFIX}/lib/${nibrary}/zlib1.dll")
 else()
     conditional_rename("${CMAKE_INSTALL_PREFIX}/lib/libz.so" "${NIBRARY_CMAKE_INSTALL_PREFIX}/lib/${nibrary}/libz.so")
     conditional_rename("${CMAKE_INSTALL_PREFIX}/lib/libz.so.1" "${NIBRARY_CMAKE_INSTALL_PREFIX}/lib/${nibrary}/libz.so.1")

@@ -1,7 +1,5 @@
 #include "recon_transhi2015.h"
 
-using namespace std;
-
 std::tuple<std::vector<double>, std::vector<double>, std::vector<double>> makeGmat(double D_inAx, double D_trapped, int b)
 {
 
@@ -33,7 +31,7 @@ std::tuple<std::vector<double>, std::vector<double>, std::vector<double>> makeGm
     // cout << "a16: " << a16 << '\n';
 
     // G_l(D_inAx,D_trapped) := Ratio between the SH coefficients of s and those of the fod, l= 0,2,4,6,8
-    vector<double> G(9, 0);
+    std::vector<double> G(9, 0);
     G[0] = a0; // l = 0
     G[1] = 1.5*a2-0.5*a0; // l= 2
     G[2] = 35/8.0*a4-15/4.0*a2+3/8.0*a0; // l = 4
@@ -54,13 +52,13 @@ std::tuple<std::vector<double>, std::vector<double>, std::vector<double>> makeGm
     // cout << "G7: " << G[7] << '\n';
     // cout << "G8: " << G[8] << '\n';
 
-    for(size_t i = 0; i < G.size(); i++) {
+    for(std::size_t i = 0; i < G.size(); i++) {
         G[i] = G[i]*2*pi*exp(-b*D_trapped);
         if(isnan(G[i])) NIBR::disp(MSG_ERROR,"G_matrix G_vector error");
     }
 
     // H1 = \dfrac{\partial G}{\partial \lambda_1}
-    vector<double> H1(G.size(), 0);
+    std::vector<double> H1(G.size(), 0);
     H1[0] = a2; // l = 0
     H1[1] = (3*a4-a2)/2; // l = 2
     H1[2] = (35*a6-30*a4+3*a2)/8; // l = 4
@@ -69,13 +67,13 @@ std::tuple<std::vector<double>, std::vector<double>, std::vector<double>> makeGm
     H1[5] = (46189*a12 - 109395*a10 + 90090*a8 - 30030*a6 + 3465*a4 - 63*a2)/256.0; // l = 10
     H1[6] = (676039*a14 - 1939938*a12 + 2078505*a10 - 1021020*a8 + 225225*a6 - 18018*a4 + 231*a2)/1024; // l = 12
 
-    for(size_t i = 0; i < H1.size(); i++) {
+    for(std::size_t i = 0; i < H1.size(); i++) {
         H1[i] = -2*b*pi*exp(-b*D_trapped)*H1[i];
         if(isnan(H1[i])) NIBR::disp(MSG_ERROR,"G_matrix H1_vector error");
     }
     // H2 = \dfrac{\partial G}{\partial \lambda_2}
-    vector<double> H2(G.size(), 0);
-    for(size_t i = 0; i < H2.size(); i++) {
+    std::vector<double> H2(G.size(), 0);
+    for(std::size_t i = 0; i < H2.size(); i++) {
         H2[i] = -b*G[i]-H1[i];
         if(isnan(H2[i])) NIBR::disp(MSG_ERROR,"G_matrix H1_vector error");
     }
@@ -85,60 +83,60 @@ std::tuple<std::vector<double>, std::vector<double>, std::vector<double>> makeGm
 
 std::vector<std::vector<double>> NIBR::G_mat(std::vector<float> bval, double D_inAx, double D_trapped, int maxOrder)
 {
-    vector<vector<double>> output(bval.size(), vector<double>(153, 0));
+    std::vector<std::vector<double>> output(bval.size(), std::vector<double>(153, 0));
 
     // Selecting unique elements from the bvalues
-    vector<float> uniqueBvalues = bval;
+    std::vector<float> uniqueBvalues = bval;
     sort(uniqueBvalues.begin(), uniqueBvalues.end());
     auto uniqueEnd = unique(uniqueBvalues.begin(), uniqueBvalues.end());
     uniqueBvalues.resize(distance(uniqueBvalues.begin(), uniqueEnd));
     
     for(auto i : uniqueBvalues) {
-        vector<size_t> ind;
-        for(size_t j = 0; j < bval.size(); j++) {
+        std::vector<std::size_t> ind;
+        for(std::size_t j = 0; j < bval.size(); j++) {
             if(bval[j] == i) ind.push_back(j);
         }
 
         disp(MSG_DEBUG,"%f %f %f", i, D_inAx, D_trapped);
 
-        tuple<vector<double>, vector<double>, vector<double>> G = makeGmat(D_inAx, D_trapped, i);
+        std::tuple<std::vector<double>, std::vector<double>, std::vector<double>> G = makeGmat(D_inAx, D_trapped, i);
 
-        vector<double> g = get<0>(G);
+        std::vector<double> g = std::get<0>(G);
         g.resize(maxOrder / 2 + 1);
         
         for(auto index : ind) {
             output[index][0] = g[0];
-            for(size_t g_ind = 1; g_ind < 6; g_ind++) output[index][g_ind] = g[1];
-            for(size_t g_ind = 6; g_ind < 15; g_ind++) output[index][g_ind] = g[2];
+            for(std::size_t g_ind = 1; g_ind < 6; g_ind++) output[index][g_ind] = g[1];
+            for(std::size_t g_ind = 6; g_ind < 15; g_ind++) output[index][g_ind] = g[2];
 
             if(maxOrder > 4) {
-                for(size_t g_ind = 15; g_ind < 28; g_ind++) output[index][g_ind] = g[3];
+                for(std::size_t g_ind = 15; g_ind < 28; g_ind++) output[index][g_ind] = g[3];
             }
 
             if(maxOrder > 6) {
-                for(size_t g_ind = 28; g_ind < 45; g_ind++) output[index][g_ind] = g[4];
+                for(std::size_t g_ind = 28; g_ind < 45; g_ind++) output[index][g_ind] = g[4];
             }
 
             if(maxOrder > 8) {
-                for(size_t g_ind = 45; g_ind < 66; g_ind++) output[index][g_ind] = g[5];
+                for(std::size_t g_ind = 45; g_ind < 66; g_ind++) output[index][g_ind] = g[5];
             }
 
             if(maxOrder > 10) {
-                for(size_t g_ind = 66; g_ind < 91; g_ind++) output[index][g_ind] = g[6];
+                for(std::size_t g_ind = 66; g_ind < 91; g_ind++) output[index][g_ind] = g[6];
             }
 
             if(maxOrder > 12) {
-                for(size_t g_ind = 91; g_ind < 120; g_ind++) output[index][g_ind] = g[7];
+                for(std::size_t g_ind = 91; g_ind < 120; g_ind++) output[index][g_ind] = g[7];
             }
 
             if(maxOrder > 14) {
-                for(size_t g_ind = 120; g_ind < 153; g_ind++) output[index][g_ind] = g[8];
+                for(std::size_t g_ind = 120; g_ind < 153; g_ind++) output[index][g_ind] = g[8];
             }
         }
     }
 
     // Rmoving unnecessary padding
-    for(size_t row = 0; row < output.size(); row++) {
+    for(std::size_t row = 0; row < output.size(); row++) {
         while(!output[row].empty() && output[row].back() == 0) output[row].pop_back();
     }
 

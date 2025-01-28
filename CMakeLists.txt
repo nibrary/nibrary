@@ -15,7 +15,7 @@ option(USE_SYSTEM_LIBIGL        "Use system libigl if exists"           OFF)
 option(USE_SYSTEM_SIMDE         "Use system simde if exists"            OFF)
 option(USE_SYSTEM_PROXSUITE     "Use system proxsuite if exists"        OFF)
 option(ENABLE_CUDA              "Enable CUDA functions"                 OFF)
-option(BUILD_DCM2NIIX           "Build dcm2niix (Unix only)"            ON)
+option(BUILD_DCM2NIIX           "Build dcm2niix"                        ON)
 
 # Using C++17 standard
 set(CMAKE_CXX_STANDARD 17)
@@ -75,7 +75,7 @@ include_directories(${SIMDE_INCLUDE_DIR})
 include_directories(${PROXSUITE_INCLUDE_DIR})
 include_directories(${CUDA_INCLUDE_DIR})
 
-if (BUILD_DCM2NIIX AND UNIX AND NOT BUILD_SHARED_LIBS)  # For now let's experiment only in Unix
+if (BUILD_DCM2NIIX AND NOT BUILD_SHARED_LIBS)  # For now let's experiment only in Unix
     message(STATUS ">> Nibrary::Building dcm2niix")
     add_compile_definitions(HAS_DCM2NIIX)
     include_directories(${DCM2NIIX_INCLUDE_DIR})
@@ -91,7 +91,6 @@ endif()
 if(BUILDING_GEOGRAM_FROM_SOURCE)
     add_dependencies(OBJS build_geogram)
 endif()
-
 
 IF(BUILD_SHARED_LIBS)
     message(STATUS ">> Nibrary::Building shared library")
@@ -117,8 +116,6 @@ IF(ENABLE_CUDA)
     set(libNibrary "${libNibrary}CUDA_${CMAKE_CUDA_COMPILER_VERSION}")
     target_link_libraries(${libNibrary} CUDA_OBJS)
 ENDIF(ENABLE_CUDA)
-
-
 
 if ((CMAKE_CXX_COMPILER_ID MATCHES "GNU") OR (CMAKE_CXX_COMPILER_ID MATCHES "Clang") )
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17")
@@ -151,6 +148,14 @@ elseif (CMAKE_SYSTEM_NAME STREQUAL "Windows")
 
     message(STATUS ">> Nibrary::Building for Windows")
 
+    if (BUILD_SHARED_LIBS)
+        set_target_properties(OBJS PROPERTIES MSVC_RUNTIME_LIBRARY "MultiThreadedDLL")
+        set_target_properties(${libNibrary} PROPERTIES MSVC_RUNTIME_LIBRARY "MultiThreadedDLL")
+    else()
+        set_target_properties(OBJS PROPERTIES MSVC_RUNTIME_LIBRARY "MultiThreaded")
+        set_target_properties(${libNibrary} PROPERTIES MSVC_RUNTIME_LIBRARY "MultiThreaded")
+    endif()
+
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /std:c++17 /permissive- /bigobj")
 
     # For definitions
@@ -161,7 +166,7 @@ elseif (CMAKE_SYSTEM_NAME STREQUAL "Windows")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${DISABLED_WARNINGS}")
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${DISABLED_WARNINGS}")
 
-    set_target_properties(${libNibrary} PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS TRUE)
+    set_target_properties(${libNibrary} PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS TRUE)    
 
 else()
     message(FATAL_ERROR ">> Nibrary::This operating system is not supported")

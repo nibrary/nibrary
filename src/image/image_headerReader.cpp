@@ -407,7 +407,7 @@ bool NIBR::Image<T>::readHeader_dcm() {
     disp(MSG_DETAIL, "Setting dcm2niix options");
 
     if (VERBOSE() < VERBOSE_DETAIL) {disableTerminalOutput();}
-    string opts = "v=0";
+    std::string opts = "v=0";
     dcmConverter->setOpts(getFolderPath(filePath).c_str(),opts.c_str());
     if (VERBOSE() < VERBOSE_DETAIL) {enableTerminalOutput();}
 

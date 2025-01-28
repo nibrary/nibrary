@@ -1,14 +1,12 @@
 #include "tractogramWriter.h"
-#include "dMRI/tractography/io/tractogramReader.h"
-#include <cmath>
-#include <cstdint>
-#include <cstdio>
-#include <cstring>
+#include "base/dataTypeHandler.h"
+#include "base/vectorOperations.h"
 #include <iostream>
-#include <ratio>
+#include <fstream>
+#include <stdio.h>
+#include <cstring>
 
 using namespace NIBR;
-using namespace std;
 
 bool NIBR::writeTractogram(std::string fname,NIBR::TractogramReader* tractogram) 
 {
@@ -71,16 +69,16 @@ bool NIBR::writeTractogram(std::string fname,std::vector<std::vector<std::vector
 
 bool NIBR::writeTractogram_VTK_binary(std::string fname,NIBR::TractogramReader* tractogram) {
 
-    std::vector<size_t> idx;
+    std::vector<std::size_t> idx;
     idx.reserve(tractogram->numberOfStreamlines);
-    for (size_t n = 0; n < tractogram->numberOfStreamlines; n++) {
+    for (std::size_t n = 0; n < tractogram->numberOfStreamlines; n++) {
         idx.push_back(n);
     }
     return NIBR::writeTractogram_VTK_binary(fname,tractogram,idx);
     
 }
 
-bool NIBR::writeTractogram_VTK_binary(std::string out_fname,NIBR::TractogramReader* tractogram,std::vector<size_t>& idx) {
+bool NIBR::writeTractogram_VTK_binary(std::string out_fname,NIBR::TractogramReader* tractogram,std::vector<std::size_t>& idx) {
 
     // Prepare output
     FILE *out;
@@ -90,16 +88,16 @@ bool NIBR::writeTractogram_VTK_binary(std::string out_fname,NIBR::TractogramRead
 		return false;
 	}
 
-    const size_t BUFFER_STREAMLINES = 5000; // Will write this many streamlines at a time
+    const std::size_t BUFFER_STREAMLINES = 5000; // Will write this many streamlines at a time
 
     // Prep tractogram
-    size_t streamlineCount = idx.size();
-    size_t totalPointCount = 0;
+    std::size_t streamlineCount = idx.size();
+    std::size_t totalPointCount = 0;
 
     std::vector<int> len;
     len.reserve(streamlineCount);
 
-    for (size_t i=0; i<streamlineCount; i++) {
+    for (std::size_t i=0; i<streamlineCount; i++) {
         len.push_back(tractogram->len[idx[i]]);
         totalPointCount += len[i];
     }
@@ -120,18 +118,18 @@ bool NIBR::writeTractogram_VTK_binary(std::string out_fname,NIBR::TractogramRead
     std::vector<float> pointsBuffer;
     pointsBuffer.reserve(BUFFER_STREAMLINES * 1000 * 3); // Assuming average 1000 points per streamline
 
-    size_t currentStreamline = 0;
+    std::size_t currentStreamline = 0;
 
     while (currentStreamline < streamlineCount) {
 
-        size_t batchSize = std::min(BUFFER_STREAMLINES, streamlineCount - currentStreamline);
+        std::size_t batchSize = std::min(BUFFER_STREAMLINES, streamlineCount - currentStreamline);
         
         pointsBuffer.clear();
 
         // Accumulate points for the current batch
-        for (size_t i = 0; i < batchSize; ++i) {
+        for (std::size_t i = 0; i < batchSize; ++i) {
 
-            size_t idxStream   = currentStreamline + i;
+            std::size_t idxStream   = currentStreamline + i;
 
             float** streamline = tractogram->readStreamline(idx[idxStream]);
 
@@ -156,8 +154,8 @@ bool NIBR::writeTractogram_VTK_binary(std::string out_fname,NIBR::TractogramRead
         }
 
         // Write the binary data in one fwrite call
-        size_t bytesToWrite = pointsBuffer.size() * sizeof(float);
-        size_t written      = fwrite(pointsBuffer.data(), 1, bytesToWrite, out);
+        std::size_t bytesToWrite = pointsBuffer.size() * sizeof(float);
+        std::size_t written      = fwrite(pointsBuffer.data(), 1, bytesToWrite, out);
 
         if (written != bytesToWrite) {
             disp(MSG_ERROR, "Error writing points data to file.");
@@ -182,12 +180,12 @@ bool NIBR::writeTractogram_VTK_binary(std::string out_fname,NIBR::TractogramRead
 
     while (currentStreamline < streamlineCount) {
 
-        size_t batchSize = std::min(BUFFER_STREAMLINES, streamlineCount - currentStreamline);
+        std::size_t batchSize = std::min(BUFFER_STREAMLINES, streamlineCount - currentStreamline);
 
         linesBuffer.clear();
 
         // Accumulate lines for the current batch
-        for (size_t i = 0; i < batchSize; ++i) {
+        for (std::size_t i = 0; i < batchSize; ++i) {
             int length = len[currentStreamline + i];
             linesBuffer.push_back(length);
             for (int p = 0; p < length; ++p) {
@@ -202,8 +200,8 @@ bool NIBR::writeTractogram_VTK_binary(std::string out_fname,NIBR::TractogramRead
         }
 
         // Write the binary data in one fwrite call
-        size_t bytesToWrite = linesBuffer.size() * sizeof(int);
-        size_t written      = fwrite(linesBuffer.data(), 1, bytesToWrite, out);
+        std::size_t bytesToWrite = linesBuffer.size() * sizeof(int);
+        std::size_t written      = fwrite(linesBuffer.data(), 1, bytesToWrite, out);
 
         if (written != bytesToWrite) {
             disp(MSG_ERROR, "Error writing lines data to file.");
@@ -232,13 +230,13 @@ bool NIBR::writeTractogram_VTK_binary(std::string fname,std::vector<std::vector<
 
 
     // Prep tractogram
-    size_t streamlineCount = tractogram.size();
-    size_t totalPointCount = 0;
+    std::size_t streamlineCount = tractogram.size();
+    std::size_t totalPointCount = 0;
 
     std::vector<int> len;
     len.resize(streamlineCount);
 
-    for (size_t i=0; i<streamlineCount; i++) {
+    for (std::size_t i=0; i<streamlineCount; i++) {
         len[i]           = tractogram[i].size();
         totalPointCount += len[i];
     }
@@ -253,7 +251,7 @@ bool NIBR::writeTractogram_VTK_binary(std::string fname,std::vector<std::vector<
     // Write points
     sprintf(buffer, "POINTS %lu float\n", totalPointCount);
 	fwrite(buffer, sizeof(char), strlen(buffer), out);
-	for (size_t i=0; i<streamlineCount; i++) {
+	for (std::size_t i=0; i<streamlineCount; i++) {
         for (int p=0; p<len[i]; p++) {
             float tmp;
             tmp = tractogram[i][p][0]; 	swapByteOrder(tmp); fwrite(&tmp, sizeof(float), 1, out);
@@ -268,7 +266,7 @@ bool NIBR::writeTractogram_VTK_binary(std::string fname,std::vector<std::vector<
 	fwrite(buffer, sizeof(char), strlen(buffer), out);
 
 	int continue_index = 0;
-	for (size_t i=0; i<streamlineCount; i++) {
+	for (std::size_t i=0; i<streamlineCount; i++) {
 
 		int first_count = len[i];
 		swapByteOrder(first_count); fwrite(&first_count, sizeof(int), 1, out);
@@ -298,8 +296,8 @@ bool NIBR::writeTractogram_VTK_ascii(std::string fname,NIBR::TractogramReader* t
 	}
 
     // Prep tractogram
-    size_t streamlineCount = tractogram->numberOfStreamlines;
-    size_t totalPointCount = tractogram->numberOfPoints;
+    std::size_t streamlineCount = tractogram->numberOfStreamlines;
+    std::size_t totalPointCount = tractogram->numberOfPoints;
 
     // Write header
 	char buffer[256];
@@ -311,7 +309,7 @@ bool NIBR::writeTractogram_VTK_ascii(std::string fname,NIBR::TractogramReader* t
     // Write points
     sprintf(buffer, "POINTS %lu float\n", totalPointCount);
 	fwrite(buffer, sizeof(char), strlen(buffer), out);
-	for (size_t i=0; i<streamlineCount; i++) {
+	for (std::size_t i=0; i<streamlineCount; i++) {
         float** streamline = tractogram->readStreamline(i);
         for (uint32_t p=0; p<tractogram->len[i]; p++) {
             sprintf(buffer, "%f %f %f\n", streamline[p][0], streamline[p][1], streamline[p][2]);
@@ -326,7 +324,7 @@ bool NIBR::writeTractogram_VTK_ascii(std::string fname,NIBR::TractogramReader* t
 	fwrite(buffer, sizeof(char), strlen(buffer), out);
 
 	int continue_index = 0;
-	for (size_t i=0; i<streamlineCount; i++) {
+	for (std::size_t i=0; i<streamlineCount; i++) {
 
 		int first_count = tractogram->len[i];
         sprintf(buffer, "%d ", first_count); fwrite(buffer, sizeof(char), strlen(buffer), out);
@@ -348,7 +346,7 @@ bool NIBR::writeTractogram_VTK_ascii(std::string fname,NIBR::TractogramReader* t
 
 }
 
-bool NIBR::writeTractogram_VTK_ascii(std::string fname,NIBR::TractogramReader* tractogram,std::vector<size_t>& idx) {
+bool NIBR::writeTractogram_VTK_ascii(std::string fname,NIBR::TractogramReader* tractogram,std::vector<std::size_t>& idx) {
 
     // Prepare output
     FILE *out;
@@ -359,13 +357,13 @@ bool NIBR::writeTractogram_VTK_ascii(std::string fname,NIBR::TractogramReader* t
 	}
 
     // Prep tractogram
-    size_t streamlineCount = idx.size();
-    size_t totalPointCount = 0;
+    std::size_t streamlineCount = idx.size();
+    std::size_t totalPointCount = 0;
 
     std::vector<int> len;
     len.reserve(streamlineCount);
 
-    for (size_t i=0; i<streamlineCount; i++) {
+    for (std::size_t i=0; i<streamlineCount; i++) {
         len.push_back(tractogram->len[idx[i]]);
         totalPointCount += len[i];
     }
@@ -380,7 +378,7 @@ bool NIBR::writeTractogram_VTK_ascii(std::string fname,NIBR::TractogramReader* t
     // Write points
     sprintf(buffer, "POINTS %lu float\n", totalPointCount);
 	fwrite(buffer, sizeof(char), strlen(buffer), out);
-	for (size_t i=0; i<streamlineCount; i++) {
+	for (std::size_t i=0; i<streamlineCount; i++) {
         float** streamline = tractogram->readStreamline(idx[i]);
         for (int p=0; p<len[i]; p++) {
             sprintf(buffer, "%f %f %f\n", streamline[p][0], streamline[p][1], streamline[p][2]);
@@ -395,7 +393,7 @@ bool NIBR::writeTractogram_VTK_ascii(std::string fname,NIBR::TractogramReader* t
 	fwrite(buffer, sizeof(char), strlen(buffer), out);
 
 	int continue_index = 0;
-	for (size_t i=0; i<streamlineCount; i++) {
+	for (std::size_t i=0; i<streamlineCount; i++) {
 
 		int first_count = len[i];
         sprintf(buffer, "%d ", first_count); fwrite(buffer, sizeof(char), strlen(buffer), out);
@@ -430,13 +428,13 @@ bool NIBR::writeTractogram_VTK_ascii(std::string fname,std::vector<std::vector<s
 
 
     // Prep tractogram
-    size_t streamlineCount = tractogram.size();
-    size_t totalPointCount = 0;
+    std::size_t streamlineCount = tractogram.size();
+    std::size_t totalPointCount = 0;
 
     std::vector<int> len;
     len.resize(streamlineCount);
 
-    for (size_t i=0; i<streamlineCount; i++) {
+    for (std::size_t i=0; i<streamlineCount; i++) {
         len[i]           = tractogram[i].size();
         totalPointCount += len[i];
     }
@@ -451,7 +449,7 @@ bool NIBR::writeTractogram_VTK_ascii(std::string fname,std::vector<std::vector<s
     // Write points
     sprintf(buffer, "POINTS %lu float\n", totalPointCount);
 	fwrite(buffer, sizeof(char), strlen(buffer), out);
-	for (size_t i=0; i<streamlineCount; i++) {
+	for (std::size_t i=0; i<streamlineCount; i++) {
         for (int p=0; p<len[i]; p++) {
             sprintf(buffer, "%f %f %f\n", tractogram[i][p][0], tractogram[i][p][1], tractogram[i][p][2]);
             fwrite(buffer, sizeof(char), strlen(buffer), out);
@@ -463,7 +461,7 @@ bool NIBR::writeTractogram_VTK_ascii(std::string fname,std::vector<std::vector<s
 	fwrite(buffer, sizeof(char), strlen(buffer), out);
 
 	int continue_index = 0;
-	for (size_t i=0; i<streamlineCount; i++) {
+	for (std::size_t i=0; i<streamlineCount; i++) {
 
 		int first_count = len[i];
         sprintf(buffer, "%d ", first_count); fwrite(buffer, sizeof(char), strlen(buffer), out);
@@ -495,7 +493,7 @@ bool NIBR::writeTractogram_TRK(std::string fname,NIBR::TractogramReader* tractog
 	}
 
     // Prep tractogram
-    size_t streamlineCount = tractogram->numberOfStreamlines;
+    std::size_t streamlineCount = tractogram->numberOfStreamlines;
 
     // Write header
     trkFileStruct trkHeader;
@@ -518,7 +516,7 @@ bool NIBR::writeTractogram_TRK(std::string fname,NIBR::TractogramReader* tractog
     std::fwrite(&trkHeader, sizeof(trkFileStruct), 1, out);
 
     // Write points
-	for (size_t i=0; i<streamlineCount; i++) {
+	for (std::size_t i=0; i<streamlineCount; i++) {
         float** streamline = tractogram->readStreamline(i);
         float tmp[3];
         int len = tractogram->len[i];
@@ -539,7 +537,7 @@ bool NIBR::writeTractogram_TRK(std::string fname,NIBR::TractogramReader* tractog
     return true;
 }
 
-bool NIBR::writeTractogram_TRK(std::string fname,NIBR::TractogramReader* tractogram,std::vector<size_t>& idx) {
+bool NIBR::writeTractogram_TRK(std::string fname,NIBR::TractogramReader* tractogram,std::vector<std::size_t>& idx) {
 
     // Prepare output
     FILE *out;
@@ -550,7 +548,7 @@ bool NIBR::writeTractogram_TRK(std::string fname,NIBR::TractogramReader* tractog
 	}
 
     // Prep tractogram
-    size_t streamlineCount = idx.size();
+    std::size_t streamlineCount = idx.size();
 
     // Write header
     trkFileStruct trkHeader;
@@ -573,7 +571,7 @@ bool NIBR::writeTractogram_TRK(std::string fname,NIBR::TractogramReader* tractog
     std::fwrite(&trkHeader, sizeof(trkFileStruct), 1, out);
 
     // Write points
-	for (size_t i=0; i<streamlineCount; i++) {
+	for (std::size_t i=0; i<streamlineCount; i++) {
         float** streamline = tractogram->readStreamline(idx[i]);
         float tmp[3];
         int len = tractogram->len[idx[i]];
@@ -606,12 +604,12 @@ bool NIBR::writeTractogram_TRK(std::string fname,std::vector<std::vector<std::ve
 	}
 
     // Prep tractogram
-    size_t streamlineCount = tractogram.size();
+    std::size_t streamlineCount = tractogram.size();
 
     std::vector<int> len;
     len.resize(streamlineCount);
 
-    for (size_t i=0; i<streamlineCount; i++)
+    for (std::size_t i=0; i<streamlineCount; i++)
         len[i] = tractogram[i].size();
 
 
@@ -639,7 +637,7 @@ bool NIBR::writeTractogram_TRK(std::string fname,std::vector<std::vector<std::ve
     std::fwrite(&trkHeader, sizeof(trkFileStruct), 1, out);
 
     // Write points
-	for (size_t i=0; i<streamlineCount; i++) {
+	for (std::size_t i=0; i<streamlineCount; i++) {
         float tmp[3];
         fwrite(&len[i], sizeof(int), 1, out);
         for (int p=0; p<len[i]; p++) {
@@ -666,7 +664,7 @@ bool NIBR::writeTractogram_TCK(std::string fname,NIBR::TractogramReader* tractog
 		return false;
 	}
     
-    size_t streamlineCount = tractogram->numberOfStreamlines;
+    std::size_t streamlineCount = tractogram->numberOfStreamlines;
 
     // Write header
     char buffer[256];
@@ -680,9 +678,9 @@ bool NIBR::writeTractogram_TCK(std::string fname,NIBR::TractogramReader* tractog
 	//write points
     float NANarr[3] = {NAN,NAN,NAN};
     float INFarr[3] = {INFINITY,INFINITY,INFINITY};
-	for (size_t i=0; i<streamlineCount; i++) {
+	for (std::size_t i=0; i<streamlineCount; i++) {
         float** streamline = tractogram->readStreamline(i);
-        for (size_t p=0; p<tractogram->len[i]; p++) {
+        for (std::size_t p=0; p<tractogram->len[i]; p++) {
             fwrite(streamline[p], sizeof(float), 3, out);
             delete[] streamline[p];
         }
@@ -694,7 +692,7 @@ bool NIBR::writeTractogram_TCK(std::string fname,NIBR::TractogramReader* tractog
     return true;
 }
 
-bool NIBR::writeTractogram_TCK(std::string fname,NIBR::TractogramReader* tractogram,std::vector<size_t>& idx) {
+bool NIBR::writeTractogram_TCK(std::string fname,NIBR::TractogramReader* tractogram,std::vector<std::size_t>& idx) {
 
     // Prepare output
     FILE *out;
@@ -704,7 +702,7 @@ bool NIBR::writeTractogram_TCK(std::string fname,NIBR::TractogramReader* tractog
 		return false;
 	}
     
-    size_t streamlineCount = idx.size();
+    std::size_t streamlineCount = idx.size();
 
     // Write header
     char buffer[256];
@@ -718,9 +716,9 @@ bool NIBR::writeTractogram_TCK(std::string fname,NIBR::TractogramReader* tractog
 	//write points
     float NANarr[3] = {NAN,NAN,NAN};
     float INFarr[3] = {INFINITY,INFINITY,INFINITY};
-	for (size_t i=0; i<streamlineCount; i++) {
+	for (std::size_t i=0; i<streamlineCount; i++) {
         float** streamline = tractogram->readStreamline(idx[i]);
-        for (size_t p=0; p<tractogram->len[idx[i]]; p++) {
+        for (std::size_t p=0; p<tractogram->len[idx[i]]; p++) {
             fwrite(streamline[p], sizeof(float), 3, out);
             delete[] streamline[p];
         }
@@ -742,7 +740,7 @@ bool NIBR::writeTractogram_TCK(std::string fname,std::vector<std::vector<std::ve
 		return false;
 	}
     
-    size_t streamlineCount = tractogram.size();
+    std::size_t streamlineCount = tractogram.size();
 
     // Write header
     char buffer[256];
@@ -756,8 +754,8 @@ bool NIBR::writeTractogram_TCK(std::string fname,std::vector<std::vector<std::ve
 	//write points
     float NANarr[3] = {NAN,NAN,NAN};
     float INFarr[3] = {INFINITY,INFINITY,INFINITY};
-	for (size_t i=0; i<streamlineCount; i++) {
-        for (size_t p=0; p<tractogram[i].size(); p++) {
+	for (std::size_t i=0; i<streamlineCount; i++) {
+        for (std::size_t p=0; p<tractogram[i].size(); p++) {
             fwrite(&tractogram[i][p][0], sizeof(float), 1, out);
             fwrite(&tractogram[i][p][1], sizeof(float), 1, out);
             fwrite(&tractogram[i][p][2], sizeof(float), 1, out);
@@ -770,7 +768,7 @@ bool NIBR::writeTractogram_TCK(std::string fname,std::vector<std::vector<std::ve
 }
 
 
-bool NIBR::writeTractogram(std::string fname,NIBR::TractogramReader* tractogram,std::vector<size_t>& idx) 
+bool NIBR::writeTractogram(std::string fname,NIBR::TractogramReader* tractogram,std::vector<std::size_t>& idx) 
 {
 
     std::string ext = getFileExtension(fname);
@@ -791,13 +789,13 @@ bool NIBR::writeTractogram(std::string fname,NIBR::TractogramReader* tractogram,
 }
 
 
-bool NIBR::writeTractogram(std::string out_fname,std::string inp_fname,std::vector<size_t>& idx) {
+bool NIBR::writeTractogram(std::string out_fname,std::string inp_fname,std::vector<std::size_t>& idx) {
     NIBR::TractogramReader tractogram(inp_fname);
     return writeTractogram(out_fname,&tractogram,idx);
 }
 
 
-bool NIBR::writeTractogram(std::string out_kept_fname,std::string out_rmvd_fname,std::string inp_fname,std::vector<size_t>& idx) {
+bool NIBR::writeTractogram(std::string out_kept_fname,std::string out_rmvd_fname,std::string inp_fname,std::vector<std::size_t>& idx) {
 
     // Prep input
 
@@ -806,8 +804,8 @@ bool NIBR::writeTractogram(std::string out_kept_fname,std::string out_rmvd_fname
 
 
     // Rmvd tractogram
-    std::vector<size_t> rmvd_idx;
-    for (size_t i=0; i<tractogram.numberOfStreamlines; i++)
+    std::vector<std::size_t> rmvd_idx;
+    for (std::size_t i=0; i<tractogram.numberOfStreamlines; i++)
         rmvd_idx.push_back(i);
 
     removeIdx(rmvd_idx,idx);
@@ -830,13 +828,13 @@ bool NIBR::writeTractogram(std::string fname,std::vector<std::vector<std::vector
 
 
     // Prep tractogram
-    size_t streamlineCount = tractogram.size();
-    size_t totalPointCount = 0;
+    std::size_t streamlineCount = tractogram.size();
+    std::size_t totalPointCount = 0;
 
     std::vector<int> len;
     len.resize(streamlineCount);
 
-    for (size_t i=0; i<streamlineCount; i++) {
+    for (std::size_t i=0; i<streamlineCount; i++) {
         len[i]           = tractogram[i].size();
         totalPointCount += len[i];
     }
@@ -851,7 +849,7 @@ bool NIBR::writeTractogram(std::string fname,std::vector<std::vector<std::vector
     // Write points
     sprintf(buffer, "POINTS %lu float\n", totalPointCount);
 	fwrite(buffer, sizeof(char), strlen(buffer), out);
-	for (size_t i=0; i<streamlineCount; i++) {
+	for (std::size_t i=0; i<streamlineCount; i++) {
         for (int p=0; p<len[i]; p++) {
             float tmp;
             tmp = tractogram[i][p][0]; 	swapByteOrder(tmp); fwrite(&tmp, sizeof(float), 1, out);
@@ -865,7 +863,7 @@ bool NIBR::writeTractogram(std::string fname,std::vector<std::vector<std::vector
 	fwrite(buffer, sizeof(char), strlen(buffer), out);
 
 	int continue_index = 0;
-	for (size_t i=0; i<streamlineCount; i++) {
+	for (std::size_t i=0; i<streamlineCount; i++) {
 
 		int first_count = len[i];
 		swapByteOrder(first_count); fwrite(&first_count, sizeof(int), 1, out);
@@ -886,7 +884,7 @@ bool NIBR::writeTractogram(std::string fname,std::vector<std::vector<std::vector
     std::vector<int> cellDataInd;
     std::vector<int> pointDataInd;
 
-    for (size_t i=0; i<fields.size(); i++) {
+    for (std::size_t i=0; i<fields.size(); i++) {
         if (fields[i].owner == STREAMLINE_OWNER) cellDataInd.push_back(i);
         if (fields[i].owner == POINT_OWNER)      pointDataInd.push_back(i);
     }
@@ -896,7 +894,7 @@ bool NIBR::writeTractogram(std::string fname,std::vector<std::vector<std::vector
     if (cellDataInd.size()>0) {
         sprintf(buffer,"CELL_DATA %lu\n",streamlineCount); 	fwrite(buffer, sizeof(char), strlen(buffer), out);
 
-        for (size_t i=0; i<cellDataInd.size(); i++) {
+        for (std::size_t i=0; i<cellDataInd.size(); i++) {
 
             sprintf(buffer,"SCALARS %s ",fields[cellDataInd[i]].name.c_str());
             fwrite(buffer, sizeof(char), strlen(buffer), out);
@@ -916,7 +914,7 @@ bool NIBR::writeTractogram(std::string fname,std::vector<std::vector<std::vector
             if (fields[cellDataInd[i]].datatype==INT32_DT)   idata = reinterpret_cast<int**>(fields[cellDataInd[i]].data);
             if (fields[cellDataInd[i]].datatype==FLOAT32_DT) fdata = reinterpret_cast<float**>(fields[cellDataInd[i]].data);
 
-            for (size_t s=0; s<streamlineCount; s++) {
+            for (std::size_t s=0; s<streamlineCount; s++) {
                 for (int d=0; d<fields[cellDataInd[i]].dimension; d++) {
 
                     if (fields[cellDataInd[i]].datatype==INT32_DT) {
@@ -943,7 +941,7 @@ bool NIBR::writeTractogram(std::string fname,std::vector<std::vector<std::vector
         sprintf(buffer,"POINT_DATA %lu\n",totalPointCount); 	
         fwrite(buffer, sizeof(char), strlen(buffer), out);
 
-        for (size_t i=0; i<pointDataInd.size(); i++) {
+        for (std::size_t i=0; i<pointDataInd.size(); i++) {
 
             sprintf(buffer,"SCALARS %s ",fields[pointDataInd[i]].name.c_str());
             fwrite(buffer, sizeof(char), strlen(buffer), out);
@@ -963,7 +961,7 @@ bool NIBR::writeTractogram(std::string fname,std::vector<std::vector<std::vector
             if (fields[pointDataInd[i]].datatype==INT32_DT)   idata = reinterpret_cast<int***>(fields[pointDataInd[i]].data);
             if (fields[pointDataInd[i]].datatype==FLOAT32_DT) fdata = reinterpret_cast<float***>(fields[pointDataInd[i]].data);
 
-            for (size_t s=0; s<streamlineCount; s++) {
+            for (std::size_t s=0; s<streamlineCount; s++) {
                 for (int l=0; l<len[s]; l++) {
                     for (int d=0; d<fields[pointDataInd[i]].dimension; d++) {
 

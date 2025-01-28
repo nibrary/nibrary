@@ -40,7 +40,6 @@ jobs:
       shell: bash
       run: |
         echo "arch=x86_64" >> $GITHUB_ENV
-        echo "artifact_prefix=macOS_x86_64" >> $GITHUB_ENV
         echo "build_type=Release" >> $GITHUB_ENV
         echo "build-output-dir=${{ github.workspace }}/build_macOS_x86_64" >> $GITHUB_ENV
         
@@ -108,7 +107,6 @@ jobs:
       shell: bash
       run: |
         echo "arch=arm64" >> $GITHUB_ENV
-        echo "artifact_prefix=macOS_arm64" >> $GITHUB_ENV
         echo "build_type=Release" >> $GITHUB_ENV
         echo "build-output-dir=${{ github.workspace }}/build_macOS_arm64" >> $GITHUB_ENV
         
@@ -220,7 +218,6 @@ jobs:
     - name: Set up build directory and environment
       shell: bash
       run: |
-        echo "artifact_prefix=linux" >> $GITHUB_ENV
         echo "build_type=Release" >> $GITHUB_ENV
         echo "build-output-dir=${{ github.workspace }}/build_linux" >> $GITHUB_ENV
 
@@ -251,3 +248,55 @@ jobs:
         path: ${{ env.build-output-dir }}/install/nibrary_linux_static.tar.gz
         if-no-files-found: error
         retention-days: 5
+
+
+  build_windows:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.pull_request.head.ref || github.ref_name }}
+
+      - name: Set up build directory and environment
+        shell: cmd
+        run: |
+          echo build_type=Release>> %GITHUB_ENV%
+          echo build_output_dir=%GITHUB_WORKSPACE%\build_windows>> %GITHUB_ENV%
+
+      - name: Create build directory
+        shell: cmd
+        run: |
+          mkdir %build_output_dir%
+
+      - name: Configure CMake
+        shell: cmd
+        run: |
+          call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+          cmake -B %build_output_dir% ^
+            -DCMAKE_BUILD_TYPE=%build_type% ^
+            -DBUILD_SHARED_LIBS=OFF ^
+            -DDEFINE_CUDA=OFF ^
+            -S %GITHUB_WORKSPACE%
+
+      - name: Build
+        shell: cmd
+        run: |
+          call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+          cmake --build %build_output_dir% --config %build_type% --target install
+
+      - name: Create artifact
+        shell: cmd
+        run: |
+          echo Creating archive: %build_output_dir%\nibrary_windows_static.zip
+          echo Archiving: %build_output_dir%\install\include\
+          echo Archiving: %build_output_dir%\install\lib\
+          7z a -tzip %build_output_dir%\nibrary_windows_static.zip %build_output_dir%\install\include\ %build_output_dir%\install\lib\
+
+      - name: Upload binaries as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: nibrary_windows_static.zip
+          path: ${{ env.build_output_dir }}\nibrary_windows_static.zip
+          if-no-files-found: error
+          retention-days: 5

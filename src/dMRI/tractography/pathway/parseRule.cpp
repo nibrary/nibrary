@@ -4,9 +4,7 @@
 #include <cstdint>
 #include <regex>
 
-using namespace std;
 using namespace NIBR;
-
 
 std::unordered_map<std::string, std::tuple<Pathway_Type, Tracking_Side>> table = {
     {"discard_seed",               std::make_tuple(Pathway_Type::discard_seed,           Tracking_Side::either)},
@@ -172,7 +170,7 @@ std::tuple<bool, std::string, std::string, std::string, double> surfArgHasMaskFi
 
 }
 
-std::tuple<PathwayRule,bool> parseSphere(std::vector<std::string> inp, size_t& i) 
+std::tuple<PathwayRule,bool> parseSphere(std::vector<std::string> inp, std::size_t& i) 
 {
 
     PathwayRule rule;
@@ -204,7 +202,7 @@ std::tuple<PathwayRule,bool> parseSphere(std::vector<std::string> inp, size_t& i
 }
 
 
-std::tuple<PathwayRule,bool> parseImage(std::vector<std::string> inp, size_t& i) 
+std::tuple<PathwayRule,bool> parseImage(std::vector<std::string> inp, std::size_t& i) 
 {
 
     PathwayRule rule;
@@ -293,7 +291,7 @@ std::tuple<PathwayRule,bool> parseImage(std::vector<std::string> inp, size_t& i)
 // <rule> surf.vtk maskField,4
 // <rule> surf.vtk maskFile,VERT,INT,4
 
-std::tuple<PathwayRule,bool> parseSurface(std::vector<std::string> inp, size_t& i) 
+std::tuple<PathwayRule,bool> parseSurface(std::vector<std::string> inp, std::size_t& i) 
 {
 
     PathwayRule rule;
@@ -435,7 +433,7 @@ std::vector<PathwayRule> NIBR::parsePathwayInput(std::vector<std::string> inp) {
     if (inp.empty()) 
         return out;
 
-    for (size_t i = 0; i < inp.size();)
+    for (std::size_t i = 0; i < inp.size();)
     {
 
         if (!isRule(inp,i)) {
@@ -503,7 +501,7 @@ PathwayRule NIBR::parseSeedInput (std::vector<std::string> inp) {
     }
 
     bool isValid;
-    size_t i = 0;
+    std::size_t i = 0;
 
     std::tie(rule, isValid)  = parseSphere(inp,i);
     if (isValid) {setRule();  return rule;}

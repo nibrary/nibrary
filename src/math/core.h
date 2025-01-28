@@ -1,6 +1,9 @@
 #pragma once
+
 #ifdef _WIN32
 #include <math.h>
+#undef min
+#undef max
 #endif
 
 #include <stdlib.h>

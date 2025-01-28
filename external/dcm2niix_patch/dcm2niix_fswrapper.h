@@ -1,7 +1,7 @@
 #ifndef DCM2NIIX_FSWRAPPER_H
 #define DCM2NIIX_FSWRAPPER_H
 
-// Nibrary modified libdcm2niixfs.a
+// Nibrary modified libdcm2niixfs
 // The modification removes some of the functions 
 // in order to prevent conflicts with 
 // the existing nifti headers included in nibrary
@@ -11,11 +11,11 @@
 /*
  * This is a wrapper class to interface with dcm2niix functions.
  * 1. The wrapper class provides interface to convert dicom in mgz orientation.
- * 2. The wrapper class and dcm2niix functions are compiled into libdcm2niixfs.a
+ * 2. The wrapper class and dcm2niix functions are compiled into libdcm2niixfs
  *    with -DUSING_DCM2NIIXFSWRAPPER -DUSING_MGH_NIFTI_IO.
- * 3. When using libdcm2niixfs.a, instead of outputting .nii, *.bval, *.bvec to disk,
+ * 3. When using libdcm2niixfs, instead of outputting .nii, *.bval, *.bvec to disk,
  *    nifti header, image data, TDICOMdata, & TDTI information are saved in MRIFSSTRUCT struct.
- * 4. If libdcm2niixfs.a is compiled with -DUSING_MGH_NIFTI_IO, the application needs to link with nifti library.
+ * 4. If libdcm2niixfs is compiled with -DUSING_MGH_NIFTI_IO, the application needs to link with nifti library.
  */
 class dcm2niix_fswrapper {
   public:

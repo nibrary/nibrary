@@ -14,10 +14,6 @@
 #include "dMRI/tractography/io/tractogramReader.h"
 #include "tractogramField.h"
 
-#ifdef _WIN32
-#undef byte
-#endif
-
 namespace NIBR
 {
 

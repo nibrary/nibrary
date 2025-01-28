@@ -23,6 +23,7 @@ else()
     conditional_rename("${CMAKE_INSTALL_PREFIX}/lib/libz.1.dylib" "${NIBRARY_CMAKE_INSTALL_PREFIX}/lib/${nibrary}/libz.1.dylib")
     conditional_rename("${CMAKE_INSTALL_PREFIX}/lib/libz.${ZLIB_MIN_VERSION}.dylib" "${NIBRARY_CMAKE_INSTALL_PREFIX}/lib/${nibrary}/libz.${ZLIB_MIN_VERSION}.dylib")
 
+    conditional_rename("${CMAKE_INSTALL_PREFIX}/lib/zlib.lib" "${NIBRARY_CMAKE_INSTALL_PREFIX}/lib/${nibrary}/zlib.lib")
     conditional_rename("${CMAKE_INSTALL_PREFIX}/lib/zlib1.dll" "${NIBRARY_CMAKE_INSTALL_PREFIX}/lib/${nibrary}/zlib1.dll")
 endif()
 

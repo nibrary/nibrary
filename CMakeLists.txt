@@ -92,6 +92,7 @@ if(BUILDING_GEOGRAM_FROM_SOURCE)
     add_dependencies(OBJS build_geogram)
 endif()
 
+target_compile_features(OBJS PUBLIC cxx_std_17)
 
 IF(BUILD_SHARED_LIBS)
     message(STATUS ">> Nibrary::Building shared library")
@@ -117,8 +118,6 @@ IF(ENABLE_CUDA)
     set(libNibrary "${libNibrary}CUDA_${CMAKE_CUDA_COMPILER_VERSION}")
     target_link_libraries(${libNibrary} CUDA_OBJS)
 ENDIF(ENABLE_CUDA)
-
-
 
 if ((CMAKE_CXX_COMPILER_ID MATCHES "GNU") OR (CMAKE_CXX_COMPILER_ID MATCHES "Clang") )
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17")
@@ -161,7 +160,7 @@ elseif (CMAKE_SYSTEM_NAME STREQUAL "Windows")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${DISABLED_WARNINGS}")
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${DISABLED_WARNINGS}")
 
-    set_target_properties(${libNibrary} PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS TRUE)
+    set_target_properties(${libNibrary} PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS TRUE)    
 
 else()
     message(FATAL_ERROR ">> Nibrary::This operating system is not supported")

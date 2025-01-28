@@ -173,23 +173,19 @@ jobs:
           tar -xzvf ${{ env.build-output-dir }}/arm64/nibrary_macOS_arm64_static.tar.gz
           cd ${{ env.build-output-dir }}/x86_64
           tar -xzvf ${{ env.build-output-dir }}/x86_64/nibrary_macOS_x86_64_static.tar.gz
-          lib1_arm=${{ env.build-output-dir }}/arm64/lib/nibrary_v0.3.0/libdcm2niixfs.a
-          lib2_arm=${{ env.build-output-dir }}/arm64/lib/nibrary_v0.3.0/libgeogram.a
-          lib3_arm=${{ env.build-output-dir }}/arm64/lib/nibrary_v0.3.0/libNibrary.a
-          lib4_arm=${{ env.build-output-dir }}/arm64/lib/nibrary_v0.3.0/libz.a
-          lib1_x86_64=${{ env.build-output-dir }}/x86_64/lib/nibrary_v0.3.0/libdcm2niixfs.a
-          lib2_x86_64=${{ env.build-output-dir }}/x86_64/lib/nibrary_v0.3.0/libgeogram.a
-          lib3_x86_64=${{ env.build-output-dir }}/x86_64/lib/nibrary_v0.3.0/libNibrary.a
-          lib4_x86_64=${{ env.build-output-dir }}/x86_64/lib/nibrary_v0.3.0/libz.a
+          lib1_arm=${{ env.build-output-dir }}/arm64/lib/nibrary_v0.3.0/libgeogram.dylib
+          lib2_arm=${{ env.build-output-dir }}/arm64/lib/nibrary_v0.3.0/libNibrary.dylib
+          lib3_arm=${{ env.build-output-dir }}/arm64/lib/nibrary_v0.3.0/libz.dylib
+          lib1_x86_64=${{ env.build-output-dir }}/x86_64/lib/nibrary_v0.3.0/libgeogram.dylib
+          lib2_x86_64=${{ env.build-output-dir }}/x86_64/lib/nibrary_v0.3.0/libNibrary.dylib
+          lib3_x86_64=${{ env.build-output-dir }}/x86_64/lib/nibrary_v0.3.0/libz.dylib
           mkdir -p ${{ env.build-output-dir }}/lib/nibrary_v0.3.0
-          lib1_comb=${{ env.build-output-dir }}/lib/nibrary_v0.3.0/libdcm2niixfs.a
-          lib2_comb=${{ env.build-output-dir }}/lib/nibrary_v0.3.0/libgeogram.a
-          lib3_comb=${{ env.build-output-dir }}/lib/nibrary_v0.3.0/libNibrary.a
-          lib4_comb=${{ env.build-output-dir }}/lib/nibrary_v0.3.0/libz.a
+          lib1_comb=${{ env.build-output-dir }}/lib/nibrary_v0.3.0/libgeogram.dylib
+          lib2_comb=${{ env.build-output-dir }}/lib/nibrary_v0.3.0/libNibrary.dylib
+          lib3_comb=${{ env.build-output-dir }}/lib/nibrary_v0.3.0/libz.dylib
           lipo -create ${lib1_arm} ${lib1_x86_64} -output ${lib1_comb}
           lipo -create ${lib2_arm} ${lib2_x86_64} -output ${lib2_comb}
           lipo -create ${lib3_arm} ${lib3_x86_64} -output ${lib3_comb}
-          lipo -create ${lib4_arm} ${lib4_x86_64} -output ${lib4_comb}
           cp -r ${{ env.build-output-dir }}/x86_64/include/ ${{ env.build-output-dir }}/include/
           cd ${{ env.build-output-dir }}
           tar -czvf nibrary_macOS_universal_static.tar.gz include lib

@@ -37,7 +37,7 @@ export OpenMP_omp_LIBRARY="${libomp_prefix}/lib/libomp.dylib"
 # ================
 
 # ================
-# Later, if the script was useful, set environment variables permanently in the system using the following
+# Later, if the script worked successfully, set environment variables permanently in the system using the following
 # echo 'export PATH="/opt/homebrew/opt/llvm@18/bin:$PATH"' >> ~/.zshrc
 # echo 'export LDFLAGS="-L/opt/homebrew/opt/llvm@18/lib -L/opt/homebrew/opt/libomp/lib"' >> ~/.zshrc
 # echo 'export CPPFLAGS="-I/opt/homebrew/opt/llvm@18/include -I/opt/homebrew/opt/libomp/include"' >> ~/.zshrc

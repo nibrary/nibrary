@@ -6,6 +6,7 @@ external/proxsuite/include/proxsuite/config.hpp
 external/zlib/zconf.h
 external/zlib/zconf.h.included
 build/
+build*
 build_*/
 build-*/
 build_*

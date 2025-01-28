@@ -16,6 +16,7 @@ option(USE_SYSTEM_SIMDE         "Use system simde if exists"            OFF)
 option(USE_SYSTEM_PROXSUITE     "Use system proxsuite if exists"        OFF)
 option(ENABLE_CUDA              "Enable CUDA functions"                 OFF)
 option(BUILD_DCM2NIIX           "Build dcm2niix"                        ON)
+option(BUILD_NATIVE             "Build with -march=native optimization" ON)
 
 # Using C++17 standard
 set(CMAKE_CXX_STANDARD 17)
@@ -127,6 +128,12 @@ if ((CMAKE_CXX_COMPILER_ID MATCHES "GNU") AND (CMAKE_CXX_COMPILER_VERSION VERSIO
 endif()
 
 if (UNIX)
+
+    # Optimize for native architecture
+    if (BUILD_NATIVE)
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native")
+    endif()
+
     # Debug messages
     if(CMAKE_BUILD_TYPE MATCHES Debug)
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address")
@@ -136,7 +143,6 @@ endif()
 
 if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
 
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native")
     message(STATUS ">> Nibrary::Building for Unix")
 
 elseif (CMAKE_SYSTEM_NAME STREQUAL "Darwin")

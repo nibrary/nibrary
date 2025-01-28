@@ -1,18 +1,17 @@
 #!/bin/bash
 
-cmakeExe=cmake
-buildType=Release #Release or Debug
+# Linux build example
+
+buildType=Release
 buildShared=OFF
 buildDir=build-static
 
-c_compiler=/bin/gcc
-cxx_compiler=/bin/g++
-
-
-rm -rf ${buildDir}
 mkdir -p ${buildDir}
 cd ${buildDir}
 
+cmakeExe=cmake
+c_compiler=/bin/gcc
+cxx_compiler=/bin/g++
 
 ${cmakeExe} \
 -DCMAKE_C_COMPILER=${c_compiler} \
@@ -21,7 +20,6 @@ ${cmakeExe} \
 -DBUILD_SHARED_LIBS=${buildShared} \
 ..
 
-
-${cmakeExe} --build . --config ${buildType} --target install --parallel 16
+${cmakeExe} --build . --config ${buildType} --target install --parallel $(nproc)
 
 cd ..

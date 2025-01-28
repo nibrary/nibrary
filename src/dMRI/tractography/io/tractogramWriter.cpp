@@ -1,11 +1,10 @@
 #include "tractogramWriter.h"
-#include "dMRI/tractography/io/tractogramReader.h"
-#include <cmath>
-#include <cstdint>
-#include <cstdio>
-#include <cstring>
+#include "base/dataTypeHandler.h"
+#include "base/vectorOperations.h"
 #include <iostream>
-#include <ratio>
+#include <fstream>
+#include <stdio.h>
+#include <cstring>
 
 using namespace NIBR;
 

@@ -1,27 +1,10 @@
 #pragma once
 
-#include <stdio.h>
-#include <fstream>
-#include <iostream>
 #include <string>
-#include <cstring>
 #include <vector>
-#include <float.h>
 #include "base/nibr.h"
-#include "base/dataTypeHandler.h"
-#include "base/vectorOperations.h"
-#include "math/core.h"
-#include "dMRI/tractography/io/tractogramReader.h"
+#include "tractogramReader.h"
 #include "tractogramField.h"
-
-#ifdef _WIN32
-#include <windows.h>
-#include <io.h>
-#undef max
-#undef min
-#else
-#include <unistd.h>
-#endif
 
 namespace NIBR
 {

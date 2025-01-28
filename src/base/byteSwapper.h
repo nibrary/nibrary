@@ -1,17 +1,7 @@
 #pragma once
 
 #include "base/nibr.h"
-#include <cstddef>
 #include <algorithm>
-
-#ifdef _WIN32
-#include <windows.h>
-#include <io.h>
-#undef max
-#undef min
-#else
-#include <unistd.h>
-#endif
 
 namespace NIBR 
 {

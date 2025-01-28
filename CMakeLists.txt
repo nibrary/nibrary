@@ -152,7 +152,7 @@ elseif (CMAKE_SYSTEM_NAME STREQUAL "Windows")
         set_target_properties(OBJS PROPERTIES MSVC_RUNTIME_LIBRARY "MultiThreadedDLL")
         set_target_properties(${libNibrary} PROPERTIES MSVC_RUNTIME_LIBRARY "MultiThreadedDLL")
     else()
-    set_target_properties(OBJS PROPERTIES MSVC_RUNTIME_LIBRARY "MultiThreaded")
+        set_target_properties(OBJS PROPERTIES MSVC_RUNTIME_LIBRARY "MultiThreaded")
         set_target_properties(${libNibrary} PROPERTIES MSVC_RUNTIME_LIBRARY "MultiThreaded")
     endif()
 

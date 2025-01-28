@@ -15,6 +15,18 @@ NIBR::WalkerAction NIBR::Pathway::checkWalker(NIBR::Walker *w, int b, int e)
 
 	bool isSegmentReady = false;
 
+	auto setSegment = [&]() {
+		if (isSegmentReady == false) {
+			w->segment.beg   = &(w->streamline->at(b).x);
+			w->segment.end   = &(w->streamline->at(e).x);
+			vec3sub(w->segment.dir,w->segment.end,w->segment.beg);
+			w->segment.len   = norm(w->segment.dir);
+			w->segStopLength = w->segment.len;
+			normalize(w->segment.dir);
+			isSegmentReady = true;
+		}
+	};
+
 	for (int n = 0; n < ruleCnt; n++) {
 
 		if ((prules[n].type==seed) || (w->isDone[n])) continue;
@@ -33,18 +45,7 @@ NIBR::WalkerAction NIBR::Pathway::checkWalker(NIBR::Walker *w, int b, int e)
 			continue;
 
 		// Prepare segment
-		if (isSegmentReady == false) {
-			
-			w->segment.beg   = &(w->streamline->at(b).x);
-			w->segment.end   = &(w->streamline->at(e).x);
-
-			vec3sub(w->segment.dir,w->segment.end,w->segment.beg);
-			w->segment.len   = norm(w->segment.dir);
-			w->segStopLength = w->segment.len;
-			normalize(w->segment.dir);
-
-			isSegmentReady = true;
-		}
+		setSegment();
 
 		// disp(MSG_DEBUG,"Rule: %d, check 2", ruleCnt);
 
@@ -193,14 +194,19 @@ NIBR::WalkerAction NIBR::Pathway::checkWalker(NIBR::Walker *w, int b, int e)
 
 	}
 
+	setSegment();
+
+	// If a stop pathway rule was reached, then w->segStopLength < w->segment.len, otherwise it is w->segment.len.
+	float trackLengthCheck = w->trackedLength + w->segStopLength;
+
 	// atMaxLength checkers
 	// Instead of the precise value of maxLength, we will use maxLength-EPS4
 	// This makes sure that if one runs discard atMaxLength at a later run with the same maxLength value, 
 	// this streamline will not be discarded in some cases due to floating point errors
 
 	// Returns CONTINUE or STOP
-	auto checkStopAtMax = [&](float trackLengthCheck)->WalkerAction {
-		if ( (atMaxLength == ATMAXLENGTH_STOP) && ( trackLengthCheck > (maxLength-EPS4) ) ) {
+	auto checkStopAtMax = [&](float lengthCheck)->WalkerAction {
+		if ( (atMaxLength == ATMAXLENGTH_STOP) && ( lengthCheck > (maxLength-EPS4) ) ) {
 			w->action = STOP;
 			if (w->side == side_A) {
 				w->terminationReasonSideA = MAX_LENGTH_REACHED;
@@ -213,11 +219,11 @@ NIBR::WalkerAction NIBR::Pathway::checkWalker(NIBR::Walker *w, int b, int e)
 	};
 
 	// Returns CONTINUE or DISCARD
-	auto checkDiscardAtMax = [&](float trackLengthCheck)->WalkerAction {
-		if ( (atMaxLength == ATMAXLENGTH_DISCARD) && ( trackLengthCheck > (maxLength-EPS4) ) ) {
+	auto checkDiscardAtMax = [&](float lengthCheck)->WalkerAction {
+		if ( (atMaxLength == ATMAXLENGTH_DISCARD) && ( lengthCheck > (maxLength-EPS4) ) ) {
 			w->action 			= DISCARD;
 			w->discardingReason = TOO_LONG;
-			w->trackedLength    = trackLengthCheck;
+			w->trackedLength    = lengthCheck;
 			disp(MSG_DEBUG,"Rule %d. Segment %d - %d. DISCARD - TOO_LONG", ruleCnt, b, e);
 			return DISCARD;
 		}
@@ -226,13 +232,13 @@ NIBR::WalkerAction NIBR::Pathway::checkWalker(NIBR::Walker *w, int b, int e)
 
 	// When stopping rules reach, segment is shortened and STOP is returned
 	// If segment is too short to truncate then returns DISCARD
-	auto truncateSegment = [&](float shorten, float trackLengthCheck)->WalkerAction {
+	auto truncateSegment = [&](float shorten, float lengthCheck)->WalkerAction {
 
 		// This could happen but it is not possible to shorten more than the segment length.
 		if (shorten > w->segment.len) { 
 			w->action 			= DISCARD;
 			w->discardingReason = CANT_MEET_STOP_CONDITION;
-			w->trackedLength    = trackLengthCheck;
+			w->trackedLength    = lengthCheck;
 			disp(MSG_DEBUG,"Rule %d. Segment %d - %d. DISCARD - CANT_MEET_STOP_CONDITION (Segment too short)", ruleCnt, b, e);
 			return DISCARD;
 		}
@@ -252,8 +258,7 @@ NIBR::WalkerAction NIBR::Pathway::checkWalker(NIBR::Walker *w, int b, int e)
 	}; 
 
 	
-	// If a stop pathway rule was reached, then w->segStopLength < w->segment.len, otherwise it is w->segment.len.
-	float trackLengthCheck = w->trackedLength + w->segStopLength;
+	
 
 	// atMaxLength can either be discard or stop, and it can't be both
 	if (checkDiscardAtMax(trackLengthCheck) == DISCARD) return DISCARD;
@@ -275,13 +280,16 @@ NIBR::WalkerAction NIBR::Pathway::checkWalker(NIBR::Walker *w, int b, int e)
 			toShorten = toShortenDueStopRegion;
 		}
 
-		if (truncateSegment(toShorten,trackLengthCheck) == DISCARD) return DISCARD;
+		if (truncateSegment(toShorten,trackLengthCheck) == DISCARD) {return DISCARD;}
+
+		trackLengthCheck -= toShorten;
 		
 	} else {
 
 		if (checkStopAtMax(trackLengthCheck) == STOP) {
 			float toTruncate = trackLengthCheck - (maxLength-EPS4);
-			if (truncateSegment(toTruncate,trackLengthCheck) == DISCARD) return DISCARD;
+			if (truncateSegment(toTruncate,trackLengthCheck) == DISCARD) {return DISCARD;}
+			trackLengthCheck -= toTruncate;
 		}
 
 	}

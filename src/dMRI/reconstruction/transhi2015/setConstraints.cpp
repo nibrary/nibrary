@@ -53,8 +53,6 @@
 #pragma clang diagnostic pop
 #endif
 
-#include <optional>
-
 using namespace NIBR;
 
 using namespace proxsuite::proxqp;
@@ -112,7 +110,7 @@ Eigen::VectorXd TranShi2015::setConstraints(Eigen::MatrixXd &aH,  Eigen::VectorX
         l = Eigen::VectorXd::Zero(BC_m + 2);
         
         // Solving QP
-        Results<double> results_dense_solver = dense::solve<double>(aH, g, qp_A, qp_b, C, l, std::nullopt);
+        Results<double> results_dense_solver = dense::solve<double>(aH, g, qp_A, qp_b, C, l, proxsuite::nullopt);
         
         d = results_dense_solver.x;
 
@@ -166,7 +164,7 @@ void TranShi2015::updateConstraints(Eigen::MatrixXd &aH,  Eigen::VectorXd &g,
         Eigen::VectorXd l_new = Eigen::VectorXd::Zero(BC_m + 2);
         
         // Solving QP
-        Results<double> results_dense_solver = dense::solve<double>(aH, g, qp_A, qp_b, C_new, l_new, std::nullopt);
+        Results<double> results_dense_solver = dense::solve<double>(aH, g, qp_A, qp_b, C_new, l_new, proxsuite::nullopt);
         
         auto d_new = results_dense_solver.x;
 

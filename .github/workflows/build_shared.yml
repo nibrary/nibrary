@@ -70,13 +70,13 @@ jobs:
       shell: bash
       run: |
         cd ${{ env.build-output-dir }}/install
-        tar -czvf nibrary_macOS_x86_64_static.tar.gz include lib
+        tar -czvf nibrary_macOS_x86_64_shared.tar.gz include lib
 
     - name: Upload binaries as artifact
       uses: actions/upload-artifact@v4
       with:
-        name: nibrary_macOS_x86_64_static.tar.gz
-        path: ${{ env.build-output-dir }}/install/nibrary_macOS_x86_64_static.tar.gz
+        name: nibrary_macOS_x86_64_shared.tar.gz
+        path: ${{ env.build-output-dir }}/install/nibrary_macOS_x86_64_shared.tar.gz
         if-no-files-found: error
         retention-days: 5
 
@@ -136,13 +136,13 @@ jobs:
       shell: bash
       run: |
         cd ${{ env.build-output-dir }}/install
-        tar -czvf nibrary_macOS_arm64_static.tar.gz include lib
+        tar -czvf nibrary_macOS_arm64_shared.tar.gz include lib
 
     - name: Upload binaries as artifact
       uses: actions/upload-artifact@v4
       with:
-        name: nibrary_macOS_arm64_static.tar.gz
-        path: ${{ env.build-output-dir }}/install/nibrary_macOS_arm64_static.tar.gz
+        name: nibrary_macOS_arm64_shared.tar.gz
+        path: ${{ env.build-output-dir }}/install/nibrary_macOS_arm64_shared.tar.gz
         if-no-files-found: error
         retention-days: 5
 
@@ -158,21 +158,21 @@ jobs:
       - name: Download arm64 artifact
         uses: actions/download-artifact@v4
         with:
-          name: nibrary_macOS_arm64_static.tar.gz
+          name: nibrary_macOS_arm64_shared.tar.gz
           path: ${{ env.build-output-dir }}/arm64
 
       - name: Download x86_64 artifact
         uses: actions/download-artifact@v4
         with:
-          name: nibrary_macOS_x86_64_static.tar.gz
+          name: nibrary_macOS_x86_64_shared.tar.gz
           path: ${{ env.build-output-dir }}/x86_64
 
       - name: Create Universal Library with lipo
         run: |
           cd ${{ env.build-output-dir }}/arm64       
-          tar -xzvf ${{ env.build-output-dir }}/arm64/nibrary_macOS_arm64_static.tar.gz
+          tar -xzvf ${{ env.build-output-dir }}/arm64/nibrary_macOS_arm64_shared.tar.gz
           cd ${{ env.build-output-dir }}/x86_64
-          tar -xzvf ${{ env.build-output-dir }}/x86_64/nibrary_macOS_x86_64_static.tar.gz
+          tar -xzvf ${{ env.build-output-dir }}/x86_64/nibrary_macOS_x86_64_shared.tar.gz
           lib1_arm=${{ env.build-output-dir }}/arm64/lib/nibrary_v0.3.0/libgeogram.dylib
           lib2_arm=${{ env.build-output-dir }}/arm64/lib/nibrary_v0.3.0/libNibrary.dylib
           lib3_arm=${{ env.build-output-dir }}/arm64/lib/nibrary_v0.3.0/libz.dylib
@@ -188,13 +188,13 @@ jobs:
           lipo -create ${lib3_arm} ${lib3_x86_64} -output ${lib3_comb}
           cp -r ${{ env.build-output-dir }}/x86_64/include/ ${{ env.build-output-dir }}/include/
           cd ${{ env.build-output-dir }}
-          tar -czvf nibrary_macOS_universal_static.tar.gz include lib
+          tar -czvf nibrary_macOS_universal_shared.tar.gz include lib
 
       - name: Upload universal library
         uses: actions/upload-artifact@v4
         with:
-          name: nibrary_macOS_universal_static.tar.gz
-          path: ${{ env.build-output-dir }}/nibrary_macOS_universal_static.tar.gz
+          name: nibrary_macOS_universal_shared.tar.gz
+          path: ${{ env.build-output-dir }}/nibrary_macOS_universal_shared.tar.gz
           if-no-files-found: error
           retention-days: 5
 
@@ -235,13 +235,13 @@ jobs:
       shell: bash
       run: |
         cd ${{ env.build-output-dir }}/install
-        tar -czvf nibrary_linux_static.tar.gz include lib
+        tar -czvf nibrary_linux_shared.tar.gz include lib
 
     - name: Upload binaries as artifact
       uses: actions/upload-artifact@v4
       with:
-        name: nibrary_linux_static.tar.gz
-        path: ${{ env.build-output-dir }}/install/nibrary_linux_static.tar.gz
+        name: nibrary_linux_shared.tar.gz
+        path: ${{ env.build-output-dir }}/install/nibrary_linux_shared.tar.gz
         if-no-files-found: error
         retention-days: 5
 
@@ -284,15 +284,15 @@ jobs:
       - name: Create artifact
         shell: cmd
         run: |
-          echo Creating archive: %build_output_dir%\nibrary_windows_static.zip
+          echo Creating archive: %build_output_dir%\nibrary_windows_shared.zip
           echo Archiving: %build_output_dir%\install\include\
           echo Archiving: %build_output_dir%\install\lib\
-          7z a -tzip %build_output_dir%\nibrary_windows_static.zip %build_output_dir%\install\include\ %build_output_dir%\install\lib\
+          7z a -tzip %build_output_dir%\nibrary_windows_shared.zip %build_output_dir%\install\include\ %build_output_dir%\install\lib\
 
       - name: Upload binaries as artifact
         uses: actions/upload-artifact@v4
         with:
-          name: nibrary_windows_static.zip
-          path: ${{ env.build_output_dir }}\nibrary_windows_static.zip
+          name: nibrary_windows_shared.zip
+          path: ${{ env.build_output_dir }}\nibrary_windows_shared.zip
           if-no-files-found: error
           retention-days: 5

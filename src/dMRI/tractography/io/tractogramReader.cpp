@@ -271,17 +271,19 @@ bool NIBR::TractogramReader::initReader(std::string _fileName) {
 			}
 
 			// Get number of streamlines, lengths and streamlinePos
-			std::fscanf(file, "LINES %zu %*d ", &numberOfStreamlines);
+			auto checkLine = (std::fscanf(file, "LINES %zu %*d ", &numberOfStreamlines) == 1);
 
-			disp(MSG_DEBUG,"numberOfStreamlines: %d", numberOfStreamlines);
+			if ((numberOfStreamlines < 1) || !checkLine) {
 
-			if (numberOfStreamlines < 1) {
+				disp(MSG_DEBUG,"No lines in file");
 
 				numberOfStreamlines = 0;
 				len 				= NULL;
 				streamlinePos 		= NULL;
 
 			} else {
+
+				disp(MSG_DEBUG,"numberOfStreamlines: %d", numberOfStreamlines);
 
 				len 			 = new uint32_t[numberOfStreamlines];
 				streamlinePos 	 = new long[numberOfStreamlines];

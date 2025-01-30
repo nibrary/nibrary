@@ -9,7 +9,9 @@ bool NIBR::Surface::readHeader(std::string _filePath)
 {
 
     filePath = _filePath;
-    extension = filePath.substr(filePath.find_last_of(".") + 1);
+    extension = getFileExtension(filePath);
+
+    disp(MSG_DEBUG,"File extension: %s", extension.c_str());
 
     if (!existsFile(filePath)) {
         disp(MSG_ERROR,"File not found: %s", filePath.c_str());
@@ -47,6 +49,8 @@ bool NIBR::Surface::readVTKMeshHeader()
         if (len > 0 && dummy[len - 1] == '\n') dummy[len - 1] = '\0';
         disp(MSG_WARN,"Vtk version is not supported: %s", dummy);
     }
+
+    disp(MSG_DEBUG,"Vtk version is %s", dummy);
 
     fgets(dummy, strLength, input); // Custom one line metadata
     fgets(type, strLength, input);  // ASCII or BINARY

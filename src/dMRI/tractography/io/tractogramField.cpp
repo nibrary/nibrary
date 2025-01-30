@@ -499,7 +499,7 @@ TractogramField NIBR::makeTractogramFieldFromFile(TractogramReader& tractogram, 
 
     // Read field values
     FILE *input;
-	input = fopen(filePath.c_str(),"r");
+	input = fopen(filePath.c_str(),"rb+");
 
     auto readStreamlineData = [&](auto data, auto t) {
         for (size_t s = 0; s < tractogram.numberOfStreamlines; s++) {

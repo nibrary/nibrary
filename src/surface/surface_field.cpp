@@ -8,7 +8,7 @@ std::vector<NIBR::SurfaceField> NIBR::Surface::findFields()
 {
 
 	FILE *input;
-	input = fopen(filePath.c_str(),"r");
+	input = fopen(filePath.c_str(),"rb+");
 
     std::vector<SurfaceField> fieldList;
     
@@ -94,7 +94,7 @@ std::vector<NIBR::SurfaceField> NIBR::Surface::findFields()
 bool NIBR::Surface::readFields() {
 
 	FILE *input;
-	input = fopen(filePath.c_str(),"r");
+	input = fopen(filePath.c_str(),"rb+");
     
     if (input==NULL) return false;
 
@@ -238,7 +238,7 @@ NIBR::SurfaceField NIBR::Surface::readField(std::string fieldName) {
     field.idata = idata;
     
 	FILE *input;
-	input = fopen(filePath.c_str(),"r");
+	input = fopen(filePath.c_str(),"rb+");
     
     if (input==NULL) return field;
 

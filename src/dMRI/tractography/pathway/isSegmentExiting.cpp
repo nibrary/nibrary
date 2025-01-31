@@ -186,17 +186,13 @@ std::tuple<bool,float> NIBR::Pathway::isSegmentExiting(const LineSegment& segmen
                 crossDist = 0.0f;
                 return std::make_tuple(true,crossDist);
             }
-                        
-            float downsampleFactor = segment.len * maxSegSizeScaler[ruleNo];
 
-            // disp(MSG_DEBUG,"segment.len: %.2f, ,maxSegSizeScaler: %.2f, f: %.2f",segment.len, maxSegSizeScaler[ruleNo], downsampleFactor);
 
-            if (downsampleFactor > 1)
+            if (segment.len > miniSegment[ruleNo])
             {
-                float s = segment.len / float(std::ceil(downsampleFactor));
                 float end[3];
 
-                for (float t = s; t < (segment.len + EPS8); t = t + s)
+                for (float t = miniSegment[ruleNo]; t < segment.len; t = t + miniSegment[ruleNo])
                 {
                     end[0] = segment.beg[0] + segment.dir[0] * t;
                     end[1] = segment.beg[1] + segment.dir[1] * t;
@@ -204,17 +200,15 @@ std::tuple<bool,float> NIBR::Pathway::isSegmentExiting(const LineSegment& segmen
                     
                     if (isOutsidePvf(end)) {
                         crossDist = t;
-                        crossDist = std::clamp(crossDist,0.0f,segment.len);
                         return std::make_tuple(true,crossDist);
                     }
                 }
             }
-            else
-            {
-                if (isOutsidePvf(segment.end)) {
-                    crossDist = segment.len;
-                    return std::make_tuple(true,crossDist);
-                }
+            
+            
+            if (isOutsidePvf(segment.end)) {
+                crossDist = segment.len;
+                return std::make_tuple(true,crossDist);
             }
 
             return std::make_tuple(false,NAN);

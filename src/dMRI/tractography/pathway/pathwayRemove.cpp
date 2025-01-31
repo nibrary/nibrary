@@ -50,7 +50,7 @@ bool NIBR::Pathway::remove(int ruleInd) {
     img_label_val.   erase(img_label_val.   begin() + ruleInd);
     img_pvf.         erase(img_pvf.         begin() + ruleInd);
     pvf_vol.         erase(pvf_vol.         begin() + ruleInd);
-    maxSegSizeScaler.erase(maxSegSizeScaler.begin() + ruleInd);
+    miniSegment.     erase(miniSegment.     begin() + ruleInd);
     surf.            erase(surf.            begin() + ruleInd);
     surfData.        erase(surfData.        begin() + ruleInd);
     sphCenter.       erase(sphCenter.       begin() + ruleInd);

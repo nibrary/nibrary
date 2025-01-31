@@ -106,7 +106,7 @@ namespace NIBR
         std::vector<int> out;
 
         for (int n=0; n<img->numel; n++) {
-            if (img->data[n] != 0) {
+            if (img->data[n] != static_cast<T>(0.0)) {
                 out.push_back(n);
             }
         }
@@ -130,7 +130,7 @@ namespace NIBR
             for (int64_t j=0; j<img->imgDims[1]; j++) {
                 for (int64_t k=0; k<img->imgDims[2]; k++) {
                     ind = img->sub2ind(i,j,k,volInd);
-                    if (img->data[ind] != 0) {
+                    if (img->data[ind] != static_cast<T>(0.0)) {
                         out.push_back(int(img->sub2ind(i,j,k)));
                     }
                 }

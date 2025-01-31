@@ -22,12 +22,25 @@ bool NIBR::Pathway::setEntryStatus(NIBR::Walker* w, int ruleNo) {
         }
     }
 
+
+    // Stop exactly at exit/entry
+    if ( ((w->entry_status[ruleNo] == exited ) && (prules[ruleNo].type==stop_at_exit)) ||
+         ((w->entry_status[ruleNo] == entered) && (prules[ruleNo].type==stop_at_entry)) ) {
+
+            disp(MSG_DEBUG,"  Stopping at exit/entry (by %.12f)", crossLen);
+            w->segStopLength = crossLen;
+            return true;
+
+    }
+
+
     auto exitingOrEnteringWrapper = [&](bool testType)->bool {
 
         LineSegment checkSeg;
         checkSeg.beg    = new float[3]; 
         checkSeg.end    = new float[3];
-        checkSeg.len    = w->segment.len * crossLen;
+        checkSeg.len    = w->segStopLength;
+
         for (int i = 0; i < 3; i++) {
             checkSeg.beg[i] = w->segment.beg[i];
             checkSeg.dir[i] = w->segment.dir[i];
@@ -68,24 +81,15 @@ bool NIBR::Pathway::setEntryStatus(NIBR::Walker* w, int ruleNo) {
             // Image pvf case
             // Move one downsampleFactor before the stop rule
             case img_pvf_src: {
-                float downsampleFactor = w->segment.len * maxSegSizeScaler[ruleNo];
-
-                if (downsampleFactor > 1) {
-                    float s = w->segment.len / float(std::ceil(downsampleFactor));
-                    w->segStopLength = crossLen - s;
-                }
-
+                disp(MSG_DEBUG,"  Stopping before exit/entry (by %.12f)", crossLen);
+                w->segStopLength = crossLen - miniSegment[ruleNo];
                 break;
           
             }
 
         }
 
-        if (w->segStopLength <= 0.0f) {
-            disp(MSG_DEBUG,"  Can't stop streamline: segment can't be shorter");
-            // wait("...");
-            return false;
-        }
+        if (w->segStopLength <= 0.0f) w->segStopLength = EPS3;
 
         if ((prules[ruleNo].type==stop_before_exit) && (isExiting())) {
             disp(MSG_DEBUG,"  Can't stop streamline: shorter segment is not inside");
@@ -131,16 +135,14 @@ bool NIBR::Pathway::setEntryStatus(NIBR::Walker* w, int ruleNo) {
             // Nothing needed since the end point is very likely to be not exactly on the border but already beyond the stop rule
             // i.e. when the last point is checked, it will always show to be beyond the stopping rule - it will not appear 50% inside/outside
             case img_pvf_src: {
+                disp(MSG_DEBUG,"  Stopping after exit/entry (by %.12f)", crossLen);
+                w->segStopLength = crossLen + miniSegment[ruleNo];
                 break;
             }
 
         }
 
-        if (w->segStopLength >= w->segment.len) {
-            disp(MSG_DEBUG,"  Can't stop streamline: segment can't be longer");
-            // wait("...");
-            return false;
-        }
+        if (w->segStopLength >= w->segment.len) w->segStopLength = w->segment.len - EPS3;
 
         if ((prules[ruleNo].type==stop_after_exit) && (!isExiting())) {
             disp(MSG_DEBUG,"  Can't stop streamline: shorter segment is not outside");

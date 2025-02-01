@@ -4,22 +4,12 @@ nibrary: neuroimaging library
 [![License](https://img.shields.io/badge/License-BSD_3--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)[![Shared build](https://github.com/nibrary/nibrary/actions/workflows/build_shared.yml/badge.svg)](https://github.com/nibrary/nibrary/actions/workflows/build_shared.yml) [![Static build](https://github.com/nibrary/nibrary/actions/workflows/build_static.yml/badge.svg)](https://github.com/nibrary/nibrary/actions/workflows/build_static.yml)
 
 
-nibrary is an evolving collection of functions designed to support research in computational neuroimaging across various imaging modalities for developing new methods, tools, and applications.
+nibrary is an evolving collection of functions designed to support research in computational neuroimaging across various imaging modalities for developing new methods, tools, and applications. 
 
 
-### Building nibrary from source
+### Installation
 
-nibrary is natively supported on Linux, Windows, and macOS.
-
-#### 1. Clone the Repository:
-
-```bash
-git clone --recurse-submodules https://github.com/nibrary/nibrary
-```
-
-#### 2. Install dependencies:
-
-nibrary can be installed with a minimal set of standard development tools:
+nibrary is natively supported on Linux, Windows, and macOS. nibrary can be installed with a minimal set of standard development tools.
 
 *   **CMake**: min v3.15.0
 *   **OpenMP**
@@ -27,6 +17,20 @@ nibrary can be installed with a minimal set of standard development tools:
     *   **GCC** (min v9.0)
     *   **Clang**: v18.0.0 (v19 is known not to work)
     *   **Microsoft Visual C++ (MSVC)**: Visual Studio 2022
+
+To install nibrary, first clone the repository with all the submodules as shown below. 
+
+```bash
+git clone --recurse-submodules https://github.com/nibrary/nibrary
+```
+
+Then follow the instructions below to build nibrary from source for different operating systems.
+
+
+#
+### Linux
+
+#### 1. Install dependencies:
 
 Debian/Ubuntu:
 ```bash
@@ -45,36 +49,44 @@ sudo pacman -S cmake openmp
 sudo pacman -S base-devel
 ```
 
-macOS:
+#### 2. Run the build script:
+
+The following will install a statically built library under the `build-static` folder using the default compiler in the system.
 ```bash
-brew install llvm@18 libomp
+cd nibrary
+sh build_linux.sh
 ```
 
-#### 3. Build
 
-Edit and run the provided build scripts.
+Edit the `build_linux.sh` script to customize your installation.
 
-* **Linux:** `build_linux.sh`
-* **macOS:** `build_mac.sh`
-* **Windows:** `build_win.bat`
+#
+### macOS
 
-### Notes
+The provided installation script for macOS, `build_mac.sh`, will install the dependencies, set the environment variables, compile and install nibrary under the `build-static` folder.
 
-1. nibrary bundles together the following external tools as submodules:
+```bash
+cd nibrary
+sh build_linux.sh
+```
 
-    *   [Eigen](https://eigen.tuxfamily.org)
-    *   [Geogram](https://github.com/BrunoLevy/geogram)
-    *   [libigl](https://libigl.github.io/)
-    *   [ProxSuite](https://github.com/Simple-Robotics/proxsuite)
-    *   [SIMDe](https://github.com/simd-everywhere/simde)
-    *   [zlib](http://zlib.net/)
-    *   [dcm2niix](https://www.nitrc.org/plugins/mwiki/index.php/dcm2nii:MainPage)
+Note that nibrary requires `llvm` and `libomp` in macOS. We have successfully tested `llvm` v18 to build nibrary; however, compilation with the more recent version, v19, fails. The provided build script installs `llvm@18` and `libomp` in the system. However, it does not permanently set environment variables for future use. The `build_mac.sh` script contains information about how to permanently set these environment variables if needed.
 
-    To use some of the existing system libraries for installation please modify nibrary's cmake options. System libraries cannot be used for some of the dependencies.
+Edit the `build_mac.sh` script to customize your installation.
 
-2. For static compilations, make sure that your system libraries are static as well.
+#
+### Windows
 
+Install Visual Studio 2022 (other versions might work too but they were not tested). Open command window and use the following to install a statically built library under the `build-static` folder:
 
+```cmd
+cd nibrary
+call build_win.bat
+```
+
+Edit the `build_win.bat` script to customize your installation.
+
+#
 ### License information and use of third-party software
 
 nibrary uses a BSD 3-Clause License. However, we use a variety of third-party tools, which are included in the [external](./external) folder. Please read the [license](./external/LICENSE.md) file under the external folder for details.

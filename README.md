@@ -92,10 +92,10 @@ Edit the `build_win.bat` script to customize your installation.
 nibrary utilizes the following third-party libraries, which are included as Git submodules and are built *locally* as part of the nibrary build process:
 
 *   [Eigen](https://eigen.tuxfamily.org)
-*   [Geogram](https://github.com/BrunoLevy/geogram)
+*   [geogram](https://github.com/BrunoLevy/geogram)
 *   [libigl](https://libigl.github.io/)
-*   [ProxSuite](https://github.com/Simple-Robotics/proxsuite)
-*   [SIMDe](https://github.com/simd-everywhere/simde)
+*   [proxSuite](https://github.com/Simple-Robotics/proxsuite)
+*   [simde](https://github.com/simd-everywhere/simde)
 *   [zlib](http://zlib.net/)
 *   [dcm2niix](https://www.nitrc.org/plugins/mwiki/index.php/dcm2nii:MainPage)
 
@@ -105,6 +105,8 @@ nibrary utilizes the following third-party libraries, which are included as Git 
 ### License
 
 nibrary is licensed under the [BSD 3-Clause License](LICENSE.md). Third-party software included in the `external` directory have their own respective licenses, detailed in the [`external/LICENSE.md`](external/LICENSE.md) file.
+
+
 
 
 

@@ -77,7 +77,7 @@ Edit the `build_mac.sh` script to customize your installation.
 #
 ### Windows
 
-Install Visual Studio 2022 (other versions might work too but they were not tested). Open command window and use the following to install a statically built library under the `build-static` folder:
+Install Visual Studio 2022 (other versions might work too but they have not been tested). Open command window and use the following to install a statically built library under the `build-static` folder:
 
 ```cmd
 cd nibrary
@@ -87,9 +87,24 @@ call build_win.bat
 Edit the `build_win.bat` script to customize your installation.
 
 #
-### License information and use of third-party software
+### Third-Party software
 
-nibrary uses a BSD 3-Clause License. However, we use a variety of third-party tools, which are included in the [external](./external) folder. Please read the [license](./external/LICENSE.md) file under the external folder for details.
+nibrary utilizes the following third-party libraries, which are included as Git submodules and are built *locally* as part of the nibrary build process:
+
+*   [Eigen](https://eigen.tuxfamily.org)
+*   [Geogram](https://github.com/BrunoLevy/geogram)
+*   [libigl](https://libigl.github.io/)
+*   [ProxSuite](https://github.com/Simple-Robotics/proxsuite)
+*   [SIMDe](https://github.com/simd-everywhere/simde)
+*   [zlib](http://zlib.net/)
+*   [dcm2niix](https://www.nitrc.org/plugins/mwiki/index.php/dcm2nii:MainPage)
+
+**Important:** These dependencies are built within the nibrary source tree and do not affect or modify your system's existing installations. They will co-exist peacefully with any previously installed versions of these libraries. You do not need to install these libraries separately.
+
+#
+### License
+
+nibrary is licensed under the [BSD 3-Clause License](LICENSE.md). Third-party software included in the `external` directory have their own respective licenses, detailed in the [`external/LICENSE.md`](external/LICENSE.md) file.
 
 
 

@@ -1,6 +1,10 @@
 cmake_minimum_required(VERSION 3.15.0)
 
-PROJECT(nibrary VERSION 0.3.0 LANGUAGES CXX C)
+set(nibrary_VERSION_MAJOR 0)
+set(nibrary_VERSION_MINOR 3)
+set(nibrary_VERSION_PATCH 0)
+
+project(nibrary VERSION ${nibrary_VERSION_MAJOR}.${nibrary_VERSION_MINOR}.${nibrary_VERSION_PATCH} LANGUAGES CXX C)
 
 set(nibrary "nibrary_v${nibrary_VERSION}")
 message(STATUS ">> Nibrary::Building ${nibrary}")
@@ -65,6 +69,13 @@ set(libNibrary "Nibrary")
 
 # Compile the sources
 add_library(OBJS OBJECT ${SRCS})
+
+# Add version information
+target_compile_definitions(OBJS PRIVATE
+    NIBRARY_VERSION_MAJOR=${nibrary_VERSION_MAJOR}
+    NIBRARY_VERSION_MINOR=${nibrary_VERSION_MINOR}
+    NIBRARY_VERSION_PATCH=${nibrary_VERSION_PATCH}
+)
 
 # Include external dependencies
 add_subdirectory(external)

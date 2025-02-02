@@ -20,4 +20,4 @@ Below is the complete list of the external tools used in nibrary. Please also se
 | **simde**                  | [MIT License](https://github.com/simd-everywhere/simde/blob/master/COPYING) | [SIMDe repository](https://github.com/simd-everywhere/simde) |
 | **triangleVoxelIntersection** | [MIT License](./triangleVoxelIntersection/LICENSE) | [triangleVoxelIntersection source file](http://fileadmin.cs.lth.se/cs/Personal/Tomas_Akenine-Moller/code/tribox2.txt)                                                      |
 | **zlib**                   | [zlib License](https://github.com/madler/zlib?tab=License-1-ov-file) | [zlib website](http://zlib.net/)           |
-
+| **dcm2niix**               | [dcm2niix License](https://github.com/rordenlab/dcm2niix?tab=License-1-ov-file#readme) | [dcm2niix website](https://www.nitrc.org/plugins/mwiki/index.php/dcm2nii:MainPage)           |

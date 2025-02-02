@@ -32,7 +32,7 @@
 namespace NIBR 
 {
     typedef enum {
-        VERBOSE_QUITE  = 0,          // No verbose.
+        VERBOSE_QUIET  = 0,          // No verbose.
         VERBOSE_FATAL  = 1,          // Severe errors which will terminate the execution.
         VERBOSE_ERROR  = 2,          // Error which might terminate the execution or not.
         VERBOSE_WARN   = 3,          // Potentially harmful situation.

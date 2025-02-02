@@ -99,18 +99,18 @@ namespace NIBR
         }
         
         std::vector<std::vector<std::vector<float>>>    read(); // Reads all the streamlines
-        void                                            readPoint(size_t n, uint32_t l, float* p);
-        float**                                         readStreamline(size_t n);
-        std::vector<Point>                              readStreamlinePoints(size_t n);
-        std::vector<std::vector<float>>                 readStreamlineVector(size_t n);
+        void                                            readPoint(std::size_t n, uint32_t l, float* p);
+        float**                                         readStreamline(std::size_t n);
+        std::vector<Point>                              readStreamlinePoints(std::size_t n);
+        std::vector<std::vector<float>>                 readStreamlineVector(std::size_t n);
 
         FILE                   *file;
         std::string             fileName;
         std::string             fileDescription;
         TRACTOGRAMFILEFORMAT    fileFormat;
         
-        size_t                  numberOfPoints;
-        size_t                  numberOfStreamlines;
+        std::size_t             numberOfPoints;
+        std::size_t             numberOfStreamlines;
         uint32_t*               len;
 
         // Nifti assumes voxel center to be 0,0,0.

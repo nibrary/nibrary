@@ -35,7 +35,7 @@ bool NIBR::Pathway::add(PathwayRule prule) {
     img_label_val.   push_back(1);
     img_pvf.         push_back(NULL);
     pvf_vol.         push_back(-1);     // means, the pvf is 3D
-    maxSegSizeScaler.push_back(NAN);
+    miniSegment.     push_back(NAN);
     surf.            push_back(NULL);
     surfData.        push_back(NULL);
     sphCenter.       push_back(NULL);
@@ -55,7 +55,7 @@ bool NIBR::Pathway::add(PathwayRule prule) {
         img_label_val.   pop_back();
         img_pvf.         pop_back();
         pvf_vol.         pop_back();
-        maxSegSizeScaler.pop_back();
+        miniSegment.     pop_back();
         surf.            pop_back();
         surfData.        pop_back();
         sphCenter.       pop_back();
@@ -190,10 +190,10 @@ bool NIBR::Pathway::add(PathwayRule prule) {
             bool srcDone = false;
             for(int j=0; j<ruleInd; j++) {
                 if ((prules[j].src == img_mask_src) && (prules[j].imageMaskSource == prule.imageMaskSource)) {
-                    img_mask.back()         = img_mask[j];
-                    maxSegSizeScaler.back() = maxSegSizeScaler[j];
+                    img_mask.back()    = img_mask[j];
+                    miniSegment.back() = miniSegment[j];
                     disp(MSG_DETAIL,"Copied source from rule %d",j);
-                    srcDone                 = true;
+                    srcDone            = true;
                     break;
                 }
             }
@@ -212,8 +212,8 @@ bool NIBR::Pathway::add(PathwayRule prule) {
                 imgThresh(*imgSrc, inpImgSrc, nextafterf(0.0f, 1.0f), FLT_MAX);
                 imgSrc->setInterpolationMethod(NEAREST);
 
-                img_mask.back()         = imgSrc;
-                maxSegSizeScaler.back() = 1.0f/(imgSrc->smallestPixDim*SUB_VOXEL_RATIO);
+                img_mask.back()    = imgSrc;
+                miniSegment.back() = imgSrc->smallestPixDim*SUB_VOXEL_RATIO;
             }
 
             if ((prule.type == seed) && (isTracking == true)) {
@@ -241,10 +241,10 @@ bool NIBR::Pathway::add(PathwayRule prule) {
             bool srcDone = false;
             for(int j=0; j<ruleInd; j++) {
                 if ((prules[j].src == img_label_src) && (prules[j].imageLabelSource == prule.imageLabelSource)) {
-                    img_label.back()        = img_label[j];
-                    maxSegSizeScaler.back() = maxSegSizeScaler[j];
+                    img_label.back()   = img_label[j];
+                    miniSegment.back() = miniSegment[j];
                     disp(MSG_DETAIL,"Copied source from rule %d",j);
-                    srcDone                 = true;
+                    srcDone            = true;
                     break;
                 }
             }
@@ -260,8 +260,8 @@ bool NIBR::Pathway::add(PathwayRule prule) {
                 imgSrc->read();
                 imgSrc->setInterpolationMethod(NEAREST);
 
-                img_label.back()        = imgSrc;
-                maxSegSizeScaler.back() = 1.0f/(imgSrc->smallestPixDim*SUB_VOXEL_RATIO);
+                img_label.back()   = imgSrc;
+                miniSegment.back() = imgSrc->smallestPixDim * SUB_VOXEL_RATIO;
             }
 
             if (prule.useLabel == true)
@@ -294,9 +294,9 @@ bool NIBR::Pathway::add(PathwayRule prule) {
             bool srcDone = false;
             for(int j=0; j<ruleInd; j++) {
                 if ((prules[j].src == img_pvf_src) && (prules[j].imagePvfSource == prule.imagePvfSource) && (prules[j].useLabel == prule.useLabel) && (prules[j].label == prule.label)) {
-                    img_pvf.back()          = img_pvf[j];
-                    pvf_vol.back()          = pvf_vol[j];
-                    maxSegSizeScaler.back() = maxSegSizeScaler[j];
+                    img_pvf.back()     = img_pvf[j];
+                    pvf_vol.back()     = pvf_vol[j];
+                    miniSegment.back() = miniSegment[j];
                     disp(MSG_DETAIL,"Copied source from rule %d",j);
                     srcDone = true;
                     break;
@@ -342,8 +342,8 @@ bool NIBR::Pathway::add(PathwayRule prule) {
                 pvf_vol.back() = (imgSrc->getDimension() == 4) ? prule.label : -1;
 
                 imgSrc->read();
-                img_pvf.back()          = imgSrc;
-                maxSegSizeScaler.back() = 1.0f/(imgSrc->smallestPixDim*SUB_VOXEL_RATIO);
+                img_pvf.back()     = imgSrc;
+                miniSegment.back() = imgSrc->smallestPixDim * SUB_VOXEL_RATIO;
                 disp(MSG_DETAIL,"Reading source for rule %d is completed",ruleInd+1);
             }
 

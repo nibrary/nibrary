@@ -195,7 +195,7 @@ private:
         std::vector<int>                                                      img_label_val;
         std::vector<NIBR::Image<float>*>                                      img_pvf;
         std::vector<int>                                                      pvf_vol;
-        std::vector<float>                                                    maxSegSizeScaler;
+        std::vector<float>                                                    miniSegment;
         std::vector<NIBR::Surface*>                                           surf;
         std::vector<NIBR::SurfaceField*>                                      surfData;
         std::vector<float*>                                                   sphCenter;

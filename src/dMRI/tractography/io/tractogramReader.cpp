@@ -78,24 +78,12 @@ bool NIBR::TractogramReader::initReader(std::string _fileName) {
 	if (file == NULL)
 		return false;
 
-	const size_t strLength = 256;
+	const std::size_t strLength = 256;
 	char dummy[strLength];
 
 	std::string extension = getFileExtension(fileName);
 
-
-	// std::string message  = "Preparing tractogram";
-	// std::string preamble = "\033[1;32mNIBRARY::INFO: \033[0;32m";
-
-    // if (NIBR::VERBOSE()==VERBOSE_DETAIL) {
-    //     preamble = "\033[1;35mNIBR::MSG_DETAIL: \033[0;35m";
-	// } else if (NIBR::VERBOSE()==VERBOSE_DEBUG) {
-    //     preamble = "\033[1;93mNIBR::MSG_DEBUG: \033[0;93m";
-	// }
-
-	// if (NIBR::VERBOSE()>VERBOSE_INFO) {
-    //     std::cout << preamble << message << "0%" <<"\033[0m" << '\r' << std::flush;
-	// }
+	disp(MSG_DEBUG,"File extension: %s", extension.c_str());
 
 	if (extension == "tck") {
 
@@ -108,7 +96,7 @@ bool NIBR::TractogramReader::initReader(std::string _fileName) {
 			fgets(dummy, strLength, file);
 			tmps = std::string(dummy);
 
-			size_t column = tmps.find_last_of(":");
+			std::size_t column = tmps.find_last_of(":");
 
 			if (column != std::string::npos) {
 				std::string key = tmps.substr(0, column);
@@ -122,6 +110,7 @@ bool NIBR::TractogramReader::initReader(std::string _fileName) {
 			}
 
 		} while (tmps != "END\n");
+
 		numberOfPoints = 0;
 		
 		if (numberOfStreamlines > 0) {
@@ -133,7 +122,7 @@ bool NIBR::TractogramReader::initReader(std::string _fileName) {
 			fseek(file, pos, SEEK_SET);
 
 			float  tmp[3] = { 0,0,0 };
-			size_t ind = 0;
+			std::size_t ind = 0;
 
 			while (!feof(file)) {
 				std::fread(tmp, sizeof(float), 3, file);
@@ -217,7 +206,7 @@ bool NIBR::TractogramReader::initReader(std::string _fileName) {
 			streamlinePos[0] 	= ftell(file);
 			numberOfPoints     += tmp;
 
-			for (size_t i = 1; i < numberOfStreamlines; i++) {
+			for (std::size_t i = 1; i < numberOfStreamlines; i++) {
 				long offset = sizeof(float) * (len[i-1]*(3+n_scalars_trk)+n_properties_trk);
 				std::fseek(file, offset, SEEK_CUR);
 				std::fread(&tmp, sizeof(int), 1, file);
@@ -251,6 +240,8 @@ bool NIBR::TractogramReader::initReader(std::string _fileName) {
 			disp(MSG_WARN,"Vtk version is not supported: %s", dummy);
 		}
 
+		disp(MSG_DEBUG,"Vtk version is: %s", dummy);
+
 		fgets(dummy, strLength, file);                        // file description
 		fileDescription = std::string(dummy);
 		fileDescription = fileDescription.substr(0, fileDescription.size() - 1);
@@ -259,6 +250,8 @@ bool NIBR::TractogramReader::initReader(std::string _fileName) {
 		fgets(dummy, strLength, file);                        // always DATASET POLYDATA, we skip to check this for now
 		std::fscanf(file, "%*s %zu %*s ", &numberOfPoints);  // number of points and datatype, we assume datatype is float and skip checking this
 		long posData = ftell(file);
+
+		disp(MSG_DEBUG,"numberOfPoints: %d", numberOfPoints);
 
 		if ((vtkFormat == "ascii") || (vtkFormat == "ASCII")) fileFormat = VTK_ASCII;
 		else if ((vtkFormat == "binary") || (vtkFormat == "BINARY")) fileFormat = VTK_BINARY;
@@ -273,78 +266,80 @@ bool NIBR::TractogramReader::initReader(std::string _fileName) {
 			}
 
 			if (fileFormat == VTK_ASCII) {
-				for (size_t i = 0; i < numberOfPoints; i++)
+				for (std::size_t i = 0; i < numberOfPoints; i++)
 					std::fscanf(file, "%*f %*f %*f ");
 			}
 
 			// Get number of streamlines, lengths and streamlinePos
-			std::fscanf(file, "LINES %zu %*d ", &numberOfStreamlines);
+			auto checkLine = (std::fscanf(file, "LINES %zu %*d ", &numberOfStreamlines) == 1);
 
-			len = new uint32_t[numberOfStreamlines];
-			streamlinePos = new long[numberOfStreamlines];
-			streamlinePos[0] = posData;
+			if ((numberOfStreamlines < 1) || !checkLine) {
 
-			if (fileFormat == VTK_BINARY) {
-				int tmp;
-				std::fread(&tmp, sizeof(int), 1, file);
-				swapByteOrder(tmp);
-				std::fseek(file, tmp * sizeof(int), SEEK_CUR);
-				len[0] = tmp;
+				disp(MSG_DEBUG,"No lines in file");
 
-				for (size_t i = 1; i < numberOfStreamlines; i++) {
-					streamlinePos[i] = streamlinePos[i - 1] + long(sizeof(float) * len[i - 1] * 3);
+				numberOfStreamlines = 0;
+				len 				= NULL;
+				streamlinePos 		= NULL;
+
+			} else {
+
+				disp(MSG_DEBUG,"numberOfStreamlines: %d", numberOfStreamlines);
+
+				len 			 = new uint32_t[numberOfStreamlines];
+				streamlinePos 	 = new long[numberOfStreamlines];
+				streamlinePos[0] = posData;
+
+				if (fileFormat == VTK_BINARY) {
+
+					int tmp;
 					std::fread(&tmp, sizeof(int), 1, file);
 					swapByteOrder(tmp);
 					std::fseek(file, tmp * sizeof(int), SEEK_CUR);
-					len[i] = tmp;
-					// disp(MSG_DEBUG,"len: %d", len[i]);
-					// if (NIBR::VERBOSE()>VERBOSE_INFO) {
-					// 	std::cout << "                                                                                                                 " << '\r' << std::flush; // clean terminal
-					// 	std::cout << std::fixed << std::setprecision (2)  << preamble << message << ": " << float(i)/float(numberOfStreamlines)*100 << "%" <<"\033[0m" << '\r' << std::flush;
-					// }
-				}
-			}
+					len[0] = tmp;
 
-			if (fileFormat == VTK_ASCII) {
-				for (size_t i = 0; i < numberOfStreamlines; i++) {
-					std::fscanf(file, "%u ", &len[i]);
-					for (uint32_t j = 0; j < (len[i] - 1); j++)
+					for (std::size_t i = 1; i < numberOfStreamlines; i++) {
+						streamlinePos[i] = streamlinePos[i - 1] + long(sizeof(float) * len[i - 1] * 3);
+						std::fread(&tmp, sizeof(int), 1, file);
+						swapByteOrder(tmp);
+						std::fseek(file, tmp * sizeof(int), SEEK_CUR);
+						len[i] = tmp;
+					}
+				}
+
+				if (fileFormat == VTK_ASCII) {
+					for (std::size_t i = 0; i < numberOfStreamlines; i++) {
+						std::fscanf(file, "%u ", &len[i]);
+						for (uint32_t j = 0; j < (len[i] - 1); j++)
+							std::fscanf(file, "%*d ");
 						std::fscanf(file, "%*d ");
-					std::fscanf(file, "%*d ");
-					// disp(MSG_DEBUG,"len: %d", len[i]);
+						// disp(MSG_DEBUG,"len: %d", len[i]);
+					}
+
+					fseek(file, posData, SEEK_SET);
+
+					for (std::size_t i = 0; i < (numberOfStreamlines - 1); i++) {
+						for (std::size_t j = 0; j < len[i]; j++)
+							std::fscanf(file, "%*f %*f %*f ");
+						streamlinePos[i + 1] = ftell(file);
+
+					}
 				}
 
-				fseek(file, posData, SEEK_SET);
-				for (size_t i = 0; i < (numberOfStreamlines - 1); i++) {
-					for (size_t j = 0; j < len[i]; j++)
-						std::fscanf(file, "%*f %*f %*f ");
-					streamlinePos[i + 1] = ftell(file);
-
-					// if (NIBR::VERBOSE()>VERBOSE_INFO) {
-					// 	std::cout << "                                                                                                                 " << '\r' << std::flush; // clean terminal
-					// 	std::cout << std::fixed << std::setprecision (2)  << preamble << message << ": " << float(i)/float(numberOfStreamlines)*100 << "%" <<"\033[0m" << '\r' << std::flush;
-					// }
-				}
 			}
 
 		}
 		else {
 			numberOfStreamlines = 0;
-			len = NULL;
-			streamlinePos = NULL;
+			len 				= NULL;
+			streamlinePos 		= NULL;
 		}
 
 	}
 
-	// if (NIBR::VERBOSE()>VERBOSE_INFO) {
-    //     std::cout << "                                                                                            " << '\r' << std::flush; // clean terminal
-    //     std::cout << preamble << message << ": 100%" <<"\033[0m" << std::endl << std::flush;
-    // }
-
 	return true;
 }
 
-float** NIBR::TractogramReader::readStreamline(size_t n) {
+float** NIBR::TractogramReader::readStreamline(std::size_t n) {
 
 	float** points;
 	points = new float* [len[n]];
@@ -409,7 +404,7 @@ float** NIBR::TractogramReader::readStreamline(size_t n) {
 
 }
 
-void NIBR::TractogramReader::readPoint(size_t n, uint32_t l, float* point) {
+void NIBR::TractogramReader::readPoint(std::size_t n, uint32_t l, float* point) {
 
 	if (fileFormat == TCK) {
 		fseek(file, streamlinePos[n] + sizeof(float) * 3 * l, SEEK_SET);
@@ -451,7 +446,7 @@ void NIBR::TractogramReader::readPoint(size_t n, uint32_t l, float* point) {
 }
 
 
-std::vector<Point> NIBR::TractogramReader::readStreamlinePoints(size_t n) {
+std::vector<Point> NIBR::TractogramReader::readStreamlinePoints(std::size_t n) {
 
 	std::vector<Point> points;
 	points.reserve(len[n]);
@@ -514,7 +509,7 @@ std::vector<Point> NIBR::TractogramReader::readStreamlinePoints(size_t n) {
 
 
 
-std::vector<std::vector<float>> NIBR::TractogramReader::readStreamlineVector(size_t n) {
+std::vector<std::vector<float>> NIBR::TractogramReader::readStreamlineVector(std::size_t n) {
 
 	std::vector<std::vector<float>> points;
 	points.reserve(len[n]);
@@ -589,7 +584,7 @@ std::vector<std::vector<std::vector<float>>> NIBR::TractogramReader::read() {
 
 	out.resize(numberOfStreamlines);
 
-	for (size_t n=0; n<numberOfStreamlines; n++) {
+	for (std::size_t n=0; n<numberOfStreamlines; n++) {
 		out[n].resize(len[n]);
 		for (int l=0; l<int(len[n]); l++)
 			out[n][l].resize(3);
@@ -655,8 +650,8 @@ void NIBR::TractogramReader::printInfo() {
 	std::cout << "Streamline count:         "  << numberOfStreamlines  << std::endl << std::flush;
 	std::cout << "Number of points:         "  << numberOfPoints       << std::endl << std::flush;
 
-	size_t total = 0;
-	for (size_t i=0; i<numberOfStreamlines; i++) {
+	std::size_t total = 0;
+	for (std::size_t i=0; i<numberOfStreamlines; i++) {
 		total += len[i];
 	}
 	std::cout << "Number of points (check): "  << total << std::endl << std::flush;

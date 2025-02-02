@@ -214,14 +214,14 @@ bool NIBR::Image<T>::readHeader_mghz() {
     FILE* fp    = NULL;
 
     if (fileExtension == "mgz") {
-        gzfp = gzopen(filePath.c_str(), "rb");
+        gzfp = gzopen(filePath.c_str(), "rb+");
         if (!gzfp) {
             disp(MSG_ERROR, "Cannot open .mgz file %s", filePath.c_str());
             return false;
         }
         readFunc = [gzfp](void* ptr, size_t size, size_t nmemb) {gzread(gzfp, ptr, size * nmemb);};
     } else { // Assuming "mgh" for simplicity
-        fp = fopen(filePath.c_str(), "rb");
+        fp = fopen(filePath.c_str(), "rb+");
         if (!fp) {
             disp(MSG_ERROR, "Cannot open .mgh file %s", filePath.c_str());
             return false;

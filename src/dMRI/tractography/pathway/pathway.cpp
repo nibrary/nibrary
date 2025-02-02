@@ -116,7 +116,7 @@ NIBR::Pathway::~Pathway() {
     img_label_val.clear();
     img_pvf.clear();
     pvf_vol.clear();
-    maxSegSizeScaler.clear();
+    miniSegment.clear();
     surf.clear();
     surfData.clear();
     sphCenter.clear();

@@ -148,15 +148,15 @@ bool SeedImage::setSeed(Image<float>* img) {
         return false;
     }
     
-    max4rs          = std::get<1>(minMax);
+    max4rs = std::get<1>(minMax);
 
-    imgThresh(seed_img_mask, *img, 0, FLT_MAX);
+    imgThresh(seed_img_mask, *img, EPS10, FLT_MAX);
     imgPad(seed_img_mask, 1);
     imgDilate(seed_img_mask);
     seed_indices    = getNonZeroIndices(&seed_img_mask);
     seed_img_mask.deallocData(); // We only need the indices and not the data
 
-    disp(MSG_DEBUG,"Found %d non-zero voxels in %s. Max value is %.2f.", seed_indices.size(), img->filePath.c_str(), max4rs);
+    disp(MSG_DEBUG,"Found %zu non-zero voxels in %s. Max value is %.2f.", seed_indices.size(), img->filePath.c_str(), max4rs);
 
     threadCount = 1;
     setNumberOfThreads(threadCount);
@@ -182,18 +182,18 @@ bool SeedImage::setSeed(Image<float>* img, int _volInd) {
         return false;
     }
     
-    max4rs          = std::get<1>(minMax);
+    max4rs = std::get<1>(minMax);
 
     Image<float> tmp;
     getImageSlice(&tmp,img,volInd);
-    imgThresh(seed_img_mask, tmp, 0, FLT_MAX);
+    imgThresh(seed_img_mask, tmp, EPS10, FLT_MAX);
       
     imgPad(seed_img_mask, 1);
     imgDilate(seed_img_mask);
-    seed_indices    = getNonZeroIndices(&seed_img_mask);
+    seed_indices = getNonZeroIndices(&seed_img_mask);
     seed_img_mask.deallocData(); // We only need the indices and not the data
 
-    disp(MSG_DEBUG,"Found %d non-zero voxels in %s. Max value is %.2f.", seed_indices.size(), img->filePath.c_str(), max4rs);
+    disp(MSG_DEBUG,"Found %zu non-zero voxels in %s. Max value is %.2f.", seed_indices.size(), img->filePath.c_str(), max4rs);
 
     threadCount = 1;
     setNumberOfThreads(threadCount);

@@ -2,6 +2,10 @@
 
 namespace NIBR 
 {
-    std::string sgntr = "nibrary v0.3.0";
+    std::string version = std::to_string(NIBRARY_VERSION_MAJOR) + "." + 
+                          std::to_string(NIBRARY_VERSION_MINOR) + "." + 
+                          std::to_string(NIBRARY_VERSION_PATCH);
+
+    std::string sgntr   = "nibrary v" + version;
     std::string&  SGNTR() {return sgntr;}
 }

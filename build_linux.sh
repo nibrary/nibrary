@@ -10,8 +10,8 @@ mkdir -p ${buildDir}
 cd ${buildDir}
 
 cmakeExe=cmake
-c_compiler=/bin/gcc
-cxx_compiler=/bin/g++
+c_compiler=gcc
+cxx_compiler=g++
 
 ${cmakeExe} \
 -DCMAKE_C_COMPILER=${c_compiler} \

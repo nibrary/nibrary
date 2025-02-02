@@ -1,7 +1,7 @@
 nibrary: neuroimaging library
 =============================
 
-[![License](https://img.shields.io/badge/License-BSD_3--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)[![Shared build](https://github.com/nibrary/nibrary/actions/workflows/build_shared.yml/badge.svg)](https://github.com/nibrary/nibrary/actions/workflows/build_shared.yml) [![Static build](https://github.com/nibrary/nibrary/actions/workflows/build_static.yml/badge.svg)](https://github.com/nibrary/nibrary/actions/workflows/build_static.yml)
+[![License](https://img.shields.io/badge/License-BSD_3--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause) [![Shared build](https://github.com/nibrary/nibrary/actions/workflows/build_shared.yml/badge.svg?branch=build)](https://github.com/nibrary/nibrary/actions/workflows/build_shared.yml) [![Static build](https://github.com/nibrary/nibrary/actions/workflows/build_static.yml/badge.svg?branch=build)](https://github.com/nibrary/nibrary/actions/workflows/build_static.yml)
 
 
 nibrary is an evolving collection of functions designed to support research in computational neuroimaging across various imaging modalities for developing new methods, tools, and applications. 

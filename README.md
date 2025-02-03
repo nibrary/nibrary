@@ -67,7 +67,7 @@ The provided installation script for macOS, `build_mac.sh`, will install the dep
 
 ```bash
 cd nibrary
-sh build_linux.sh
+sh build_macOS.sh
 ```
 
 Note that nibrary requires `llvm` and `libomp` in macOS. We have successfully tested `llvm` v18 to build nibrary; however, compilation with the more recent version, v19, fails. The provided build script installs `llvm@18` and `libomp` in the system. However, it does not permanently set environment variables for future use. The `build_mac.sh` script contains information about how to permanently set these environment variables if needed.

@@ -84,6 +84,15 @@ if(USE_OPENJPEG OR USE_TURBOJPEG OR USE_JASPER)
     set(BUILD_DCM2NIIXFSLIB OFF CACHE BOOL "Build libdcm2niixfs" FORCE)
 endif()
 
+option(BUILD_DCM2NIIX_LIB "Build dcm2niix library" OFF)
+
+if(USE_OPENJPEG OR USE_TURBOJPEG OR USE_JASPER)
+    message("-- Set BUILD_DCM2NIIX_LIB to OFF since USE_TURBOJPEG/USE_JASPER/USE_OPENJPEG is ON.")
+    set(BUILD_DCM2NIIX_LIB OFF CACHE BOOL "Build dcm2niix library" FORCE)
+endif()
+
+
+
 set(DCM2NIIX_SRCS
     main_console.cpp
     nii_dicom.cpp
@@ -93,6 +102,7 @@ set(DCM2NIIX_SRCS
     nii_foreign.cpp
     nii_ortho.cpp
     nii_dicom_batch.cpp)
+
 
 
 option(USE_JNIFTI "Build with JNIfTI support" ON)
@@ -114,8 +124,24 @@ if(BUILD_DCM2NIIXFSLIB)
         nii_dicom_batch.cpp)
 endif()
 
+
+if(BUILD_DCM2NIIX_LIB)
+    set(DCM2NIIX_LIB dcm2niix++)
+    set(DCM2NIIX_LIB_SRCS
+        dcm2niix++.cpp
+        nii_dicom.cpp
+        jpg_0XC3.cpp
+        ujpeg.cpp
+        nifti1_io_core.cpp
+        nii_foreign.cpp
+        nii_ortho.cpp
+        nii_dicom_batch.cpp)
+endif()
+
 if(USE_JPEGLS)
+
     add_definitions(-DmyEnableJPEGLS)
+
     if(MSVC)
         add_definitions(-DCHARLS_STATIC)
     else()
@@ -128,17 +154,28 @@ if(USE_JPEGLS)
         charls/interface.cpp
         charls/jpegstreamwriter.cpp
         charls/jpegstreamreader.cpp)
+        
     add_executable(dcm2niix ${DCM2NIIX_SRCS} ${CHARLS_SRCS})
 
     if(BUILD_DCM2NIIXFSLIB)
         add_library(${DCM2NIIXFSLIB} STATIC ${DCM2NIIXFSLIB_SRCS} ${CHARLS_SRCS})
     endif()
+
+    if(BUILD_DCM2NIIX_LIB)
+        add_library(${DCM2NIIX_LIB} ${DCM2NIIX_LIB_SRCS} ${CHARLS_SRCS})
+    endif()
+
 else()
     add_executable(dcm2niix ${DCM2NIIX_SRCS})
 
     if(BUILD_DCM2NIIXFSLIB)
         add_library(${DCM2NIIXFSLIB} STATIC ${DCM2NIIXFSLIB_SRCS})
     endif()
+
+    if(BUILD_DCM2NIIX_LIB)
+        add_library(${DCM2NIIX_LIB} ${DCM2NIIX_LIB_SRCS})
+    endif()
+
 endif()
 
 set(ZLIB_IMPLEMENTATION "Miniz" CACHE STRING "Choose zlib implementation.")
@@ -249,6 +286,10 @@ if(BUILD_DCM2NIIXFSLIB)
     target_compile_definitions(${DCM2NIIXFSLIB} PRIVATE -DUSING_DCM2NIIXFSWRAPPER -DUSING_MGH_NIFTI_IO)
 endif()
 
+if(BUILD_DCM2NIIX_LIB)
+    target_compile_definitions(${DCM2NIIX_LIB} PRIVATE -DUSING_DCM2NIIXFSWRAPPER -DUSING_MGH_NIFTI_IO)
+endif()
+
 if(APPLE)
     message("--   Adding Apple plist")
     set_target_properties(dcm2niix PROPERTIES LINK_FLAGS "-Wl,-sectcreate,__TEXT,__info_plist,${CMAKE_SOURCE_DIR}/Info.plist")
@@ -263,4 +304,8 @@ install(TARGETS ${PROGRAMS} DESTINATION bin)
 
 if(BUILD_DCM2NIIXFSLIB)
     install(TARGETS ${DCM2NIIXFSLIB} DESTINATION lib)
+endif()
+
+if(BUILD_DCM2NIIX_LIB)
+    install(TARGETS ${DCM2NIIX_LIB} DESTINATION lib)
 endif()

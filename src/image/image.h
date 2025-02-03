@@ -30,7 +30,7 @@
 // e.g. Image<double> img; float a[3]={0.1,0.2,0.3}; double A=img(a); performs the interpolation in float precision and return a double.
 
 #if defined(HAS_DCM2NIIX)
-class dcm2niix_fswrapper;
+class dcm2niix;
 #endif
 
 namespace NIBR
@@ -204,7 +204,7 @@ namespace NIBR
         #if defined(HAS_DCM2NIIX)
         bool                readHeader_dcm();
         bool                read_dcm();
-        dcm2niix_fswrapper* dcmConverter;
+        dcm2niix*           dcmConverter;
         #endif
         
         nifti_1_header*     getNiftiHeader();

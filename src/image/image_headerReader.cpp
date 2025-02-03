@@ -2,7 +2,7 @@
 #include "zlib.h"
 
 #if defined(HAS_DCM2NIIX)
-#include "dcm2niix_fswrapper.h"
+#include "dcm2niix++.h"
 #endif
 
 using namespace NIBR;
@@ -391,11 +391,11 @@ bool NIBR::Image<T>::readHeader_mghz() {
 template<typename T>
 bool NIBR::Image<T>::readHeader_dcm() {
 
-    dcmConverter = new dcm2niix_fswrapper();
+    dcmConverter = new dcm2niix();
 
     if (VERBOSE() < VERBOSE_DETAIL) {disableTerminalOutput();}
 
-    if (!dcm2niix_fswrapper::isDICOM(filePath.c_str())) {
+    if (!dcmConverter->setFileName(filePath)) {
        if (VERBOSE() < VERBOSE_DETAIL) {enableTerminalOutput();}
         disp(MSG_FATAL, "Inverified DICOM: %s", filePath.c_str());
         return false;
@@ -403,20 +403,12 @@ bool NIBR::Image<T>::readHeader_dcm() {
         if (VERBOSE() < VERBOSE_DETAIL) {enableTerminalOutput();}
         disp(MSG_DETAIL, "Verified DICOM: %s", filePath.c_str());
     }
-    
-    disp(MSG_DETAIL, "Setting dcm2niix options");
-
-    if (VERBOSE() < VERBOSE_DETAIL) {disableTerminalOutput();}
-    std::string opts = "v=0";
-    dcmConverter->setOpts(getFolderPath(filePath).c_str(),opts.c_str());
-    if (VERBOSE() < VERBOSE_DETAIL) {enableTerminalOutput();}
 
     disp(MSG_DETAIL, "Converting DICOM to nifti");
 
     if (VERBOSE() < VERBOSE_DETAIL) {disableTerminalOutput();}
-    dcmConverter->dcm2NiiOneSeries(filePath.c_str());
+    dcmConverter->toNii();
     if (VERBOSE() < VERBOSE_DETAIL) {enableTerminalOutput();}
-
 
     disp(MSG_DETAIL, "Creating nibrary image");
 

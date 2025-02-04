@@ -407,7 +407,7 @@ bool NIBR::Image<T>::readHeader_dcm() {
     disp(MSG_DETAIL, "Converting DICOM to nifti");
 
     if (VERBOSE() < VERBOSE_DETAIL) {disableTerminalOutput();}
-    dcmConverter->toNii();
+    dcmConverter->folder2Nii();
     if (VERBOSE() < VERBOSE_DETAIL) {enableTerminalOutput();}
 
     disp(MSG_DETAIL, "Creating nibrary image");

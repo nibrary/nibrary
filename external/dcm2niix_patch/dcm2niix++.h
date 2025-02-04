@@ -17,7 +17,7 @@ class dcm2niix {
 		~dcm2niix();
 
 		bool setFileName(std::string inputFileName);
-		bool toNii();
+		bool folder2Nii();
 
 		nifti_1_header* 	 getNiiHeader();
 		const unsigned char* getMRIimg();
@@ -26,10 +26,15 @@ class dcm2niix {
 
 	private:
 
-		std::string fileName;
+		std::string baseFileName;
+		std::string folderPath;
+		std::string fullPath;
+		char* 		fullPath_charp{NULL};
+		void 		updateFullPath();
+
 		void* opts;
 
-		void setOpts(const char *dcmindir, const char *dcm2niixopts = NULL);
+		void setOpts(const char *dcm2niixopts = NULL);
 
 };
 

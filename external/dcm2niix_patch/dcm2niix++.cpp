@@ -1,32 +1,42 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <iostream>
+#include <algorithm>
 
 #ifdef _WIN32
-#include <iostream>
-#include <string.h>
 #include <windows.h>
+#define strtok_portable(str, delim, context) strtok_s(str, delim, context)
+#else
+#define strtok_portable(str, delim, context) strtok_r(str, delim, context)
+#endif
 
-char* dirname(char* path) {
-    if (path == nullptr || strlen(path) == 0) {
-        return path; // Or return "." for an empty path
-    }
+std::string dirname(const std::string& path) {
+    if (path.empty()) return ".";
 
-    char* lastSlash = strrchr(path, '\\'); // Find the last backslash
+    std::size_t lastSlashPos = path.find_last_of("/\\");
 
-    if (lastSlash != nullptr) {
-        *lastSlash = '\0'; // Terminate the string at the last backslash
-        return path;
+    if (lastSlashPos != std::string::npos) {
+        return path.substr(0, lastSlashPos + 1);
     } else {
-        return "."; // No backslash found, return current directory "."
+		#ifdef _WIN32
+		return ".\\";
+		else
+        return "./";
+		#endif
     }
 }
 
-#define strtok_portable(str, delim, context) strtok_s(str, delim, context)
+std::string basename(const std::string& path) {
+    if (path.empty()) return "";
+    
+    std::size_t lastSlashPos = path.find_last_of("/\\");
 
-#else
-#include <libgen.h> // For dirname on non-Windows systems
-#define strtok_portable(str, delim, context) strtok_r(str, delim, context)
-#endif
+    if (lastSlashPos == std::string::npos) {
+        return path; // No slash found, the whole path is the basename
+    } else {
+        return path.substr(lastSlashPos + 1);
+    }
+}
 
 
 #include "nii_dicom.h"
@@ -41,7 +51,9 @@ dcm2niix::dcm2niix()
 {
 	TDCMopts* tmp = new TDCMopts();
 	void* nibr_tdcmopts = (void*)(tmp);
-	fileName = "";
+	baseFileName 	= "";
+	folderPath   	= ".";
+	updateFullPath();
 }
 
 dcm2niix::~dcm2niix()
@@ -49,20 +61,33 @@ dcm2niix::~dcm2niix()
 	clear();
 }
 
-bool dcm2niix::setFileName(std::string inputFileName)
+void dcm2niix::updateFullPath()
 {
-	fileName = inputFileName;
-	return isDICOMfile(fileName.c_str());
+	fullPath = folderPath + baseFileName;
+	if (fullPath_charp != NULL) {
+		delete[] fullPath_charp;
+	}
+	fullPath_charp 	= new char[fullPath.length() + 1];
+	strcpy(fullPath_charp, fullPath.c_str());
 }
 
-bool dcm2niix::toNii()
+bool dcm2niix::setFileName(std::string inputFileName)
 {
-	if (fileName == "") return false;
+	baseFileName 	= basename(inputFileName);
+	folderPath 		= dirname(inputFileName);
+	updateFullPath();
+	
+	return isDICOMfile(fullPath_charp);
+}
+
+bool dcm2niix::folder2Nii()
+{
+	if (fullPath == ".") return false;
 
 	std::string opts_str = "v=0";
-	this->setOpts(fileName.c_str(),opts_str.c_str());
+	this->setOpts(opts_str.c_str());
 
-	struct TDICOMdata tdicomData = readDICOM((char *)(fileName.c_str()));
+	struct TDICOMdata tdicomData = readDICOM(fullPath_charp);
 
 	TDCMopts& tdcmOpts = *(TDCMopts*)(opts);
 
@@ -94,20 +119,25 @@ void dcm2niix::clear() {
 		delete (TDCMopts*)(opts);
 		opts = NULL;
 	}
-	fileName = "";
+	baseFileName.clear();
+	folderPath.clear();
+	fullPath.clear();
+	if (fullPath_charp != NULL) {
+		delete[] fullPath_charp;
+	}
 	nii_clrMrifsStruct();
 	nii_clrMrifsStructVector();
 }
 
 
-void dcm2niix::setOpts(const char *dcmindir, const char *dcm2niixopts) {
+void dcm2niix::setOpts(const char *dcm2niixopts) {
 
 	TDCMopts& tdcmOpts = *(TDCMopts*)(opts);
 
 	setDefaultOpts(&tdcmOpts, NULL);
 
-	if (dcmindir != NULL)
-		strcpy(tdcmOpts.indir, dcmindir);
+	if (folderPath != NULL)
+		strcpy(tdcmOpts.indir, folderPath.c_str());
 
 	// dcmunpack actually uses seriesDescription, set FName = `printf %04d.$descr $series`
 	// change it from "%4s.%p" to "%4s.%d"

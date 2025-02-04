@@ -14,6 +14,14 @@ function(conditional_rename src dst)
     endif()
 endfunction()
 
+# move file only if the source exists but the dest does not
+function(conditional_move src dst)
+    if(EXISTS "${src}" AND NOT EXISTS "${dst}")
+        message("Moving: ${src} -> ${dst}")
+        file(RENAME "${src}" "${dst}")
+    endif()
+endfunction()
+
 # remove file only if it exists
 function(conditional_remove_file file)
     if(EXISTS "${file}")

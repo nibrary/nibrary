@@ -136,8 +136,7 @@ void dcm2niix::setOpts(const char *dcm2niixopts) {
 
 	setDefaultOpts(&tdcmOpts, NULL);
 
-	if (folderPath != NULL)
-		strcpy(tdcmOpts.indir, folderPath.c_str());
+	strcpy(tdcmOpts.indir, folderPath.c_str());
 
 	// dcmunpack actually uses seriesDescription, set FName = `printf %04d.$descr $series`
 	// change it from "%4s.%p" to "%4s.%d"

@@ -17,13 +17,15 @@ std::string dirname(const std::string& path) {
 
     if (lastSlashPos != std::string::npos) {
         return path.substr(0, lastSlashPos + 1);
-    } else {
-		#ifdef _WIN32
-		return ".\\";
-		else
-        return "./";
-		#endif
     }
+
+	// Return current path
+	#ifdef _WIN32
+	return ".\\";
+	#endif
+
+	return "./";
+    
 }
 
 std::string basename(const std::string& path) {
@@ -33,9 +35,9 @@ std::string basename(const std::string& path) {
 
     if (lastSlashPos == std::string::npos) {
         return path; // No slash found, the whole path is the basename
-    } else {
-        return path.substr(lastSlashPos + 1);
     }
+    
+	return path.substr(lastSlashPos + 1);
 }
 
 
@@ -50,9 +52,8 @@ std::string basename(const std::string& path) {
 dcm2niix::dcm2niix()
 {
 	TDCMopts* tmp = new TDCMopts();
-	void* nibr_tdcmopts = (void*)(tmp);
-	baseFileName 	= "";
-	folderPath   	= ".";
+	setDefaultOpts(tmp,NULL);
+	opts = static_cast<void*>(tmp);
 	updateFullPath();
 }
 
@@ -66,6 +67,7 @@ void dcm2niix::updateFullPath()
 	fullPath = folderPath + baseFileName;
 	if (fullPath_charp != NULL) {
 		delete[] fullPath_charp;
+		fullPath_charp = NULL;
 	}
 	fullPath_charp 	= new char[fullPath.length() + 1];
 	strcpy(fullPath_charp, fullPath.c_str());
@@ -87,7 +89,9 @@ bool dcm2niix::folder2Nii()
 	std::string opts_str = "v=0";
 	this->setOpts(opts_str.c_str());
 
+	std::cout << "readDICOM: " << fullPath_charp << std::endl << std::flush;
 	struct TDICOMdata tdicomData = readDICOM(fullPath_charp);
+	std::cout << "readDICOM...Done" << std::endl << std::flush;
 
 	TDCMopts& tdcmOpts = *(TDCMopts*)(opts);
 
@@ -99,7 +103,11 @@ bool dcm2niix::folder2Nii()
 	tdcmOpts.seriesNumber[0] = seriesNo;
 	tdcmOpts.numSeries = 1;
 
-	return (nii_loadDirCore(tdcmOpts.indir, &tdcmOpts) == EXIT_SUCCESS);
+	std::cout << "nii_loadDirCore: " << tdcmOpts.indir << std::endl << std::flush;
+	auto out = nii_loadDirCore(tdcmOpts.indir, &tdcmOpts);
+	std::cout << "nii_loadDirCore...Done" << std::endl << std::flush;
+
+	return ( out == EXIT_SUCCESS);
 }
 
 // return nifti header saved in MRIFSSTRUCT
@@ -115,34 +123,58 @@ const unsigned char *dcm2niix::getMRIimg() {
 }
 
 void dcm2niix::clear() {
+	std::cout << "clearing: " << std::endl << std::flush;
 	if (opts != NULL) {
-		delete (TDCMopts*)(opts);
+		delete static_cast<TDCMopts*>(opts);
 		opts = NULL;
 	}
+	std::cout << "cleared opts " << std::endl << std::flush;
+
 	baseFileName.clear();
 	folderPath.clear();
 	fullPath.clear();
+	std::cout << "cleared strings " << std::endl << std::flush;
+	
 	if (fullPath_charp != NULL) {
 		delete[] fullPath_charp;
+		fullPath_charp = NULL;
 	}
-	nii_clrMrifsStruct();
+
+	std::cout << "cleared fullPath_charp " << std::endl << std::flush;
+
 	nii_clrMrifsStructVector();
+	std::cout << "cleared nii_clrMrifsStructVector " << std::endl << std::flush;
+
+	nii_rstMrifsStruct();
+	std::cout << "reseted nii_clrMrifsStruct " << std::endl << std::flush;
+	
+
+	std::cout << "Done" << std::endl << std::flush;
 }
 
 
 void dcm2niix::setOpts(const char *dcm2niixopts) {
 
-	TDCMopts& tdcmOpts = *(TDCMopts*)(opts);
+	std::cout << "Setting options" << std::endl << std::flush;
 
-	setDefaultOpts(&tdcmOpts, NULL);
+	TDCMopts& tdcmOpts = *static_cast<TDCMopts*>(opts);
 
-	strcpy(tdcmOpts.indir, folderPath.c_str());
+	std::cout << "strcpy(tdcmOpts.indir, folderPath.c_str())" << std::endl << std::flush;
+	std::cout << "size: " << sizeof(tdcmOpts.indir) << std::endl << std::flush;
+	std::cout << "folderPath: " << folderPath << std::endl << std::flush;
+	std::cout << "folderPath_char: " << folderPath.c_str() << std::endl << std::flush;
+	std::cout << "tdcmOpts.indir: " << tdcmOpts.indir << std::endl << std::flush;
+
+	strcpy(&tdcmOpts.indir[0], folderPath.c_str());
 
 	// dcmunpack actually uses seriesDescription, set FName = `printf %04d.$descr $series`
 	// change it from "%4s.%p" to "%4s.%d"
-	strcpy(tdcmOpts.filename, "%4s.%d");
+	std::cout << "strcpy(tdcmOpts.filename)" << std::endl << std::flush;
+	strcpy(&tdcmOpts.filename[0], "%4s.%d");
 
 	if (dcm2niixopts != NULL) {
+
+		std::cout << "Setting dcm2niixopts options" << std::endl << std::flush;
 
 		char *restOpts = (char *)malloc(strlen(dcm2niixopts) + 1);
 		memset(restOpts, 0, strlen(dcm2niixopts) + 1);
@@ -171,7 +203,7 @@ void dcm2niix::setOpts(const char *dcm2niixopts) {
 			} else if (strcmp(k, "ba") == 0)
 				tdcmOpts.isAnonymizeBIDS = (*v == 'n' || *v == 'N') ? false : true;
 			else if (strcmp(k, "f") == 0)
-				strcpy(tdcmOpts.filename, v);
+				strcpy(&tdcmOpts.filename[0], v);
 			else if (strcmp(k, "i") == 0)
 				tdcmOpts.isIgnoreDerivedAnd2D = (*v == 'y' || *v == 'Y') ? true : false;
 			else if (strcmp(k, "m") == 0) {
@@ -191,7 +223,7 @@ void dcm2niix::setOpts(const char *dcm2niixopts) {
 				else
 					tdcmOpts.isVerbose = 1;
 			} else if (strcmp(k, "o") == 0)
-				strcpy(tdcmOpts.outdir, v);
+				strcpy(&tdcmOpts.outdir[0], v);
 			else if (strcmp(k, "t") == 0)
 				tdcmOpts.isCreateText = (*v == 'y' || *v == 'Y') ? true : false;
 			else if (strcmp(k, "p") == 0) {
@@ -211,9 +243,10 @@ void dcm2niix::setOpts(const char *dcm2niixopts) {
 			nextOpt = strtok_portable(NULL, ",", &restOpts);
 		}
 
-
+		std::cout << "Setting dcm2niixopts options... Done" << std::endl << std::flush;
 	}
 
+	std::cout << "Setting options... Done" << std::endl << std::flush;
 }
 
 

@@ -13,18 +13,18 @@ conditional_copy_directory("${CMAKE_INSTALL_PREFIX}/include/geogram1/geogram" "$
 
 # Rename libraries
 if (NOT BUILD_SHARED_LIBS)
-    conditional_rename("${CMAKE_INSTALL_PREFIX}/lib/libgeogram.a" "${NIBRARY_CMAKE_INSTALL_PREFIX}/lib/${nibrary}/libgeogram.a")
-    conditional_rename("${CMAKE_INSTALL_PREFIX}/lib/geogram.lib" "${NIBRARY_CMAKE_INSTALL_PREFIX}/lib/${nibrary}/geogram.lib")
+    conditional_copy_file("${CMAKE_INSTALL_PREFIX}/lib/libgeogram.a" "${NIBRARY_CMAKE_INSTALL_PREFIX}/lib/${nibrary}/libgeogram.a")
+    conditional_copy_file("${CMAKE_INSTALL_PREFIX}/lib/geogram.lib" "${NIBRARY_CMAKE_INSTALL_PREFIX}/lib/${nibrary}/geogram.lib")
 else()
-    conditional_rename("${CMAKE_INSTALL_PREFIX}/lib/libgeogram.so" "${NIBRARY_CMAKE_INSTALL_PREFIX}/lib/${nibrary}/libgeogram.so")
-    conditional_rename("${CMAKE_INSTALL_PREFIX}/lib/libgeogram.so.1" "${NIBRARY_CMAKE_INSTALL_PREFIX}/lib/${nibrary}/libgeogram.so.1")
-    conditional_rename("${CMAKE_INSTALL_PREFIX}/lib/libgeogram.so.${GEOGRAM_MIN_VERSION}" "${NIBRARY_CMAKE_INSTALL_PREFIX}/lib/${nibrary}/libgeogram.so.${GEOGRAM_MIN_VERSION}")
+    conditional_copy_file("${CMAKE_INSTALL_PREFIX}/lib/libgeogram.so" "${NIBRARY_CMAKE_INSTALL_PREFIX}/lib/${nibrary}/libgeogram.so")
+    conditional_copy_file("${CMAKE_INSTALL_PREFIX}/lib/libgeogram.so.1" "${NIBRARY_CMAKE_INSTALL_PREFIX}/lib/${nibrary}/libgeogram.so.1")
+    conditional_copy_file("${CMAKE_INSTALL_PREFIX}/lib/libgeogram.so.${GEOGRAM_MIN_VERSION}" "${NIBRARY_CMAKE_INSTALL_PREFIX}/lib/${nibrary}/libgeogram.so.${GEOGRAM_MIN_VERSION}")
 
-    conditional_rename("${CMAKE_INSTALL_PREFIX}/lib/libgeogram.dylib" "${NIBRARY_CMAKE_INSTALL_PREFIX}/lib/${nibrary}/libgeogram.dylib")
-    conditional_rename("${CMAKE_INSTALL_PREFIX}/lib/libgeogram.1.dylib" "${NIBRARY_CMAKE_INSTALL_PREFIX}/lib/${nibrary}/libgeogram.1.dylib")
-    conditional_rename("${CMAKE_INSTALL_PREFIX}/lib/libgeogram.${GEOGRAM_MIN_VERSION}.dylib" "${NIBRARY_CMAKE_INSTALL_PREFIX}/lib/${nibrary}/libgeogram.${GEOGRAM_MIN_VERSION}.dylib")
+    conditional_copy_file("${CMAKE_INSTALL_PREFIX}/lib/libgeogram.dylib" "${NIBRARY_CMAKE_INSTALL_PREFIX}/lib/${nibrary}/libgeogram.dylib")
+    conditional_copy_file("${CMAKE_INSTALL_PREFIX}/lib/libgeogram.1.dylib" "${NIBRARY_CMAKE_INSTALL_PREFIX}/lib/${nibrary}/libgeogram.1.dylib")
+    conditional_copy_file("${CMAKE_INSTALL_PREFIX}/lib/libgeogram.${GEOGRAM_MIN_VERSION}.dylib" "${NIBRARY_CMAKE_INSTALL_PREFIX}/lib/${nibrary}/libgeogram.${GEOGRAM_MIN_VERSION}.dylib")
 
-    conditional_rename("${CMAKE_INSTALL_PREFIX}/lib/geogram.lib" "${NIBRARY_CMAKE_INSTALL_PREFIX}/lib/${nibrary}/geogram.lib")
-    conditional_rename("${CMAKE_INSTALL_PREFIX}/lib/geogram.dll" "${NIBRARY_CMAKE_INSTALL_PREFIX}/lib/${nibrary}/geogram.dll")
+    conditional_copy_file("${CMAKE_INSTALL_PREFIX}/lib/geogram.lib" "${NIBRARY_CMAKE_INSTALL_PREFIX}/lib/${nibrary}/geogram.lib")
+    conditional_copy_file("${CMAKE_INSTALL_PREFIX}/lib/geogram.dll" "${NIBRARY_CMAKE_INSTALL_PREFIX}/lib/${nibrary}/geogram.dll")
 endif()
 

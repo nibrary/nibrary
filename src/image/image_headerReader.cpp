@@ -391,17 +391,19 @@ bool NIBR::Image<T>::readHeader_mghz() {
 template<typename T>
 bool NIBR::Image<T>::readHeader_dcm() {
 
+    disp(MSG_DETAIL, "Initializing DICOM reader");
     dcmConverter = new dcm2niix();
+    disp(MSG_DETAIL, "DONE");
 
     if (VERBOSE() < VERBOSE_DETAIL) {disableTerminalOutput();}
 
     if (!dcmConverter->setFileName(filePath)) {
        if (VERBOSE() < VERBOSE_DETAIL) {enableTerminalOutput();}
-        disp(MSG_FATAL, "Inverified DICOM: %s", filePath.c_str());
+        disp(MSG_FATAL, "File name was not set. File is not DICOM: %s", filePath.c_str());
         return false;
     } else {
         if (VERBOSE() < VERBOSE_DETAIL) {enableTerminalOutput();}
-        disp(MSG_DETAIL, "Verified DICOM: %s", filePath.c_str());
+        disp(MSG_DETAIL, "File name set. Verified DICOM: %s", filePath.c_str());
     }
 
     disp(MSG_DETAIL, "Converting DICOM to nifti");

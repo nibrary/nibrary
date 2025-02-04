@@ -89,9 +89,9 @@ bool dcm2niix::folder2Nii()
 	std::string opts_str = "v=0";
 	this->setOpts(opts_str.c_str());
 
-	std::cout << "readDICOM: " << fullPath_charp << std::endl << std::flush;
+	// std::cout << "readDICOM: " << fullPath_charp << std::endl << std::flush;
 	struct TDICOMdata tdicomData = readDICOM(fullPath_charp);
-	std::cout << "readDICOM...Done" << std::endl << std::flush;
+	// std::cout << "readDICOM...Done" << std::endl << std::flush;
 
 	TDCMopts& tdcmOpts = *(TDCMopts*)(opts);
 
@@ -103,9 +103,9 @@ bool dcm2niix::folder2Nii()
 	tdcmOpts.seriesNumber[0] = seriesNo;
 	tdcmOpts.numSeries = 1;
 
-	std::cout << "nii_loadDirCore: " << tdcmOpts.indir << std::endl << std::flush;
+	// std::cout << "nii_loadDirCore: " << tdcmOpts.indir << std::endl << std::flush;
 	auto out = nii_loadDirCore(tdcmOpts.indir, &tdcmOpts);
-	std::cout << "nii_loadDirCore...Done" << std::endl << std::flush;
+	// std::cout << "nii_loadDirCore...Done" << std::endl << std::flush;
 
 	return ( out == EXIT_SUCCESS);
 }
@@ -123,58 +123,58 @@ const unsigned char *dcm2niix::getMRIimg() {
 }
 
 void dcm2niix::clear() {
-	std::cout << "clearing: " << std::endl << std::flush;
+	// std::cout << "clearing: " << std::endl << std::flush;
 	if (opts != NULL) {
 		delete static_cast<TDCMopts*>(opts);
 		opts = NULL;
 	}
-	std::cout << "cleared opts " << std::endl << std::flush;
+	// std::cout << "cleared opts " << std::endl << std::flush;
 
 	baseFileName.clear();
 	folderPath.clear();
 	fullPath.clear();
-	std::cout << "cleared strings " << std::endl << std::flush;
+	// std::cout << "cleared strings " << std::endl << std::flush;
 	
 	if (fullPath_charp != NULL) {
 		delete[] fullPath_charp;
 		fullPath_charp = NULL;
 	}
 
-	std::cout << "cleared fullPath_charp " << std::endl << std::flush;
+	// std::cout << "cleared fullPath_charp " << std::endl << std::flush;
 
 	nii_clrMrifsStructVector();
-	std::cout << "cleared nii_clrMrifsStructVector " << std::endl << std::flush;
+	// std::cout << "cleared nii_clrMrifsStructVector " << std::endl << std::flush;
 
 	nii_rstMrifsStruct();
-	std::cout << "reseted nii_clrMrifsStruct " << std::endl << std::flush;
+	// std::cout << "reseted nii_clrMrifsStruct " << std::endl << std::flush;
 	
 
-	std::cout << "Done" << std::endl << std::flush;
+	// std::cout << "Done" << std::endl << std::flush;
 }
 
 
 void dcm2niix::setOpts(const char *dcm2niixopts) {
 
-	std::cout << "Setting options" << std::endl << std::flush;
+	// std::cout << "Setting options" << std::endl << std::flush;
 
 	TDCMopts& tdcmOpts = *static_cast<TDCMopts*>(opts);
 
-	std::cout << "strcpy(tdcmOpts.indir, folderPath.c_str())" << std::endl << std::flush;
-	std::cout << "size: " << sizeof(tdcmOpts.indir) << std::endl << std::flush;
-	std::cout << "folderPath: " << folderPath << std::endl << std::flush;
-	std::cout << "folderPath_char: " << folderPath.c_str() << std::endl << std::flush;
-	std::cout << "tdcmOpts.indir: " << tdcmOpts.indir << std::endl << std::flush;
+	// std::cout << "strcpy(tdcmOpts.indir, folderPath.c_str())" << std::endl << std::flush;
+	// std::cout << "size: " << sizeof(tdcmOpts.indir) << std::endl << std::flush;
+	// std::cout << "folderPath: " << folderPath << std::endl << std::flush;
+	// std::cout << "folderPath_char: " << folderPath.c_str() << std::endl << std::flush;
+	// std::cout << "tdcmOpts.indir: " << tdcmOpts.indir << std::endl << std::flush;
 
 	strcpy(&tdcmOpts.indir[0], folderPath.c_str());
 
 	// dcmunpack actually uses seriesDescription, set FName = `printf %04d.$descr $series`
 	// change it from "%4s.%p" to "%4s.%d"
-	std::cout << "strcpy(tdcmOpts.filename)" << std::endl << std::flush;
+	// std::cout << "strcpy(tdcmOpts.filename)" << std::endl << std::flush;
 	strcpy(&tdcmOpts.filename[0], "%4s.%d");
 
 	if (dcm2niixopts != NULL) {
 
-		std::cout << "Setting dcm2niixopts options" << std::endl << std::flush;
+		// std::cout << "Setting dcm2niixopts options" << std::endl << std::flush;
 
 		char *restOpts = (char *)malloc(strlen(dcm2niixopts) + 1);
 		memset(restOpts, 0, strlen(dcm2niixopts) + 1);
@@ -243,10 +243,10 @@ void dcm2niix::setOpts(const char *dcm2niixopts) {
 			nextOpt = strtok_portable(NULL, ",", &restOpts);
 		}
 
-		std::cout << "Setting dcm2niixopts options... Done" << std::endl << std::flush;
+		// std::cout << "Setting dcm2niixopts options... Done" << std::endl << std::flush;
 	}
 
-	std::cout << "Setting options... Done" << std::endl << std::flush;
+	// std::cout << "Setting options... Done" << std::endl << std::flush;
 }
 
 

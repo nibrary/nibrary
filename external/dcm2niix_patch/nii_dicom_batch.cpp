@@ -120,49 +120,24 @@ MRIFSSTRUCT *nii_getMrifsStruct() {
 	return &mrifsStruct;
 }
 
-// free the memory used for the image and dti
-void nii_clrMrifsStruct() {
-	if (mrifsStruct.imgM != NULL) {free(mrifsStruct.imgM); mrifsStruct.imgM = NULL;}
-	if (mrifsStruct.tdti != NULL) {free(mrifsStruct.tdti); mrifsStruct.tdti = NULL;}
-
-	for (int n = 0; n < mrifsStruct.nDcm; n++) {
-		if (mrifsStruct.dicomlst[n] != NULL) {
-			free(mrifsStruct.dicomlst[n]);
-			mrifsStruct.dicomlst[n] = NULL;
-		}
-	}
-
-	if (mrifsStruct.dicomlst != NULL) {
-		free(mrifsStruct.dicomlst);
-		mrifsStruct.dicomlst = NULL;
-	}
-}
-
 // retrieve the struct
 std::vector<MRIFSSTRUCT> *nii_getMrifsStructVector() {
 	return &mrifsStruct_vector;
 }
 
 // free the memory used for the image and dti
+void nii_clrMrifsStruct() {
+	return; // automatically destroyed at the end
+}
+
+void nii_rstMrifsStruct() {
+	MRIFSSTRUCT tmp;
+	mrifsStruct = tmp;
+}
+
+// free the memory used for the image and dti
 void nii_clrMrifsStructVector() {
-	int nitem = mrifsStruct_vector.size();
-
-	for (int n = 0; n < nitem; n++) {
-		if (mrifsStruct_vector[n].imgM != NULL) {free(mrifsStruct_vector[n].imgM); mrifsStruct_vector[n].imgM = NULL;}
-		if (mrifsStruct_vector[n].tdti != NULL) {free(mrifsStruct_vector[n].tdti); mrifsStruct_vector[n].tdti = NULL;}
-
-		for (int n = 0; n < mrifsStruct.nDcm; n++) {
-			if (mrifsStruct_vector[n].dicomlst[n] != NULL)  {
-				free(mrifsStruct_vector[n].dicomlst[n]);
-				mrifsStruct_vector[n].dicomlst[n] = NULL;
-			}
-		}
-
-		if (mrifsStruct_vector[n].dicomlst != NULL) {
-			free(mrifsStruct_vector[n].dicomlst);
-			mrifsStruct_vector[n].dicomlst = NULL;
-		}
-	}
+	mrifsStruct_vector.clear();
 }
 #endif
 
@@ -8879,7 +8854,9 @@ int saveDcm2NiiCore(int nConvert, struct TDCMsort dcmSort[], struct TDICOMdata d
 
 int saveDcm2Nii(int nConvert, struct TDCMsort dcmSort[], struct TDICOMdata dcmList[], struct TSearchList *nameList, struct TDCMopts opts, struct TDTI4D *dti4D) {
 #ifdef USING_DCM2NIIXFSWRAPPER
-	memset(&mrifsStruct, 0, sizeof(mrifsStruct));
+	
+	mrifsStruct.clear();
+	// memset(&mrifsStruct, 0, sizeof(mrifsStruct));
 
 	int indx0 = dcmSort[0].indx;
 
@@ -9751,7 +9728,9 @@ int reportProgress(int progressPct, float frac) {
 
 int nii_loadDirCore(char *indir, struct TDCMopts *opts) {
 #ifdef USING_DCM2NIIXFSWRAPPER
-	memset(&mrifsStruct, 0, sizeof(mrifsStruct));
+	mrifsStruct_vector.clear();
+	mrifsStruct.clear();
+	// memset(&mrifsStruct, 0, sizeof(mrifsStruct));
 #endif
 
 	struct TSearchList nameList;

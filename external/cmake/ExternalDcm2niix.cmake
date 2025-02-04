@@ -27,13 +27,16 @@ if (BUILD_DCM2NIIX)
         conditional_move("${CMAKE_SOURCE_DIR}/external/dcm2niix/console/nii_dicom_batch.cpp" "${CMAKE_SOURCE_DIR}/external/dcm2niix/console/nii_dicom_batch_cpp_nibr_bak")
         conditional_copy_file("${CMAKE_SOURCE_DIR}/external/dcm2niix_patch/nii_dicom_batch.cpp" "${CMAKE_SOURCE_DIR}/external/dcm2niix/console/nii_dicom_batch.cpp")
 
+        conditional_move("${CMAKE_SOURCE_DIR}/external/dcm2niix/console/nii_dicom_batch.h" "${CMAKE_SOURCE_DIR}/external/dcm2niix/console/nii_dicom_batch_h_nibr_bak")
+        conditional_copy_file("${CMAKE_SOURCE_DIR}/external/dcm2niix_patch/nii_dicom_batch.h" "${CMAKE_SOURCE_DIR}/external/dcm2niix/console/nii_dicom_batch.h")
+
         conditional_move("${CMAKE_SOURCE_DIR}/external/dcm2niix/console/dcm2niix_fswrapper.cpp" "${CMAKE_SOURCE_DIR}/external/dcm2niix/console/dcm2niix_fswrapper_cpp_nibr_bak")
         conditional_copy_file("${CMAKE_SOURCE_DIR}/external/dcm2niix_patch/dcm2niix_fswrapper.cpp" "${CMAKE_SOURCE_DIR}/external/dcm2niix/console/dcm2niix_fswrapper.cpp")
 
         conditional_move("${CMAKE_SOURCE_DIR}/external/dcm2niix/console/dcm2niix++.h" "${CMAKE_SOURCE_DIR}/external/dcm2niix/console/dcm2niix_h_nibr_bak")
         conditional_copy_file("${CMAKE_SOURCE_DIR}/external/dcm2niix_patch/dcm2niix++.h" "${CMAKE_SOURCE_DIR}/external/dcm2niix/console/dcm2niix++.h")
         
-        conditional_reconditional_movename("${CMAKE_SOURCE_DIR}/external/dcm2niix/console/dcm2niix++.cpp" "${CMAKE_SOURCE_DIR}/external/dcm2niix/console/dcm2niix_cpp_nibr_bak")
+        conditional_move("${CMAKE_SOURCE_DIR}/external/dcm2niix/console/dcm2niix++.cpp" "${CMAKE_SOURCE_DIR}/external/dcm2niix/console/dcm2niix_cpp_nibr_bak")
         conditional_copy_file("${CMAKE_SOURCE_DIR}/external/dcm2niix_patch/dcm2niix++.cpp" "${CMAKE_SOURCE_DIR}/external/dcm2niix/console/dcm2niix++.cpp")
 
         conditional_move("${CMAKE_SOURCE_DIR}/external/dcm2niix/console/CMakeLists.txt" "${CMAKE_SOURCE_DIR}/external/dcm2niix/console/CMakeLists_txt_nibr_bak")
@@ -55,6 +58,9 @@ if (BUILD_DCM2NIIX)
 
         conditional_move("${CMAKE_SOURCE_DIR}/external/dcm2niix/console/nii_dicom_batch.cpp" "${CMAKE_SOURCE_DIR}/external/dcm2niix/console/nii_dicom_batch_cpp_nibr_bak")
         conditional_copy_file("${CMAKE_SOURCE_DIR}/external/dcm2niix_patch/nii_dicom_batch.cpp" "${CMAKE_SOURCE_DIR}/external/dcm2niix/console/nii_dicom_batch.cpp")
+
+        conditional_move("${CMAKE_SOURCE_DIR}/external/dcm2niix/console/nii_dicom_batch.h" "${CMAKE_SOURCE_DIR}/external/dcm2niix/console/nii_dicom_batch_h_nibr_bak")
+        conditional_copy_file("${CMAKE_SOURCE_DIR}/external/dcm2niix_patch/nii_dicom_batch.h" "${CMAKE_SOURCE_DIR}/external/dcm2niix/console/nii_dicom_batch.h")
 
         conditional_move("${CMAKE_SOURCE_DIR}/external/dcm2niix/console/dcm2niix_fswrapper.cpp" "${CMAKE_SOURCE_DIR}/external/dcm2niix/console/dcm2niix_fswrapper_cpp_nibr_bak")
         conditional_copy_file("${CMAKE_SOURCE_DIR}/external/dcm2niix_patch/dcm2niix_fswrapper.cpp" "${CMAKE_SOURCE_DIR}/external/dcm2niix/console/dcm2niix_fswrapper.cpp")
@@ -110,6 +116,9 @@ if (BUILD_DCM2NIIX)
 
             conditional_move("${DCM2NIIX_SOURCE_DIR}/console/nii_dicom_batch.cpp" "${DCM2NIIX_SOURCE_DIR}/console/nii_dicom_batch_cpp_nibr_bak")
             conditional_copy_file("${CMAKE_SOURCE_DIR}/external/dcm2niix_patch/nii_dicom_batch.cpp" "${DCM2NIIX_SOURCE_DIR}/console/nii_dicom_batch.cpp")
+
+            conditional_move("${DCM2NIIX_SOURCE_DIR}/console/nii_dicom_batch.h" "${DCM2NIIX_SOURCE_DIR}/console/nii_dicom_batch_h_nibr_bak")
+            conditional_copy_file("${CMAKE_SOURCE_DIR}/external/dcm2niix_patch/nii_dicom_batch.h" "${DCM2NIIX_SOURCE_DIR}/console/nii_dicom_batch.h")
 
             conditional_move("${DCM2NIIX_SOURCE_DIR}/console/dcm2niix_fswrapper.cpp" "${DCM2NIIX_SOURCE_DIR}/console/dcm2niix_fswrapper_cpp_nibr_bak")
             conditional_copy_file("${CMAKE_SOURCE_DIR}/external/dcm2niix_patch/dcm2niix_fswrapper.cpp" "${DCM2NIIX_SOURCE_DIR}/console/dcm2niix_fswrapper.cpp")

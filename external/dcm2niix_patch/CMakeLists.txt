@@ -52,6 +52,9 @@ elseif(MSVC)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /wd4819")   # The file contains a character that cannot be represented in the current code page
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /wd4996")   # 'access': The POSIX name for this item is deprecated
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /STACK:16388608")  # set "Stack Reserve Size" to 16MB (default value is 1MB)
+
+    
+
 endif()
 
 # Compiler dependent flags
@@ -288,6 +291,15 @@ endif()
 
 if(BUILD_DCM2NIIX_LIB)
     target_compile_definitions(${DCM2NIIX_LIB} PRIVATE -DUSING_DCM2NIIXFSWRAPPER -DUSING_MGH_NIFTI_IO)
+
+    if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
+        if (BUILD_SHARED_LIBS)
+            set_target_properties(${DCM2NIIX_LIB} PROPERTIES MSVC_RUNTIME_LIBRARY "MultiThreadedDLL")
+        else()
+            set_target_properties(${DCM2NIIX_LIB} PROPERTIES MSVC_RUNTIME_LIBRARY "MultiThreaded")
+        endif()
+    endif()
+
 endif()
 
 if(APPLE)

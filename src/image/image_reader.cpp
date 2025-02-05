@@ -280,7 +280,7 @@ template<typename T>
 bool NIBR::Image<T>::read_dcm() {
 
     if (VERBOSE() < VERBOSE_DETAIL) {disableTerminalOutput();}
-    void* dcm_data = (void*)(dcmConverter->getMRIimg());
+    void* dcm_data = static_cast<void*>(dcmConverter->getMRIimg());
     if (VERBOSE() < VERBOSE_DETAIL) {enableTerminalOutput();}
 
     if (dcm_data == NULL) {

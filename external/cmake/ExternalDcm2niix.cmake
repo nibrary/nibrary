@@ -157,13 +157,8 @@ if (BUILD_DCM2NIIX)
                 -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
                 -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
                 -DUSE_STATIC_RUNTIME=$<$<BOOL:${BUILD_SHARED_LIBS}>:OFF;ON>
-                $<$<BOOL:${BUILD_SHARED_LIBS}>:
-                    -DCMAKE_C_FLAGS=-fPIC /MD
-                    -DCMAKE_CXX_FLAGS=-fPIC /MD
-                    ;
-                    -DCMAKE_C_FLAGS=-fPIC /MT
-                    -DCMAKE_CXX_FLAGS=-fPIC /MT
-                >
+                -DCMAKE_C_FLAGS=-fPIC
+                -DCMAKE_CXX_FLAGS=-fPIC
                 -DUSE_JNIFTI=OFF
                 -DBUILD_DCM2NIIX_LIB=ON
         )

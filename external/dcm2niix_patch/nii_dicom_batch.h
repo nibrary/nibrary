@@ -9,6 +9,7 @@
 #include "nii_dicom.h"
 #include <vector>
 #include <cstdlib>
+#include <cstdio>
 
 struct MRIFSSTRUCT {
 	struct nifti_1_header hdr0;
@@ -27,31 +28,49 @@ struct MRIFSSTRUCT {
 	struct TDTI* tdti{NULL};
 	int numDti{0};
 
+	bool isDuplicate{false};
+
 	void clear() {
-		if (imgM != NULL) {
-            free(imgM);
-            imgM = NULL;
-        }
-        if (dicomfile != NULL) {
-            free(dicomfile);
-            dicomfile = NULL;
-        }
-        if (tdti != NULL) {
-            free(tdti);
-            tdti = NULL;
-        }
-		if (dicomlst != NULL) {
-			for (int i = 0; i < nDcm; i++) {
-				if (dicomlst[i] != NULL) {
-					free(dicomlst[i]);
-					dicomlst[i] = NULL;
-				}
+
+		if (!isDuplicate) {
+			if (imgM != NULL) {
+				free(imgM);
+				imgM = NULL;
 			}
-            free(dicomlst);
-            dicomlst = NULL;
-        }
-		nDcm 	= 0;
-		numDti 	= 0;
+			if (dicomfile != NULL) {
+				free(dicomfile);
+				dicomfile = NULL;
+			}
+			if (tdti != NULL) {
+				free(tdti);
+				tdti = NULL;
+			}
+			if (dicomlst != NULL) {
+				for (int i = 0; i < nDcm; i++) {
+					if (dicomlst[i] != NULL) {
+						free(dicomlst[i]);
+						dicomlst[i] = NULL;
+					}
+				}
+				free(dicomlst);
+				dicomlst = NULL;
+			}
+		}
+
+		// If this is a duplicate, then reset
+		hdr0 		= nifti_1_header();
+		imgsz   	= 0;
+		imgM    	= NULL;
+		memset(pulseSequenceDetails,0,sizeof(kDICOMStr));
+		tdicomData 	= TDICOMdata();
+		memset(namePostFixes,0,sizeof(256));
+		dicomfile 	= NULL;
+		nDcm 	  	= 0;
+		dicomlst  	= NULL;
+		tdti      	= NULL;
+		numDti 	  	= 0;
+		isDuplicate = false;
+		
 	}
 
 	// Destructor
@@ -59,17 +78,13 @@ struct MRIFSSTRUCT {
         clear();
     }
 
-
-
 };
 
 MRIFSSTRUCT *nii_getMrifsStruct();
 void nii_clrMrifsStruct();
-void nii_rstMrifsStruct();
 
 std::vector<MRIFSSTRUCT> *nii_getMrifsStructVector();
 void nii_clrMrifsStructVector();
-
 
 void dcmListDump(int nConvert, struct TDCMsort dcmSort[], struct TDICOMdata dcmList[], struct TSearchList *nameList, struct TDCMopts opts);
 #endif
@@ -137,6 +152,7 @@ int nii_loadDirCore(char *indir, struct TDCMopts *opts);
 void nii_SaveBIDS(char pathoutname[], struct TDICOMdata d, struct TDCMopts opts, struct nifti_1_header *h, const char *filename);
 int nii_createFilename(struct TDICOMdata dcm, char *niiFilename, struct TDCMopts opts);
 void nii_createDummyFilename(char *niiFilename, struct TDCMopts opts);
+int singleDICOM(struct TDCMopts *opts, char *fname);
 #ifdef __cplusplus
 }
 #endif

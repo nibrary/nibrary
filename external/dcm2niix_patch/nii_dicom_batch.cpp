@@ -125,20 +125,83 @@ std::vector<MRIFSSTRUCT> *nii_getMrifsStructVector() {
 	return &mrifsStruct_vector;
 }
 
-// free the memory used for the image and dti
-void nii_clrMrifsStruct() {
-	return; // automatically destroyed at the end
+void printStruct(const MRIFSSTRUCT& mriData) {
+    printf("----------------------------------------\n");
+    printf("MRIFSSTRUCT Data:\n");
+    printf("----------------------------------------\n");
+
+    // NIfTI Header
+    printf("\nNIfTI Header (hdr0):\n");
+    printf("  Dimensions: ");
+    for (int i = 0; i < 8; ++i) {
+        printf("%d ", mriData.hdr0.dim[i]);
+    }
+    printf("\n");
+    printf("  Datatype: %d\n", (int)mriData.hdr0.datatype);
+    printf("  Bits per Pixel: %d\n", (int)mriData.hdr0.bitpix);
+    printf("  Voxel Offset: %d\n", (int)mriData.hdr0.vox_offset);
+    printf("  Pixel Dimensions: ");
+    for (int i = 0; i < 8; ++i) {
+        printf("%f ", mriData.hdr0.pixdim[i]);
+    }
+    printf("\n");
+    printf("  Intent Name: %s\n", mriData.hdr0.intent_name);
+    // ... Print other relevant NIfTI header fields ...
+
+    // Image Data
+    printf("\nImage Data:\n");
+    printf("  Image Size (imgsz): %zu\n", mriData.imgsz); // Use %zu for size_t
+    printf("  Image Data Pointer (imgM): %p\n", (void*)mriData.imgM); // %p for pointers
+
+    // DICOM-related Data
+    printf("\nDICOM Data:\n");
+    printf("  Pulse Sequence Details: %s\n", mriData.pulseSequenceDetails);
+    printf("  Name Postfixes: %s\n", mriData.namePostFixes);
+    printf("  DICOM File (dicomfile): %s\n", (mriData.dicomfile ? mriData.dicomfile : "NULL"));
+    printf("  Number of DICOM Files (nDcm): %d\n", mriData.nDcm);
+
+    printf("  DICOM File List (dicomlst):\n");
+    if (mriData.dicomlst != NULL) {
+        for (int i = 0; i < mriData.nDcm; ++i) {
+            printf("    - %s\n", (mriData.dicomlst[i] ? mriData.dicomlst[i] : "NULL"));
+        }
+    } else {
+        printf("    - NULL\n");
+    }
+
+    // TDICOMdata
+    printf("\n  TDICOMdata:\n");
+    printf("    Patient Name: %s\n", mriData.tdicomData.patientName);
+    printf("    Study Date: %s\n", mriData.tdicomData.studyDate);
+    printf("    Series Description: %s\n", mriData.tdicomData.seriesDescription);
+    // ... Print other TDICOMdata fields ...
+
+    // DTI Data
+    printf("\nDTI Data:\n");
+    printf("  Number of DTI Acquisitions (numDti): %d\n", mriData.numDti);
+    printf("  DTI Data Pointer (tdti): %p\n", (void*)mriData.tdti);
+    if (mriData.tdti != NULL && mriData.numDti > 0) {
+        for (int i = 0; i < mriData.numDti; i++) {
+            printf("    DTI Acquisition %d:\n", i + 1);
+        }
+    } else {
+        printf("    (No DTI data or pointer is NULL)\n");
+    }
+
+    printf("----------------------------------------\n");
 }
 
-void nii_rstMrifsStruct() {
-	MRIFSSTRUCT tmp;
-	mrifsStruct = tmp;
+// free the memory used for the image and dti
+void nii_clrMrifsStruct() {
+	mrifsStruct.clear();
+	return; // automatically destroyed at the end
 }
 
 // free the memory used for the image and dti
 void nii_clrMrifsStructVector() {
 	mrifsStruct_vector.clear();
 }
+
 #endif
 
 bool isADCnotDTI(TDTI bvec) {				   // returns true if bval!=0 but all bvecs == 0 (Philips code for derived ADC image)
@@ -8839,11 +8902,15 @@ int saveDcm2NiiCore(int nConvert, struct TDCMsort dcmSort[], struct TDICOMdata d
 #ifdef USING_DCM2NIIXFSWRAPPER
 	hdr0.vox_offset = 352;
 
-	mrifsStruct.hdr0 = hdr0;
+	mrifsStruct.hdr0  = hdr0;
 	mrifsStruct.imgsz = nii_ImgBytes(hdr0);
-	mrifsStruct.imgM = imgM;
+	mrifsStruct.imgM  = imgM;
 
+	// The below makes copies of mrifsStruct's pointers. 
+	// Once mrifsStruct_vector is deleted mrifsStruct's pointers will be dangling.
 	mrifsStruct_vector.push_back(mrifsStruct);
+	mrifsStruct.isDuplicate = true; // So we will mark this as a duplicate
+
 #else
 	free(imgM);
 #endif
@@ -8885,7 +8952,10 @@ int saveDcm2Nii(int nConvert, struct TDCMsort dcmSort[], struct TDICOMdata dcmLi
 
 		dcmListDump(nConvert, dcmSort, dcmList, nameList, opts);
 
+		// The below makes copies of mrifsStruct's pointers. 
+		// Once mrifsStruct_vector is deleted mrifsStruct's pointers will be dangling.
 		mrifsStruct_vector.push_back(mrifsStruct);
+		mrifsStruct.isDuplicate = true; // So we will mark this as a duplicate
 
 		return 0;
 	}
@@ -9728,7 +9798,7 @@ int reportProgress(int progressPct, float frac) {
 
 int nii_loadDirCore(char *indir, struct TDCMopts *opts) {
 #ifdef USING_DCM2NIIXFSWRAPPER
-	mrifsStruct_vector.clear();
+	nii_clrMrifsStructVector();
 	mrifsStruct.clear();
 	// memset(&mrifsStruct, 0, sizeof(mrifsStruct));
 #endif

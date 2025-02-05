@@ -1,13 +1,71 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <iostream>
+#include <string>
 #include <algorithm>
 
 #ifdef _WIN32
 #include <windows.h>
 #define strtok_portable(str, delim, context) strtok_s(str, delim, context)
+
+bool isPathFolder(const std::string& dirPath) {
+    DWORD attributes = GetFileAttributesA(dirPath.c_str());
+    return (attributes != INVALID_FILE_ATTRIBUTES && (attributes & FILE_ATTRIBUTE_DIRECTORY));
+}
+
+std::string getFirstFilenameInDirectory(const std::string& dirPath) {
+    std::string searchPath = dirPath + "\\*";
+    WIN32_FIND_DATAA findFileData;
+    HANDLE hFind = FindFirstFileA(searchPath.c_str(), &findFileData);
+
+    if (hFind == INVALID_HANDLE_VALUE) {
+        return "";
+    }
+
+    std::string firstFilename;
+    do {
+        if (!(findFileData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)) {
+            firstFilename = findFileData.cFileName;
+            break;
+        }
+    } while (FindNextFileA(hFind, &findFileData) != 0);
+
+    FindClose(hFind);
+    return firstFilename;
+}
+
 #else
+#include <dirent.h>
 #define strtok_portable(str, delim, context) strtok_r(str, delim, context)
+
+bool isPathFolder(const std::string& dirPath) {
+    DIR* dir = opendir(dirPath.c_str());
+    if (dir != nullptr) {
+        closedir(dir);
+        return true;
+    }
+    return false;
+}
+
+std::string getFirstFilenameInDirectory(const std::string& dirPath) {
+    DIR* dir = opendir(dirPath.c_str());
+    if (dir == nullptr) {
+        return "";
+    }
+
+    std::string firstFilename;
+    struct dirent* entry;
+    while ((entry = readdir(dir)) != nullptr) {
+        if (entry->d_type == DT_REG) {
+            firstFilename = entry->d_name;
+            break;
+        }
+    }
+
+    closedir(dir);
+    return firstFilename;
+}
+
 #endif
 
 std::string dirname(const std::string& path) {
@@ -40,7 +98,6 @@ std::string basename(const std::string& path) {
 	return path.substr(lastSlashPos + 1);
 }
 
-
 #include "nii_dicom.h"
 #include "nii_dicom_batch.h"
 
@@ -64,25 +121,55 @@ dcm2niix::~dcm2niix()
 
 void dcm2niix::updateFullPath()
 {
-	fullPath = folderPath + baseFileName;
+
+	std::string modifiedFolderPath = folderPath;
+    if (!modifiedFolderPath.empty() && (modifiedFolderPath.back() == '/' || modifiedFolderPath.back() == '\\')) {
+        modifiedFolderPath.pop_back();
+    }
+
+    if (!modifiedFolderPath.empty()) {
+       #ifdef _WIN32
+       fullPath = modifiedFolderPath + "\\" + baseFileName;
+       #else
+       fullPath = modifiedFolderPath + "/" + baseFileName;
+       #endif 
+    } else if (modifiedFolderPath.empty()  && !baseFileName.empty()) {
+	   #ifdef _WIN32
+       fullPath = ".\\" + baseFileName;
+       #else
+       fullPath = "./" + baseFileName;
+       #endif
+    } else {
+       fullPath = ".";
+	}
+
 	if (fullPath_charp != NULL) {
 		delete[] fullPath_charp;
 		fullPath_charp = NULL;
 	}
+	
 	fullPath_charp 	= new char[fullPath.length() + 1];
 	strcpy(fullPath_charp, fullPath.c_str());
 }
 
-bool dcm2niix::setFileName(std::string inputFileName)
+bool dcm2niix::setInputPath(std::string inputPath)
 {
-	baseFileName 	= basename(inputFileName);
-	folderPath 		= dirname(inputFileName);
+	isFolder = isPathFolder(inputPath);
+	
+	if (isFolder) {
+		folderPath 	 = inputPath;
+		baseFileName = getFirstFilenameInDirectory(folderPath);
+	} else {
+		folderPath 	 = dirname(inputPath);
+		baseFileName = basename(inputPath);
+	}
+	
 	updateFullPath();
 	
 	return isDICOMfile(fullPath_charp);
 }
 
-bool dcm2niix::folder2Nii()
+bool dcm2niix::toNii()
 {
 	if (fullPath == ".") return false;
 
@@ -101,25 +188,29 @@ bool dcm2niix::folder2Nii()
 
 	// set TDCMopts to convert just one series
 	tdcmOpts.seriesNumber[0] = seriesNo;
-	tdcmOpts.numSeries = 1;
+	tdcmOpts.numSeries 	 	 = 1;
+	tdcmOpts.isCreateBIDS    = false;
+	tdcmOpts.isOnlyBIDS      = false;
 
-	// std::cout << "nii_loadDirCore: " << tdcmOpts.indir << std::endl << std::flush;
-	auto out = nii_loadDirCore(tdcmOpts.indir, &tdcmOpts);
-	// std::cout << "nii_loadDirCore...Done" << std::endl << std::flush;
+	int out;
 
-	return ( out == EXIT_SUCCESS);
+	if (isFolder) {
+		out = nii_loadDirCore(tdcmOpts.indir, &tdcmOpts);
+	} else {
+		out = singleDICOM(&tdcmOpts, fullPath_charp);
+	}
+
+	return ( out == EXIT_SUCCESS); 
 }
 
 // return nifti header saved in MRIFSSTRUCT
-nifti_1_header* dcm2niix::getNiiHeader() {
-	MRIFSSTRUCT* mrifsStruct = nii_getMrifsStruct();
-	return &mrifsStruct->hdr0;
+nifti_1_header dcm2niix::getNiiHeader() {
+	return nii_getMrifsStruct()->hdr0;
 }
 
 // return image data saved in MRIFSSTRUCT
-const unsigned char *dcm2niix::getMRIimg() {
-	MRIFSSTRUCT* mrifsStruct = nii_getMrifsStruct();
-	return mrifsStruct->imgM;
+const unsigned char* dcm2niix::getMRIimg() {
+	return nii_getMrifsStruct()->imgM;
 }
 
 void dcm2niix::clear() {
@@ -145,7 +236,7 @@ void dcm2niix::clear() {
 	nii_clrMrifsStructVector();
 	// std::cout << "cleared nii_clrMrifsStructVector " << std::endl << std::flush;
 
-	nii_rstMrifsStruct();
+	nii_clrMrifsStruct();
 	// std::cout << "reseted nii_clrMrifsStruct " << std::endl << std::flush;
 	
 

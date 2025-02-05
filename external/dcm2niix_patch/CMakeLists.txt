@@ -291,17 +291,6 @@ endif()
 
 if(BUILD_DCM2NIIX_LIB)
     target_compile_definitions(${DCM2NIIX_LIB} PRIVATE -DUSING_DCM2NIIXFSWRAPPER -DUSING_MGH_NIFTI_IO)
-
-    if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
-        if (BUILD_SHARED_LIBS)
-            set_target_properties(${PROGRAMS}       PROPERTIES MSVC_RUNTIME_LIBRARY "MultiThreadedDLL")
-            set_target_properties(${DCM2NIIX_LIB}   PROPERTIES MSVC_RUNTIME_LIBRARY "MultiThreadedDLL")
-        else()
-            set_target_properties(${PROGRAMS}       PROPERTIES MSVC_RUNTIME_LIBRARY "MultiThreaded")
-            set_target_properties(${DCM2NIIX_LIB}   PROPERTIES MSVC_RUNTIME_LIBRARY "MultiThreaded")
-        endif()
-    endif()
-
 endif()
 
 if(APPLE)

@@ -1,10 +1,6 @@
 #include "image.h"
 #include "zlib.h"
 
-#if defined(HAS_DCM2NIIX)
-#include "dcm2niix++.h"
-#endif
-
 using namespace NIBR;
 
 template<typename T>

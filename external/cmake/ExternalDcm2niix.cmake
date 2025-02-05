@@ -7,9 +7,9 @@ if (BUILD_DCM2NIIX)
     include("${CMAKE_CURRENT_LIST_DIR}/utils.cmake")
 
     if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
-        set(DCM2NIIX_LIBRARY        ${CMAKE_INSTALL_PREFIX}/lib/${nibrary}/dcm2niixfs.lib  CACHE INTERNAL "")
+        set(DCM2NIIX_LIBRARY        ${CMAKE_INSTALL_PREFIX}/lib/${nibrary}/dcm2niix++.lib  CACHE INTERNAL "")
     else()
-        set(DCM2NIIX_LIBRARY        ${CMAKE_INSTALL_PREFIX}/lib/${nibrary}/libdcm2niixfs.a  CACHE INTERNAL "")
+        set(DCM2NIIX_LIBRARY        ${CMAKE_INSTALL_PREFIX}/lib/${nibrary}/libdcm2niix++.a  CACHE INTERNAL "")
     endif()
 
     set(DCM2NIIX_LIBRARY_DIR    ${CMAKE_INSTALL_PREFIX}/lib/${nibrary}                  CACHE INTERNAL "")

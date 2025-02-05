@@ -151,20 +151,6 @@ elseif(${ZLIB_IMPLEMENTATION} STREQUAL "Custom")
     endif()
 endif()
 
-
-if (CMAKE_SYSTEM_NAME STREQUAL "Windows") 
-    if(USE_STATIC_RUNTIME)
-        set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS} -fPIC /MT")
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC /MT")
-    else()
-        set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS} -fPIC /MD")
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC /MD")
-    endif()
-else()
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
-endif()
-
 ExternalProject_Add(console
     DEPENDS ${DEPENDENCIES}
     DOWNLOAD_COMMAND ""
@@ -179,9 +165,9 @@ ExternalProject_Add(console
         -DCMAKE_INSTALL_PREFIX:PATH=${CMAKE_BINARY_DIR}
         # Compiler settings
         -DCMAKE_C_COMPILER:FILEPATH=${CMAKE_C_COMPILER}
+        -DCMAKE_C_FLAGS:STRING=${CMAKE_C_FLAGS}
         -DCMAKE_CXX_COMPILER:FILEPATH=${CMAKE_CXX_COMPILER}
-        -DCMAKE_C_FLAGS=${CMAKE_C_FLAGS}
-        -DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}
+        -DCMAKE_CXX_FLAGS:STRING=${CMAKE_CXX_FLAGS}
         # Options
         -DCMAKE_VERBOSE_MAKEFILE:BOOL=${CMAKE_VERBOSE_MAKEFILE}
         -DUSE_STATIC_RUNTIME:BOOL=${USE_STATIC_RUNTIME}

@@ -3,13 +3,13 @@ cmake_minimum_required(VERSION 3.5)
 project(console)
 
 # Option Choose whether to use static runtime
-include(ucm.cmake)
+# include(ucm.cmake)
 option(USE_STATIC_RUNTIME "Use static runtime" ON)
-if(USE_STATIC_RUNTIME)
-    ucm_set_runtime(STATIC)
-else()
-    ucm_set_runtime(DYNAMIC)
-endif()
+# if(USE_STATIC_RUNTIME)
+#     ucm_set_runtime(STATIC)
+# else()
+#     ucm_set_runtime(DYNAMIC)
+# endif()
 
 # Basic CMake build settings
 if(NOT CMAKE_BUILD_TYPE)
@@ -291,6 +291,13 @@ endif()
 
 if(BUILD_DCM2NIIX_LIB)
     target_compile_definitions(${DCM2NIIX_LIB} PRIVATE -DUSING_DCM2NIIXFSWRAPPER -DUSING_MGH_NIFTI_IO)
+
+    if (BUILD_SHARED_LIBS)
+        set_target_properties(${DCM2NIIX_LIB} PROPERTIES MSVC_RUNTIME_LIBRARY "MultiThreadedDLL")
+    else()
+        set_target_properties(${DCM2NIIX_LIB} PROPERTIES MSVC_RUNTIME_LIBRARY "MultiThreaded")
+    endif()
+
 endif()
 
 if(APPLE)

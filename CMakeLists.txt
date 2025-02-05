@@ -123,6 +123,10 @@ endif()
 
 target_link_libraries(${libNibrary} PUBLIC ${ZLIB_LIBRARIES} ${GEOGRAM_LIBRARY})
 
+if (BUILD_DCM2NIIX)
+target_link_libraries(${libNibrary} PUBLIC ${DCM2NIIX_LIBRARY})
+endif()
+
 IF(ENABLE_CUDA)
     add_library(CUDA_OBJS OBJECT ${CUDA_SRCS})
     set(libNibrary "${libNibrary}CUDA_${CMAKE_CUDA_COMPILER_VERSION}")

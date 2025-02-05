@@ -397,25 +397,25 @@ bool NIBR::Image<T>::readHeader_dcm() {
 
     if (VERBOSE() < VERBOSE_DETAIL) {disableTerminalOutput();}
 
-    if (!dcmConverter->setFileName(filePath)) {
+    if (!dcmConverter->setInputPath(filePath)) {
        if (VERBOSE() < VERBOSE_DETAIL) {enableTerminalOutput();}
-        disp(MSG_FATAL, "File name was not set. File is not DICOM: %s", filePath.c_str());
+        disp(MSG_FATAL, "Invalid DICOM path: %s", filePath.c_str());
         return false;
     } else {
         if (VERBOSE() < VERBOSE_DETAIL) {enableTerminalOutput();}
-        disp(MSG_DETAIL, "File name set. Verified DICOM: %s", filePath.c_str());
+        disp(MSG_DETAIL, "Valid DICOM path: %s", filePath.c_str());
     }
 
     disp(MSG_DETAIL, "Converting DICOM to nifti");
 
     if (VERBOSE() < VERBOSE_DETAIL) {disableTerminalOutput();}
-    dcmConverter->folder2Nii();
+    dcmConverter->toNii();
     if (VERBOSE() < VERBOSE_DETAIL) {enableTerminalOutput();}
 
     disp(MSG_DETAIL, "Creating nibrary image");
 
     if (VERBOSE() < VERBOSE_DETAIL) {disableTerminalOutput();}
-    nifti_image* nim = nifti_convert_n1hdr2nim(*dcmConverter->getNiiHeader(), filePath.c_str());
+    nifti_image* nim = nifti_convert_n1hdr2nim(dcmConverter->getNiiHeader(), filePath.c_str());
     if (VERBOSE() < VERBOSE_DETAIL) {enableTerminalOutput();}
 
     if(!readHeader_nii_wrapper(nim, this)) {

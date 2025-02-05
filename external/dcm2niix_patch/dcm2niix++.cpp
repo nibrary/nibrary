@@ -213,6 +213,45 @@ const unsigned char* dcm2niix::getMRIimg() {
 	return nii_getMrifsStruct()->imgM;
 }
 
+
+
+std::vector<float> dcm2niix::getbvals()
+{
+	auto gradTable = nii_getMrifsStruct()->tdti;
+	int  dirCount  = nii_getMrifsStruct()->numDti;
+	
+	std::vector<float> out;
+	out.reserve(dirCount);
+
+	for (int n = 0; n < dirCount; n++) {
+		out.push_back(gradTable[n].V[0]);
+	}
+
+	return out;
+}
+
+std::vector<std::array<float, 3>> dcm2niix::getbvecs()
+{
+	auto gradTable = nii_getMrifsStruct()->tdti;
+	int  dirCount  = nii_getMrifsStruct()->numDti;
+	
+	std::vector<std::array<float, 3>> out;
+	out.reserve(dirCount);
+
+	for (int n = 0; n < dirCount; n++) {
+		std::array<float,3> tmp;
+
+		tmp[0] = gradTable[n].V[1];
+		tmp[1] = gradTable[n].V[2];
+		tmp[2] = gradTable[n].V[3];
+
+		out.push_back(tmp);
+	}
+
+	return out;
+}
+
+
 void dcm2niix::clear() {
 	// std::cout << "clearing: " << std::endl << std::flush;
 	if (opts != NULL) {

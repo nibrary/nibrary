@@ -294,9 +294,11 @@ if(BUILD_DCM2NIIX_LIB)
 
     if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
         if (BUILD_SHARED_LIBS)
-            set_target_properties(${DCM2NIIX_LIB} PROPERTIES MSVC_RUNTIME_LIBRARY "MultiThreadedDLL")
+            set_target_properties(${PROGRAMS}       PROPERTIES MSVC_RUNTIME_LIBRARY "MultiThreadedDLL")
+            set_target_properties(${DCM2NIIX_LIB}   PROPERTIES MSVC_RUNTIME_LIBRARY "MultiThreadedDLL")
         else()
-            set_target_properties(${DCM2NIIX_LIB} PROPERTIES MSVC_RUNTIME_LIBRARY "MultiThreaded")
+            set_target_properties(${PROGRAMS}       PROPERTIES MSVC_RUNTIME_LIBRARY "MultiThreaded")
+            set_target_properties(${DCM2NIIX_LIB}   PROPERTIES MSVC_RUNTIME_LIBRARY "MultiThreaded")
         endif()
     endif()
 

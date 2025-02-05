@@ -8,6 +8,8 @@
 #endif
 
 #include <string>
+#include <vector>
+#include <array>
 
 class dcm2niix {
 
@@ -19,8 +21,11 @@ class dcm2niix {
 		bool setInputPath(std::string path);
 		bool toNii();
 
-		nifti_1_header 	 	 getNiiHeader();
-		const unsigned char* getMRIimg();
+		nifti_1_header 	 	    			getNiiHeader();
+		const unsigned char*    			getMRIimg();
+
+		std::vector<float>      			getbvals();		// not tested!!
+		std::vector<std::array<float, 3>>   getbvecs(); 	// not tested!!
 
 		void clear();
 

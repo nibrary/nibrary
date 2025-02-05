@@ -24,16 +24,16 @@ bool NIBR::Image<T>::read() {
     if ((fileExtension=="mgh") || (fileExtension=="mgz"))
         return read_mghz();
 
-#if defined(HAS_DCM2NIIX)
+    #if defined(HAS_DCM2NIIX)
     if ((fileExtension=="dcm") || (fileExtension=="")) {
-        if (!read_dcm()) {
-            disp(MSG_ERROR,"Can't read image: %s", filePath.c_str());
-            return false;
-        } else {
-            return true;
+            if (!read_dcm()) {
+                disp(MSG_ERROR,"Can't read image: %s", filePath.c_str());
+                return false;
+            } else {
+                return true;
+            }
         }
-    }
-#endif
+    #endif
 
     disp(MSG_ERROR,"Can't read image data with this extension yet: %s",fileExtension.c_str());
     return false;
@@ -279,8 +279,55 @@ bool NIBR::Image<T>::read_mghz() {
 template<typename T>
 bool NIBR::Image<T>::read_dcm() {
 
+    // dcm2niix wrapper does not allow to read the dcm header alone yet
+
+    disp(MSG_DETAIL, "Initializing DICOM reader");
+    dcm2niix* dcmConverter = new dcm2niix();
+    disp(MSG_DETAIL, "DONE");
+
     if (VERBOSE() < VERBOSE_DETAIL) {disableTerminalOutput();}
-    void* dcm_data = static_cast<void*>(dcmConverter->getMRIimg());
+
+    if (!dcmConverter->setInputPath(filePath)) {
+       if (VERBOSE() < VERBOSE_DETAIL) {enableTerminalOutput();}
+        disp(MSG_FATAL, "Invalid DICOM path: %s", filePath.c_str());
+        return false;
+    } else {
+        if (VERBOSE() < VERBOSE_DETAIL) {enableTerminalOutput();}
+        disp(MSG_DETAIL, "Valid DICOM path: %s", filePath.c_str());
+    }
+
+    disp(MSG_DETAIL, "Converting DICOM to nifti");
+
+    if (VERBOSE() < VERBOSE_DETAIL) {disableTerminalOutput();}
+    dcmConverter->toNii();
+    if (VERBOSE() < VERBOSE_DETAIL) {enableTerminalOutput();}
+
+    disp(MSG_DETAIL, "Creating nibrary image");
+
+    if (VERBOSE() < VERBOSE_DETAIL) {disableTerminalOutput();}
+    nifti_image* nim = nifti_convert_n1hdr2nim(dcmConverter->getNiiHeader(), filePath.c_str());
+    if (VERBOSE() < VERBOSE_DETAIL) {enableTerminalOutput();}
+
+    if(!readHeader_nii_wrapper(nim)) {
+        disp(MSG_DETAIL, "Can't read converted nifti header");
+        nifti_image_free(nim);
+        return false;
+    } else {
+        disp(MSG_DETAIL, "Read converted nifti header");
+    }
+
+    
+    nifti_image_free(nim);
+
+    parseHeader();
+
+    disp(MSG_DETAIL, "DICOM header read");
+    //----------------
+
+
+
+    if (VERBOSE() < VERBOSE_DETAIL) {disableTerminalOutput();}
+    void* dcm_data = (void*)(dcmConverter->getMRIimg());
     if (VERBOSE() < VERBOSE_DETAIL) {enableTerminalOutput();}
 
     if (dcm_data == NULL) {
@@ -321,6 +368,7 @@ bool NIBR::Image<T>::read_dcm() {
             disp(MSG_FATAL,"Can't read DICOM file. Unknown datatype");
             break;
     }
+
 
     delete dcmConverter;
     dcmConverter = NULL;

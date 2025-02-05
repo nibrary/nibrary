@@ -31,9 +31,6 @@ void NIBR::Image<T>::init()
     interpMethod    = LINEAR;
     setInterpolationMethod(LINEAR);
     for (auto i=0; i<7; i++) indexOrder[i]=i;
-    #if defined(HAS_DCM2NIIX)
-    dcmConverter    = NULL;
-    #endif
 }
 
 
@@ -86,12 +83,6 @@ void NIBR::Image<T>::clear() {
         delete[] data;
         data = NULL;
     };
-    #if defined(HAS_DCM2NIIX)
-    if (dcmConverter!=NULL) {
-        delete dcmConverter;
-        dcmConverter = NULL;
-    };
-    #endif
     init();
 }
 

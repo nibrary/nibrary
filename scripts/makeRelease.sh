@@ -42,7 +42,7 @@ ITEMS_TO_COPY=(
   "../scripts/"
   "../src/"
   "../build_linux.sh"
-  "../build_mac.sh"
+  "../build_macOS.sh"
   "../build_win.bat"
   "../CMakeLists.txt"
   "../LICENSE.md"

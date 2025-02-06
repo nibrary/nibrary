@@ -87,7 +87,7 @@ include_directories(${SIMDE_INCLUDE_DIR})
 include_directories(${PROXSUITE_INCLUDE_DIR})
 include_directories(${CUDA_INCLUDE_DIR})
 
-if (BUILD_DCM2NIIX AND NOT BUILD_SHARED_LIBS)  # For now let's experiment only in Unix
+if (BUILD_DCM2NIIX)
     message(STATUS ">> Nibrary::Building dcm2niix")
     add_compile_definitions(HAS_DCM2NIIX)
     include_directories(${DCM2NIIX_INCLUDE_DIR})
@@ -122,6 +122,10 @@ if(OpenMP_FOUND)
 endif()
 
 target_link_libraries(${libNibrary} PUBLIC ${ZLIB_LIBRARIES} ${GEOGRAM_LIBRARY})
+
+if (BUILD_DCM2NIIX)
+target_link_libraries(${libNibrary} PUBLIC ${DCM2NIIX_LIBRARY})
+endif()
 
 IF(ENABLE_CUDA)
     add_library(CUDA_OBJS OBJECT ${CUDA_SRCS})
@@ -166,13 +170,13 @@ elseif (CMAKE_SYSTEM_NAME STREQUAL "Windows")
 
     message(STATUS ">> Nibrary::Building for Windows")
 
-    if (BUILD_SHARED_LIBS)
-        set_target_properties(OBJS PROPERTIES MSVC_RUNTIME_LIBRARY "MultiThreadedDLL")
-        set_target_properties(${libNibrary} PROPERTIES MSVC_RUNTIME_LIBRARY "MultiThreadedDLL")
-    else()
-        set_target_properties(OBJS PROPERTIES MSVC_RUNTIME_LIBRARY "MultiThreaded")
+    # if (BUILD_SHARED_LIBS)
+    #     set_target_properties(OBJS PROPERTIES MSVC_RUNTIME_LIBRARY "MultiThreadedDLL")
+    #     set_target_properties(${libNibrary} PROPERTIES MSVC_RUNTIME_LIBRARY "MultiThreadedDLL")
+    # else()
+        set_target_properties(OBJS          PROPERTIES MSVC_RUNTIME_LIBRARY "MultiThreaded")
         set_target_properties(${libNibrary} PROPERTIES MSVC_RUNTIME_LIBRARY "MultiThreaded")
-    endif()
+    # endif()
 
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /std:c++17 /permissive- /bigobj")
 

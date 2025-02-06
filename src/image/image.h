@@ -29,10 +29,6 @@
 // Note that in order to use this functionality, the input point must have the same data type as the output.
 // e.g. Image<double> img; float a[3]={0.1,0.2,0.3}; double A=img(a); performs the interpolation in float precision and return a double.
 
-#if defined(HAS_DCM2NIIX)
-class dcm2niix_fswrapper;
-#endif
-
 namespace NIBR
 {
 
@@ -197,16 +193,17 @@ namespace NIBR
 
         bool                readHeader_nii();
         bool                readHeader_mghz();
-        
+
         bool                read_nii();
         bool                read_mghz();
 
         #if defined(HAS_DCM2NIIX)
         bool                readHeader_dcm();
         bool                read_dcm();
-        dcm2niix_fswrapper* dcmConverter;
         #endif
         
+        bool                readHeader_nii_wrapper(nifti_image* nim);
+
         nifti_1_header*     getNiftiHeader();
         
 

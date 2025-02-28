@@ -39,7 +39,7 @@ namespace NIBR
         std::string                     getSphereFileName() {return sphereFileName;}
 
         void                            fodIsAsym()   {iseven = false;}
-        void                            fodIsSym()    {iseven = false;}
+        void                            fodIsSym()    {iseven = true;}
         bool                            isFodAsym()   {return !iseven;}
         bool                            isFodsym()    {return  iseven;}
 

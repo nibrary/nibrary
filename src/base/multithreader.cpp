@@ -42,11 +42,28 @@ void NIBR::MT::MTINIT()
             GetSystemInfo(&sysinfo);
             NIBR::MT::maxNumberOfThreads = sysinfo.dwNumberOfProcessors;
         #else
-            NIBR::MT::maxNumberOfThreads = sysconf(_SC_NPROCESSORS_ONLN);
+            FILE* pipe = popen("nproc", "r");
+            if (!pipe) {
+                NIBR::disp(MSG_WARN,"Cannot determine number of processing units (nproc). 1 thread will be used.");
+                NIBR::MT::maxNumberOfThreads = 1; // default value
+            };
+            char buffer[128];
+            std::string result = "";
+            while (!feof(pipe)) {
+                if (fgets(buffer, 128, pipe) != nullptr)
+                    result += buffer;
+            }
+            pclose(pipe);
+            std::stringstream ss(result);
+            ss >> NIBR::MT::maxNumberOfThreads;
+            if (ss.fail()) {
+                NIBR::disp(MSG_WARN,"Error parsing number of processing units (nproc). 1 thread will be used.");
+                NIBR::MT::maxNumberOfThreads = 1; // default value
+            }
         #endif
 
-        if (NIBR::MT::maxNumberOfThreads == -1) {
-            NIBR::MT::maxNumberOfThreads = 4; // default value
+        if (NIBR::MT::maxNumberOfThreads < 1) {
+            NIBR::MT::maxNumberOfThreads = 1; // default value
         }
 
         NIBR::MT::rndm.clear();
@@ -54,8 +71,6 @@ void NIBR::MT::MTINIT()
             NIBR::MT::rndm.push_back(std::make_unique<RandomDoer>());
     });
 }
-
-
 
 
 void NIBR::MT::MTRUN(std::size_t range, int numberOfThreads, std::function<void(NIBR::MT::TASK mttask)> f) 

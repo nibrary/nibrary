@@ -34,7 +34,7 @@ std::vector<std::vector<float>> runStreamlineResampler(std::vector<std::vector<f
 
     int k=0;
 
-    for (size_t l=1; l<streamline.size(); l++) {
+    for (std::size_t l=1; l<streamline.size(); l++) {
 
         if (l!=(streamline.size()-1)) {
             vec3sub(Tn1, streamline[l],   streamline[l-1]);
@@ -59,7 +59,7 @@ std::vector<std::vector<float>> runStreamlineResampler(std::vector<std::vector<f
 
                 target += step;                
 
-                if (points.size()==size_t(N-1)) {
+                if (points.size()==std::size_t(N-1)) {
                     isLast = true;
                     break;
                 }
@@ -122,14 +122,14 @@ std::vector<std::vector<float>> NIBR::resampleStreamline_withStepCount(std::vect
 }
 
 
-std::vector<std::vector<float>> NIBR::resampleStreamline_withStepSize(NIBR::TractogramReader* tractogram, int index, float step)
+std::vector<std::vector<float>> NIBR::resampleStreamline_withStepSize(std::shared_ptr<NIBR::TractogramReader> tractogram, int index, float step)
 {
     auto streamline = tractogram->readStreamlineVector(index);
     return NIBR::resampleStreamline_withStepSize(streamline, step);
 }
 
 
-std::vector<std::vector<float>> NIBR::resampleStreamline_withStepCount(NIBR::TractogramReader* tractogram, int index, int N)
+std::vector<std::vector<float>> NIBR::resampleStreamline_withStepCount(std::shared_ptr<NIBR::TractogramReader> tractogram, int index, int N)
 {
     auto streamline = tractogram->readStreamlineVector(index);
     return NIBR::resampleStreamline_withStepCount(streamline, N);
@@ -137,37 +137,25 @@ std::vector<std::vector<float>> NIBR::resampleStreamline_withStepCount(NIBR::Tra
 
 
 
-std::vector<std::vector<std::vector<float>>> NIBR::resampleTractogram_withStepSize(NIBR::TractogramReader* _tractogram, float step)
+std::vector<std::vector<std::vector<float>>> NIBR::resampleTractogram_withStepSize(std::shared_ptr<NIBR::TractogramReader> tractogram, float step)
 {
 
     std::vector<std::vector<std::vector<float>>> out;
 
-    if (_tractogram->numberOfStreamlines==0)
+    if (tractogram->numberOfStreamlines==0)
         return out;
 
-    out.resize(_tractogram->numberOfStreamlines);
-
-    int numberOfThreads = (_tractogram->numberOfStreamlines<size_t(MT::MAXNUMBEROFTHREADS())) ? _tractogram->numberOfStreamlines : MT::MAXNUMBEROFTHREADS();
-
-    NIBR::TractogramReader *tractogram = new NIBR::TractogramReader[numberOfThreads]();
-
-    for (int t = 0; t < numberOfThreads; t++)
-        tractogram[t].copyFrom(*_tractogram);
+    out.resize(tractogram->numberOfStreamlines);
 
     auto resample = [&](NIBR::MT::TASK task)->void {
-        out[task.no] = NIBR::resampleStreamline_withStepSize(&tractogram[task.threadId], task.no, step);
+        out[task.no] = NIBR::resampleStreamline_withStepSize(tractogram, task.no, step);
     };
 
     if (VERBOSE()>=VERBOSE_INFO) {
-		NIBR::MT::MTRUN(_tractogram->numberOfStreamlines, "Resampling streamlines", resample);
+		NIBR::MT::MTRUN(tractogram->numberOfStreamlines, "Resampling streamlines", resample);
     } else {
-		NIBR::MT::MTRUN(_tractogram->numberOfStreamlines, resample);
+		NIBR::MT::MTRUN(tractogram->numberOfStreamlines, resample);
     }
-
-
-    for (int t = 0; t < numberOfThreads; t++) 
-        tractogram[t].destroyCopy();
-    delete[] tractogram;
 
     return out;
 
@@ -176,37 +164,25 @@ std::vector<std::vector<std::vector<float>>> NIBR::resampleTractogram_withStepSi
 
 
 
-std::vector<std::vector<std::vector<float>>> NIBR::resampleTractogram_withStepCount(NIBR::TractogramReader* _tractogram, int N)
+std::vector<std::vector<std::vector<float>>> NIBR::resampleTractogram_withStepCount(std::shared_ptr<NIBR::TractogramReader> tractogram, int N)
 {
 
     std::vector<std::vector<std::vector<float>>> out;
 
-    if (_tractogram->numberOfStreamlines==0)
+    if (tractogram->numberOfStreamlines==0)
         return out;
 
-    out.resize(_tractogram->numberOfStreamlines);
-
-    int numberOfThreads = (_tractogram->numberOfStreamlines<size_t(MT::MAXNUMBEROFTHREADS())) ? _tractogram->numberOfStreamlines : MT::MAXNUMBEROFTHREADS();
-
-    NIBR::TractogramReader *tractogram = new NIBR::TractogramReader[numberOfThreads]();
-
-    for (int t = 0; t < numberOfThreads; t++)
-        tractogram[t].copyFrom(*_tractogram);
+    out.resize(tractogram->numberOfStreamlines);
 
     auto resample = [&](NIBR::MT::TASK task)->void {
-        out[task.no] = NIBR::resampleStreamline_withStepCount(&tractogram[task.threadId], task.no, N);
+        out[task.no] = NIBR::resampleStreamline_withStepCount(tractogram, task.no, N);
     };
 
     if (VERBOSE()>=VERBOSE_INFO) {
-		NIBR::MT::MTRUN(_tractogram->numberOfStreamlines, "Resampling streamlines", resample);
+		NIBR::MT::MTRUN(tractogram->numberOfStreamlines, "Resampling streamlines", resample);
     } else {
-		NIBR::MT::MTRUN(_tractogram->numberOfStreamlines, resample);
+		NIBR::MT::MTRUN(tractogram->numberOfStreamlines, resample);
     }
-
-
-    for (int t = 0; t < numberOfThreads; t++) 
-        tractogram[t].destroyCopy();
-    delete[] tractogram;
 
     return out;
 

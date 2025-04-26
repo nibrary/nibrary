@@ -10,8 +10,7 @@ auto initFieldReader(TractogramReader& tractogram) {
     const size_t strLength = 256;
 	char dummy[strLength];
 
-    std::fseek(input, tractogram.streamlinePos[tractogram.numberOfStreamlines-1], SEEK_SET);
-    std::fseek(input, sizeof(float)*tractogram.len[tractogram.numberOfStreamlines-1]*3,SEEK_CUR);
+    std::fseek(input, tractogram.endPosOfStreamlines, SEEK_SET);
     int tmp = std::fgetc(input);
     if (tmp != '\n') std::ungetc(tmp,input);
     std::fgets(dummy,strLength,input); // Skip the line about line number

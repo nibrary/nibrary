@@ -8,5 +8,5 @@
 namespace NIBR 
 {
     // Returns streamline indx, streamline beg, streamline end
-    std::tuple<std::vector<size_t>,std::vector<float>,std::vector<float>> pathFilter(NIBR::TractogramReader* tractogram, Pathway* pw, int numberOfThreads, int stopLim);
+    std::tuple<std::vector<std::size_t>,std::vector<float>,std::vector<float>> pathFilter(std::shared_ptr<NIBR::TractogramReader> tractogram, Pathway* pw, int numberOfThreads, int stopLim);
 }

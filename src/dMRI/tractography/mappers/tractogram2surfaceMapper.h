@@ -16,7 +16,7 @@ namespace NIBR
         float angle;
     };
 
-    void tractogram2surfaceMapper(NIBR::TractogramReader* _tractogram, NIBR::Surface* surf, std::vector<std::vector<streamline2faceMap>>& mapping, bool mapOnce);
+    void tractogram2surfaceMapper(NIBR::TractogramReader& tractogram, NIBR::Surface* surf, std::vector<std::vector<streamline2faceMap>>& mapping, bool mapOnce);
 
 }
 

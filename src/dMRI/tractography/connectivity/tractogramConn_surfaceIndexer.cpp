@@ -10,16 +10,16 @@ bool NIBR::SCsurfaceIndexer::writeConn(std::string outFname) {
 
     // Write the labels
     fout << original_labels[0];
-    for (size_t i=1; i<labelCnt; i++) {
+    for (std::size_t i=1; i<labelCnt; i++) {
         fout << ", ";
         fout << original_labels[i];
     }
     fout << std::endl;
 
     // Write the connectivity matrix
-    for (size_t i=0; i<labelCnt; i++) {
+    for (std::size_t i=0; i<labelCnt; i++) {
         fout << conn[i][0].size();
-        for (size_t j=1; j<labelCnt; j++) {
+        for (std::size_t j=1; j<labelCnt; j++) {
             fout << ", ";
             fout << conn[i][j].size();
         }
@@ -40,12 +40,10 @@ bool NIBR::SCsurfaceIndexer::isBg(int val) {
         return true;
 }
 
-NIBR::SCsurfaceIndexer::SCsurfaceIndexer(NIBR::TractogramReader* _tractogram, NIBR::Surface* _surf, NIBR::SurfaceField *_surfLabels) {
+NIBR::SCsurfaceIndexer::SCsurfaceIndexer(std::shared_ptr<NIBR::TractogramReader> _tractogram, NIBR::Surface* _surf, NIBR::SurfaceField *_surfLabels) {
     
     // Initialize tractogram
-    tractogram = new NIBR::TractogramReader[NIBR::MT::MAXNUMBEROFTHREADS()]();
-    for (int t = 0; t < NIBR::MT::MAXNUMBEROFTHREADS(); t++)
-        tractogram[t].copyFrom(*_tractogram);
+    tractogram = _tractogram;
 
     // Initialize label image
     surf            = _surf;
@@ -61,10 +59,7 @@ NIBR::SCsurfaceIndexer::SCsurfaceIndexer(NIBR::TractogramReader* _tractogram, NI
 }
 
 NIBR::SCsurfaceIndexer::~SCsurfaceIndexer() { 
-    for (int t = 0; t < NIBR::MT::MAXNUMBEROFTHREADS(); t++) {
-        tractogram[t].destroyCopy();
-    }
-    delete[] tractogram;
+    return;
 }
 
 
@@ -105,17 +100,17 @@ void NIBR::SCsurfaceIndexer::run() {
 
     // Create connectivity matrix
     labelCnt = original_labels.size();
-    conn.resize(labelCnt, std::vector<std::set<size_t>>(labelCnt));
+    conn.resize(labelCnt, std::vector<std::set<std::size_t>>(labelCnt));
 
     // Create tractogram to surface map
-    tractogram2surfaceMapper(tractogram, surf, tract2surfMap, true);
+    tractogram2surfaceMapper(*tractogram, surf, tract2surfMap, true);
 
     // Compute connectome
-    NIBR::MT::MTRUN(tractogram[0].numberOfStreamlines, "Computing connectome", [&](NIBR::MT::TASK task)->void{processStreamline(task.no,task.threadId);} );
+    NIBR::MT::MTRUN(tractogram->numberOfStreamlines, "Computing connectome", [&](NIBR::MT::TASK task)->void{processStreamline(task.no);} );
 }
 
 
-bool NIBR::SCsurfaceIndexer::processStreamline(int, uint16_t) {
+bool NIBR::SCsurfaceIndexer::processStreamline(int) {
     
     return true;
 }

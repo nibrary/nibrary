@@ -15,7 +15,7 @@ namespace NIBR
     class SCsurfaceIndexer {
 
     public:    
-        SCsurfaceIndexer(NIBR::TractogramReader* _tractogram, NIBR::Surface* _surf, NIBR::SurfaceField *_surfLabels);
+        SCsurfaceIndexer(std::shared_ptr<NIBR::TractogramReader> _tractogram, NIBR::Surface* _surf, NIBR::SurfaceField *_surfLabels);
         ~SCsurfaceIndexer();
         
         void run();
@@ -27,25 +27,25 @@ namespace NIBR
 
     private:
 
-        bool processStreamline(int _streamlineId, uint16_t _threadNo);
+        bool processStreamline(int _streamlineId);
         bool isBg(int val);
 
-        NIBR::TractogramReader*   tractogram;
-        NIBR::Surface*            surf;
-        NIBR::SurfaceField*       surfLabels;
-        std::vector<int>    faceLabels;                 // This is used to check the label. If input label is VERTEX then we create labels on FACEs.
+        std::shared_ptr<NIBR::TractogramReader>     tractogram;
+        NIBR::Surface*                              surf;
+        NIBR::SurfaceField*                         surfLabels;
+        std::vector<int>                            faceLabels;     // This is used to check the label. If input label is VERTEX then we create labels on FACEs.
 
         std::vector<std::vector<NIBR::streamline2faceMap>> tract2surfMap;
 
         float               endLengthThresh;
 
-        std::set<int>       bgLabels;                    // labels to ignore
+        std::set<int>       bgLabels;                           // labels to ignore
         int                 bgVal;
 
-        std::vector<int> original_labels;                // labels fetched from the image
-        std::vector<int> labels;                         // modified labels for faster vector access
-        std::vector<std::vector<std::set<size_t>>> conn; // indices of streamlines
-        size_t labelCnt;
+        std::vector<int> original_labels;                       // labels fetched from the image
+        std::vector<int> labels;                                // modified labels for faster vector access
+        std::vector<std::vector<std::set<std::size_t>>> conn;   // indices of streamlines
+        std::size_t labelCnt;
 
     };
 

@@ -20,7 +20,7 @@ namespace NIBR
     class SCimageIndexer {
 
     public:    
-        SCimageIndexer(NIBR::TractogramReader* _tractogram, NIBR::Image<int>* _img);
+        SCimageIndexer(std::shared_ptr<NIBR::TractogramReader> _tractogram, NIBR::Image<int>* _img);
         ~SCimageIndexer();
         
 
@@ -34,22 +34,23 @@ namespace NIBR
 
     private:
 
-        bool processStreamline(int _streamlineId, uint16_t _threadNo);
+        bool processStreamline(int _streamlineId);
         bool isBg(int val);
 
-        NIBR::TractogramReader* tractogram;
+        std::shared_ptr<NIBR::TractogramReader> tractogram = NULL;
+
         NIBR::Image<int>* img;
 
         float       endLengthThresh;
         SCEndType   endType;
 
-        std::set<int>    bgLabels;                       // labels to ignore
+        std::set<int>    bgLabels;                              // labels to ignore
         int              bgVal;
 
-        std::vector<int> original_labels;                // labels fetched from the image
-        std::vector<int> labels;                         // modified labels for faster vector access
-        std::vector<std::vector<std::set<size_t>>> conn; // indices of streamlines
-        size_t labelCnt;
+        std::vector<int> original_labels;                       // labels fetched from the image
+        std::vector<int> labels;                                // modified labels for faster vector access
+        std::vector<std::vector<std::set<std::size_t>>> conn;   // indices of streamlines
+        std::size_t labelCnt;
 
     };
 

@@ -18,7 +18,9 @@ std::vector<std::unordered_map<int,float>> NIBR::index2surface(TractogramReader&
     s2f.resize(tractogram.numberOfStreamlines);
     {
         std::vector<std::vector<streamline2faceMap>> surfMap; // surfMap[n] stores the list of streamlines in n^th face of the mesh. surfMapp[n][s].index is the streamlineId of the s^th streamline crossing this face
-        tractogram2surfaceMapper(&tractogram, &surf, surfMap, true);
+
+        tractogram2surfaceMapper(tractogram, &surf, surfMap, true);
+
         for (int n = 0; n < surf.nf; n++) {
             for (auto m : surfMap[n]) {
                 s2f[m.index][n][0] = m.p[0];
@@ -99,7 +101,8 @@ void NIBR::index2surface(TractogramReader& tractogram, Surface& surf, float sigm
     surf.getNeighboringVertices();
     
     std::vector<std::vector<streamline2faceMap>> surfMap; // surfMap[n] stores the list of streamlines in n^th face of the mesh. surfMap[n][s].index is the streamlineId of the s^th streamline crossing this face
-    tractogram2surfaceMapper(&tractogram, &surf, surfMap, true);
+    
+    tractogram2surfaceMapper(tractogram, &surf, surfMap, true);
     
 
     std::vector<std::vector<std::pair<int,streamline2faceMap*>>> s2f; // s2f stores the list of face indices that each streamline crosses
@@ -380,7 +383,7 @@ std::vector<std::unordered_map<int,float>> NIBR::readSurfaceIndexing(TractogramR
 
     auto runReader = [&](MT::TASK task)->void {
 
-        const size_t& streamlineIndex = task.no;
+        const std::size_t& streamlineIndex = task.no;
         
         idxFile[task.threadId].seekg(positions[streamlineIndex]);
 

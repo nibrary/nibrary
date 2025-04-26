@@ -10,15 +10,15 @@ namespace NIBR
 {
     
     // Compute bounding box of a tractogram
-    std::vector<float> getTractogramBBox(NIBR::TractogramReader* tractogram);
+    std::vector<float> getTractogramBBox(std::shared_ptr<NIBR::TractogramReader> tractogram);
 
     // tuple<diffStreamlineIdx,sameStreamlineIdx>
-    std::tuple<std::vector<size_t>,std::vector<size_t>> tractogramDiff(NIBR::TractogramReader* inp_tractogram, NIBR::TractogramReader* ref_tractogram);
+    std::tuple<std::vector<std::size_t>,std::vector<std::size_t>> tractogramDiff(std::shared_ptr<NIBR::TractogramReader> inp_tractogram, NIBR::TractogramReader* ref_tractogram);
 
     // Extends inp1 by appending the streamlines in inp2, optionally checks and removes duplicates
     std::vector<std::vector<std::vector<float>>> tractogramMerge(NIBR::TractogramReader* inp1, NIBR::TractogramReader* inp2, bool checkDuplicates);
 
-    std::vector<std::vector<std::vector<float>>> applyTransform(NIBR::TractogramReader* tractogram, float M[][4]);
+    std::vector<std::vector<std::vector<float>>> applyTransform(std::shared_ptr<NIBR::TractogramReader> tractogram, float M[][4]);
 
     TractogramField colorTractogram(NIBR::TractogramReader* tractogram);
 

@@ -9,19 +9,16 @@
 
 using namespace NIBR;
 
-std::tuple<std::vector<size_t>,std::vector<float>,std::vector<float>> NIBR::pathFilter(NIBR::TractogramReader* _tractogram, Pathway* pw, int numberOfThreads, int stopLim) {
+std::tuple<std::vector<std::size_t>,std::vector<float>,std::vector<float>> NIBR::pathFilter(std::shared_ptr<NIBR::TractogramReader> tractogram, Pathway* pw, int numberOfThreads, int stopLim) {
 
-    if ( (_tractogram->numberOfStreamlines<1) || (pw->isverified() == false) )
-        return std::tuple<std::vector<size_t>,std::vector<float>,std::vector<float>>();
+    if ( (tractogram->numberOfStreamlines<1) || (pw->isverified() == false) )
+        return std::tuple<std::vector<std::size_t>,std::vector<float>,std::vector<float>>();
 
-    NIBR::TractogramReader *tractogram = new NIBR::TractogramReader[numberOfThreads]();
-    for (int t = 0; t < numberOfThreads; t++)
-        tractogram[t].copyFrom(*_tractogram);
 
     std::vector<std::vector<int>>   no;
     std::vector<std::vector<float>> begInd;
     std::vector<std::vector<float>> endInd;  
-    int N = tractogram[0].numberOfStreamlines;
+    int N = tractogram->numberOfStreamlines;
 
     for (int i = 0; i < numberOfThreads; i++) { 
         no.push_back(std::vector<int>());
@@ -51,7 +48,7 @@ std::tuple<std::vector<size_t>,std::vector<float>,std::vector<float>> NIBR::path
 
     auto applyPathwayRule = [&](NIBR::MT::TASK task) -> bool {
 
-        std::vector<Point> streamline = tractogram[task.threadId].readStreamlinePoints(task.no);
+        std::vector<Point> streamline = tractogram->readStreamlinePoints(task.no);
 
         disp(MSG_DEBUG,"Streamline %d, len: %d", task.no, streamline.size());
 
@@ -168,17 +165,17 @@ std::tuple<std::vector<size_t>,std::vector<float>,std::vector<float>> NIBR::path
 
         std::string preamble = "\033[1;32mNIBRARY::INFO: \033[0;32m";
 
-        size_t success = 0;
-        size_t discard = 0;
-        size_t fail    = 0;
+        std::size_t success = 0;
+        std::size_t discard = 0;
+        std::size_t fail    = 0;
 
         // Skip one line for readability
         std::cout << std::endl;
         int lineCount = 0;
 
-        auto dispCount = [&](size_t& cumCnt, size_t cnt, std::string reason)->void {
+        auto dispCount = [&](std::size_t& cumCnt, std::size_t cnt, std::string reason)->void {
             if (cnt > 0) {
-                size_t spaces = 34 - reason.length();
+                std::size_t spaces = 34 - reason.length();
                 reason = "   " + reason + std::string(spaces,' ') + ":";
                 std::cout << preamble << reason << cnt << "\033[0m" << std::endl; 
                 lineCount++;
@@ -218,7 +215,7 @@ std::tuple<std::vector<size_t>,std::vector<float>,std::vector<float>> NIBR::path
             std::cout << "Success: "  << success              << "    ";
             std::cout << "Discard: "  << discard              << "    ";
             std::cout << "Total: "    << success+discard+fail << "    ";
-            std::cout << "Progress: " << 100 * (success+discard+fail) / float(tractogram[0].numberOfStreamlines)  << " %    " << std::fixed << std::setprecision(2);
+            std::cout << "Progress: " << 100 * (success+discard+fail) / float(tractogram->numberOfStreamlines)  << " %    " << std::fixed << std::setprecision(2);
             std::cout << "Duration: " << runTime()   << " sec";
             std::cout << "\033[0m"    << std::flush;
             lineCount=lineCount+2;
@@ -237,13 +234,8 @@ std::tuple<std::vector<size_t>,std::vector<float>,std::vector<float>> NIBR::path
     }
 
     coreThread.join();
-
-
-    for (int t = 0; t < numberOfThreads; t++) 
-        tractogram[t].destroyCopy();
-    delete[] tractogram;  
     
-    std::vector<size_t> idx; 
+    std::vector<std::size_t> idx; 
     std::vector<float>  begIdx; 
     std::vector<float>  endIdx;  
 

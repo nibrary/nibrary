@@ -18,8 +18,8 @@ namespace NIBR
     //     5 streamlines will be located on a ring at radius=0.5 
     //     5 more streamlines will be located on a ring at radius=1
     //     there will be a total of 11 streamlines at the output 
-    void getParallelStreamlines(std::vector<std::vector<std::vector<float>>>& out, NIBR::TractogramReader* _tractogram, float radius, int ringCount, int pointCountPerRing);
+    void getParallelStreamlines(std::vector<std::vector<std::vector<float>>>& out, std::shared_ptr<NIBR::TractogramReader> tractogram, float radius, int ringCount, int pointCountPerRing);
 
-    void getParallelStreamlines(std::vector<std::vector<std::vector<float>>>& out, NIBR::TractogramReader* _tractogram, float sigma, int N);
+    void getParallelStreamlines(std::vector<std::vector<std::vector<float>>>& out, std::shared_ptr<NIBR::TractogramReader> tractogram, float sigma, int N);
 
 }

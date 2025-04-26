@@ -2,17 +2,10 @@
 
 using namespace NIBR;
 
-void NIBR::getParallelStreamlines(std::vector<std::vector<std::vector<float>>>& out, NIBR::TractogramReader* _tractogram, float radius, int ringCount, int pointCountPerRing)
+void NIBR::getParallelStreamlines(std::vector<std::vector<std::vector<float>>>& out, std::shared_ptr<NIBR::TractogramReader> tractogram, float radius, int ringCount, int pointCountPerRing)
 {
-
-    // Initialize tractogram and make copies for multithreader
-    NIBR::TractogramReader* tractogram = new NIBR::TractogramReader[NIBR::MT::MAXNUMBEROFTHREADS()]();
-    for (int t = 0; t < NIBR::MT::MAXNUMBEROFTHREADS(); t++) {
-        tractogram[t].copyFrom(*_tractogram);
-        tractogram[t].setThreadId(t);
-    }
     
-    int N   = tractogram[0].numberOfStreamlines;
+    int N   = tractogram->numberOfStreamlines;
     int par = ringCount*pointCountPerRing+1;
     
     // Create output
@@ -37,7 +30,7 @@ void NIBR::getParallelStreamlines(std::vector<std::vector<std::vector<float>>>& 
     // Iterate throught the whole tractogram
     auto genParallel = [&](NIBR::MT::TASK task)->void{
 
-        int len = tractogram[task.threadId].len[task.no];
+        int len = tractogram->len[task.no];
 
         for (int p=0; p<par; p++) {
             out[task.no*par+p].resize(len);
@@ -48,7 +41,7 @@ void NIBR::getParallelStreamlines(std::vector<std::vector<std::vector<float>>>& 
         if (len<2)
             return;
 
-        float** streamline = tractogram[task.threadId].readStreamline(task.no);
+        float** streamline = tractogram->readStreamline(task.no);
 
         // To make cylinders around the streamlines, we will compute the parallel transport frame
         float T[3], N[3], B[3], curr_T[3];
@@ -118,17 +111,10 @@ void NIBR::getParallelStreamlines(std::vector<std::vector<std::vector<float>>>& 
 }
 
 
-void NIBR::getParallelStreamlines(std::vector<std::vector<std::vector<float>>>& out, NIBR::TractogramReader* _tractogram, float sigma, int par)
+void NIBR::getParallelStreamlines(std::vector<std::vector<std::vector<float>>>& out, std::shared_ptr<NIBR::TractogramReader> tractogram, float sigma, int par)
 {
-
-    // Initialize tractogram and make copies for multithreader
-    NIBR::TractogramReader* tractogram = new NIBR::TractogramReader[NIBR::MT::MAXNUMBEROFTHREADS()]();
-    for (int t = 0; t < NIBR::MT::MAXNUMBEROFTHREADS(); t++) {
-        tractogram[t].copyFrom(*_tractogram);
-        tractogram[t].setThreadId(t);
-    }
     
-    int N   = tractogram[0].numberOfStreamlines;
+    int N   = tractogram->numberOfStreamlines;
     // Create output
     if (N<1)
         return;
@@ -148,7 +134,7 @@ void NIBR::getParallelStreamlines(std::vector<std::vector<std::vector<float>>>& 
     // Iterate throught the whole tractogram
     auto genParallel = [&](NIBR::MT::TASK task)->void{
 
-        int len = tractogram[task.threadId].len[task.no];
+        int len = tractogram->len[task.no];
 
         for (int p=0; p<par; p++) {
             out[task.no*par+p].resize(len);
@@ -159,7 +145,7 @@ void NIBR::getParallelStreamlines(std::vector<std::vector<std::vector<float>>>& 
         if (len<2)
             return;
 
-        float** streamline = tractogram[task.threadId].readStreamline(task.no);
+        float** streamline = tractogram->readStreamline(task.no);
 
         // To make cylinders around the streamlines, we will compute the parallel transport frame
         float T[3], N[3], B[3], curr_T[3];

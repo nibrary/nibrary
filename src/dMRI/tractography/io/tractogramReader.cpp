@@ -653,6 +653,7 @@ bool TractogramReader::loadBatchContaining(std::size_t streamlineIndex) {
 	}
 
 	// --- Read the streamlines for this batch into the temporary vector ---
+	/*
 	bool success = true;
 
 	std::atomic<int64_t> mt_failed_streamline_idx(-1);
@@ -683,6 +684,18 @@ bool TractogramReader::loadBatchContaining(std::size_t streamlineIndex) {
 	if (mt_failed_streamline_idx.load() > -1) {
 		disp(MSG_ERROR, "Failed to read streamline %d into preload batch.", mt_failed_streamline_idx.load());
 		success = false;
+	}
+	*/
+
+
+	bool success = true;
+	for (std::size_t i = 0; i < countToLoad; ++i) {
+		std::size_t currentIndex = batchStart + i;
+		// Use the locked file reading function
+		if (!readStreamlinePointsFromFile(file, currentIndex, newBatchData[i])) {
+			disp(MSG_ERROR, "Failed to read streamline %zu into preload batch.", currentIndex);
+			success = false;
+		}
 	}
 
 	// --- If successful, move the temporary data to the main cache ---

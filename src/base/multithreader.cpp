@@ -76,7 +76,7 @@ void NIBR::MT::MTINIT()
 }
 
 
-void NIBR::MT::MTRUN(std::size_t range, int numberOfThreads, std::function<void(NIBR::MT::TASK mttask)> f) 
+void NIBR::MT::MTRUN(std::size_t range, int numberOfThreads, std::function<void(TASK& mttask, Barrier& barrier)> f) 
 {
     if (range == 0) return;
     
@@ -84,6 +84,8 @@ void NIBR::MT::MTRUN(std::size_t range, int numberOfThreads, std::function<void(
     numberOfThreads = std::min(numberOfThreads, static_cast<int>(range));
 
     NIBR::MT::finishedTaskCount = 0;
+
+    NIBR::MT::Barrier taskBarrier(numberOfThreads);
 
     auto taskRunner = [&](uint16_t threadNo) {
 
@@ -94,7 +96,8 @@ void NIBR::MT::MTRUN(std::size_t range, int numberOfThreads, std::function<void(
             if (taskIndex >= range) break;  // No more tasks left
 
             try {
-                f({taskIndex, threadNo});
+                TASK task = {taskIndex, threadNo};
+                f(task,taskBarrier);
             } catch (const std::exception& e) {
                 disp(MSG_FATAL, "Failed executing task %d", taskIndex);
             }
@@ -122,7 +125,7 @@ void NIBR::MT::MTRUN(std::size_t range, int numberOfThreads, std::function<void(
 
 
 
-void NIBR::MT::MTRUN(std::size_t range, int numberOfThreads, std::function<bool(NIBR::MT::TASK mttask)> f, std::size_t stopLim) 
+void NIBR::MT::MTRUN(std::size_t range, int numberOfThreads, std::function<bool(TASK& mttask, Barrier& barrier)> f, std::size_t stopLim) 
 {
     if (range == 0) return;
     
@@ -131,6 +134,8 @@ void NIBR::MT::MTRUN(std::size_t range, int numberOfThreads, std::function<bool(
 
     NIBR::MT::finishedTaskCount       = 0;
     NIBR::MT::finishedTaskCountToStop = 0;
+
+    NIBR::MT::Barrier taskBarrier(numberOfThreads);
 
     auto taskRunner = [&](uint16_t threadNo) {
 
@@ -141,7 +146,8 @@ void NIBR::MT::MTRUN(std::size_t range, int numberOfThreads, std::function<bool(
             if ( (finishedTaskCount >= range) || (finishedTaskCountToStop >= stopLim) ) break;  // No more tasks left
 
             try {
-                if (f({taskIndex, threadNo})==true) {finishedTaskCountToStop.fetch_add(1);}
+                TASK task = {taskIndex, threadNo};
+                if (f(task,taskBarrier)==true) {finishedTaskCountToStop.fetch_add(1);}
             } catch (const std::exception& e) {
                 disp(MSG_FATAL, "Failed executing task %d", taskIndex);
             }
@@ -168,7 +174,7 @@ void NIBR::MT::MTRUN(std::size_t range, int numberOfThreads, std::function<bool(
 }
 
 
-void NIBR::MT::MTRUN(std::size_t range, int numberOfThreads, std::string message, std::function<void(TASK mttask)> f)
+void NIBR::MT::MTRUN(std::size_t range, int numberOfThreads, std::string message, std::function<void(TASK& mttask, Barrier& barrier)> f)
 {
     std::thread coreThread([&]() {
         MTRUN(range, numberOfThreads, f);
@@ -203,7 +209,7 @@ void NIBR::MT::MTRUN(std::size_t range, int numberOfThreads, std::string message
 }
 
 
-void NIBR::MT::MTRUN(std::size_t range, int numberOfThreads, std::string message, std::function<bool(TASK mttask)> f, std::size_t stopLim)
+void NIBR::MT::MTRUN(std::size_t range, int numberOfThreads, std::string message, std::function<bool(TASK& mttask, Barrier& barrier)> f, std::size_t stopLim)
 {
 
     std::thread coreThread([&]() {
@@ -267,10 +273,10 @@ void NIBR::MT::MTRUN(std::size_t range, int numberOfThreads, std::string message
 
 
 
-void NIBR::MT::MTRUN(std::size_t range, std::function<void(TASK mttask)> f) {MTRUN(range,maxNumberOfThreads,f);}
-void NIBR::MT::MTRUN(std::size_t range, std::function<bool(TASK mttask)> f, std::size_t stopLim) {MTRUN(range,maxNumberOfThreads,f,stopLim);}
-void NIBR::MT::MTRUN(std::size_t range, std::string message, std::function<void(TASK mttask)> f) {MTRUN(range,maxNumberOfThreads,message,f);}
-void NIBR::MT::MTRUN(std::size_t range, std::string message, std::function<bool(TASK mttask)> f, std::size_t stopLim) {MTRUN(range,maxNumberOfThreads,message,f,stopLim);}
+void NIBR::MT::MTRUN(std::size_t range, std::function<void(TASK& mttask, Barrier& barrier)> f) {MTRUN(range,maxNumberOfThreads,f);}
+void NIBR::MT::MTRUN(std::size_t range, std::function<bool(TASK& mttask, Barrier& barrier)> f, std::size_t stopLim) {MTRUN(range,maxNumberOfThreads,f,stopLim);}
+void NIBR::MT::MTRUN(std::size_t range, std::string message, std::function<void(TASK& mttask, Barrier& barrier)> f) {MTRUN(range,maxNumberOfThreads,message,f);}
+void NIBR::MT::MTRUN(std::size_t range, std::string message, std::function<bool(TASK& mttask, Barrier& barrier)> f, std::size_t stopLim) {MTRUN(range,maxNumberOfThreads,message,f,stopLim);}
 
 
 std::vector<std::pair<int,int>> NIBR::MT::createTaskRange(int taskCount, int workerCount) 

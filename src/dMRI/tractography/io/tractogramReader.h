@@ -68,7 +68,7 @@ namespace NIBR
         
     public:
         
-        TractogramReader(const std::string& _fileName, std::size_t _preloadCount = 10000);
+        TractogramReader(const std::string& _fileName, std::size_t _preloadCount = 100000);
         ~TractogramReader();
 
         // Copying not allowed because file handle, cache, mutex cannot be triviallycopied 

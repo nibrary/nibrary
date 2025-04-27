@@ -62,17 +62,20 @@ namespace NIBR
         TRK
     } TRACTOGRAMFILEFORMAT;
 
+    struct TractogramField;
+
     class TractogramReader {
         
     public:
         
-        TractogramReader(const std::string& _fileName, std::size_t _preloadCount = 0);
+        TractogramReader(const std::string& _fileName, std::size_t _preloadCount = 10000);
         ~TractogramReader();
 
         // Copying not allowed because file handle, cache, mutex cannot be triviallycopied 
         TractogramReader(const TractogramReader& obj) = delete;
         TractogramReader& operator=(const TractogramReader&) = delete;
 
+        bool isOpen() {return file != NULL;}
         void printInfo();
 
         template <typename T>
@@ -122,6 +125,8 @@ namespace NIBR
         short                   n_scalars_trk    = 0; // TRK file format extension
         short                   n_properties_trk = 0; // TRK file format extension
 
+        std::vector<TractogramField>        findTractogramFields(); // used for printing info only
+
         // Preloading cache state
         std::size_t                         preloadCount        = 0;
         std::size_t                         preloadedStartIndex = std::numeric_limits<std::size_t>::max();
@@ -136,9 +141,12 @@ namespace NIBR
 
         // Locked
         bool  loadBatchContaining(std::size_t streamlineIndex);
-        bool  readStreamlinePointsFromFile(std::size_t n, std::vector<Point>& points);
+        bool  readStreamlinePointsFromFile(FILE* bf, std::size_t n, std::vector<Point>& points);
 
         int   missedCacheCounter = 0;
+
+        // Parallel batch loading
+        std::vector<FILE*> batchFile;
 
     };
 

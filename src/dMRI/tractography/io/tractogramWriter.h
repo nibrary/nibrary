@@ -9,29 +9,29 @@
 namespace NIBR
 {
 
-    bool writeTractogram            (std::string out_fname,NIBR::TractogramReader* tractogram);
+    bool writeTractogram            (std::string out_fname,std::shared_ptr<NIBR::TractogramReader> tractogram);
     bool writeTractogram            (std::string out_fname,std::vector<std::vector<std::vector<float>>>& tractogram);
     template<typename T>
     bool writeTractogram            (std::string out_fname,std::vector<std::vector<std::vector<float>>>& tractogram,Image<T>* refImg);
-    bool writeTractogram            (std::string out_fname,NIBR::TractogramReader* tractogram,std::vector<size_t>& idx);
-    bool writeTractogram            (std::string out_fname,std::string inp_fname,std::vector<size_t>& idx);
-    bool writeTractogram            (std::string out_kept_fname,std::string out_rmvd_fname,std::string inp_fname,std::vector<size_t>& idx);
+    bool writeTractogram            (std::string out_fname,std::shared_ptr<NIBR::TractogramReader> tractogram,std::vector<std::size_t>& idx);
+    bool writeTractogram            (std::string out_fname,std::string inp_fname,std::vector<std::size_t>& idx);
+    bool writeTractogram            (std::string out_kept_fname,std::string out_rmvd_fname,std::string inp_fname,std::vector<std::size_t>& idx);
 
-    bool writeTractogram_VTK_binary (std::string out_fname,NIBR::TractogramReader* tractogram);
-    bool writeTractogram_VTK_binary (std::string out_fname,NIBR::TractogramReader* tractogram,std::vector<size_t>& idx);
+    bool writeTractogram_VTK_binary (std::string out_fname,std::shared_ptr<NIBR::TractogramReader> tractogram);
+    bool writeTractogram_VTK_binary (std::string out_fname,std::shared_ptr<NIBR::TractogramReader> tractogram,std::vector<std::size_t>& idx);
     bool writeTractogram_VTK_binary (std::string out_fname,std::vector<std::vector<std::vector<float>>>& tractogram);
 
-    bool writeTractogram_VTK_ascii  (std::string out_fname,NIBR::TractogramReader* tractogram);
-    bool writeTractogram_VTK_ascii  (std::string out_fname,NIBR::TractogramReader* tractogram,std::vector<size_t>& idx);
+    bool writeTractogram_VTK_ascii  (std::string out_fname,std::shared_ptr<NIBR::TractogramReader> tractogram);
+    bool writeTractogram_VTK_ascii  (std::string out_fname,std::shared_ptr<NIBR::TractogramReader> tractogram,std::vector<std::size_t>& idx);
     bool writeTractogram_VTK_ascii  (std::string out_fname,std::vector<std::vector<std::vector<float>>>& tractogram);
 
-    bool writeTractogram_TRK        (std::string out_fname,NIBR::TractogramReader* tractogram);
-    bool writeTractogram_TRK        (std::string out_fname,NIBR::TractogramReader* tractogram,std::vector<size_t>& idx);
+    bool writeTractogram_TRK        (std::string out_fname,std::shared_ptr<NIBR::TractogramReader> tractogram);
+    bool writeTractogram_TRK        (std::string out_fname,std::shared_ptr<NIBR::TractogramReader> tractogram,std::vector<std::size_t>& idx);
     template<typename T>
     bool writeTractogram_TRK        (std::string out_fname,std::vector<std::vector<std::vector<float>>>& tractogram,Image<T>* refImg);
 
-    bool writeTractogram_TCK        (std::string out_fname,NIBR::TractogramReader* tractogram);
-    bool writeTractogram_TCK        (std::string out_fname,NIBR::TractogramReader* tractogram,std::vector<size_t>& idx);
+    bool writeTractogram_TCK        (std::string out_fname,std::shared_ptr<NIBR::TractogramReader> tractogram);
+    bool writeTractogram_TCK        (std::string out_fname,std::shared_ptr<NIBR::TractogramReader> tractogram,std::vector<std::size_t>& idx);
     bool writeTractogram_TCK        (std::string out_fname,std::vector<std::vector<std::vector<float>>>& tractogram);
 
 

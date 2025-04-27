@@ -1,8 +1,13 @@
-#include "tractogramReader.h"
-#include "tractogramField.h"
 #include <cstdint>
 #include <cstring>
 #include <iterator>
+#include <type_traits>
+#include <cctype>
+#include <atomic>
+
+#include "tractogramReader.h"
+#include "tractogramField.h"
+#include "base/dataTypeHandler.h"
 
 using namespace NIBR;
 
@@ -40,6 +45,15 @@ void TractogramReader::cleanupMemory() {
 		file = NULL;
 		disp(MSG_DEBUG, "Closed file handle for %s", fileName.c_str());
 	}
+
+	for (auto bf : batchFile) {
+		if (bf != NULL) {
+			fclose(bf);
+			bf = NULL;
+			disp(MSG_DEBUG, "Closed file batch file handle");
+		}
+	}
+	batchFile.clear();
 
 	if (len != NULL)			delete[] len;
 	if (streamlinePos != NULL) 	delete[] streamlinePos;
@@ -324,9 +338,25 @@ bool NIBR::TractogramReader::initReader() {
 
 	}
 
-	std::fseek(file, streamlinePos[numberOfStreamlines-1], 		SEEK_SET);
-    std::fseek(file, sizeof(float)*len[numberOfStreamlines-1]*3,SEEK_CUR);
+	if (numberOfStreamlines > 0) {
+		std::fseek(file, streamlinePos[numberOfStreamlines-1], 		SEEK_SET);
+		std::fseek(file, sizeof(float)*len[numberOfStreamlines-1]*3,SEEK_CUR);
+	}
 	endPosOfStreamlines = ftell(file);
+
+	for (int n = 0; n < MT::MAXNUMBEROFTHREADS(); n++) {
+
+		FILE* bf = fopen(fileName.c_str(), "rb");
+
+		if (bf == NULL) {
+			disp(MSG_ERROR, "Failed to open tractogram file for parallel reading.");
+			return false;
+		}
+
+		batchFile.push_back(bf);
+
+	}
+
 
 	return true;
 }
@@ -408,7 +438,7 @@ std::vector<Point> TractogramReader::readStreamlinePoints(std::size_t n) {
 
 			if (missedCacheCounter < MT::MAXNUMBEROFTHREADS()) {
 				disp(MSG_DEBUG, "Cache load failed for streamline %zu. Falling back to direct read.", n);
-				if (!readStreamlinePointsFromFile(n, points)) {
+				if (!readStreamlinePointsFromFile(file, n, points)) {
 					disp(MSG_ERROR, "Direct read fallback also failed for streamline %zu.", n);
 					return {};
 				}
@@ -440,7 +470,7 @@ std::vector<Point> TractogramReader::readStreamlinePoints(std::size_t n) {
 
 	} else {
 		// No Preloading
-		if (!readStreamlinePointsFromFile(n, points)) {
+		if (!readStreamlinePointsFromFile(file, n, points)) {
 			disp(MSG_ERROR, "Read failed for streamline %zu.", n);
 			return {};
 		}
@@ -466,7 +496,7 @@ std::vector<std::vector<std::vector<float>>> NIBR::TractogramReader::read() {
 
 }
 
-bool NIBR::TractogramReader::readStreamlinePointsFromFile(std::size_t n, std::vector<Point>& points) {
+bool NIBR::TractogramReader::readStreamlinePointsFromFile(FILE* bf, std::size_t n, std::vector<Point>& points) {
 
 	points.clear();
 
@@ -479,7 +509,7 @@ bool NIBR::TractogramReader::readStreamlinePointsFromFile(std::size_t n, std::ve
 		return false;
 	}
 
-	if (fseek(file, streamlinePos[n], SEEK_SET) != 0) {
+	if (fseek(bf, streamlinePos[n], SEEK_SET) != 0) {
 		disp(MSG_ERROR, "Failed to seek to streamline %zu position %ld (errno %d).", n, streamlinePos[n], errno);
 		return false;
 	}
@@ -490,8 +520,8 @@ bool NIBR::TractogramReader::readStreamlinePointsFromFile(std::size_t n, std::ve
 		switch (fileFormat) {
 			case TCK: {
 				for (uint32_t i = 0; i < lineLen; ++i) {
-					if (fread(tmp_p, sizeof(float), 3, file) != 3) {
-						 disp(MSG_ERROR, "TCK: Read error reading point %u/%u for streamline %zu at offset %ld.", i + 1, lineLen, n, ftell(file));
+					if (fread(tmp_p, sizeof(float), 3, bf) != 3) {
+						 disp(MSG_ERROR, "TCK: Read error reading point %u/%u for streamline %zu at offset %ld.", i + 1, lineLen, n, ftell(bf));
 						 return false;
 					}
 					// TODO: Handle TCK endianness if dataType indicated non-native
@@ -505,8 +535,9 @@ bool NIBR::TractogramReader::readStreamlinePointsFromFile(std::size_t n, std::ve
 				float* point_buffer = new float[floats_per_point];
 
 				for (uint32_t i = 0; i < lineLen; ++i) {
-					if (fread(point_buffer, sizeof(float), floats_per_point, file) != floats_per_point) {
-						disp(MSG_ERROR, "TRK: Read error reading data for point %u/%u for streamline %zu at offset %ld.", i + 1, lineLen, n, ftell(file));
+					if (fread(point_buffer, sizeof(float), floats_per_point, bf) != floats_per_point) {
+						disp(MSG_ERROR, "TRK: Read error reading data for point %u/%u for streamline %zu at offset %ld.", i + 1, lineLen, n, ftell(bf));
+						delete[] point_buffer;
 						return false;
 					}
 					point_buffer[0] -= 0.5f;
@@ -524,8 +555,8 @@ bool NIBR::TractogramReader::readStreamlinePointsFromFile(std::size_t n, std::ve
 			}
 			case VTK_BINARY: {
 				for (uint32_t i = 0; i < lineLen; ++i) {
-					if (fread(tmp_p, sizeof(float), 3, file) != 3) {
-						disp(MSG_ERROR, "VTK Binary: Read error reading point %u/%u for streamline %zu at offset %ld.", i + 1, lineLen, n, ftell(file));
+					if (fread(tmp_p, sizeof(float), 3, bf) != 3) {
+						disp(MSG_ERROR, "VTK Binary: Read error reading point %u/%u for streamline %zu at offset %ld.", i + 1, lineLen, n, ftell(bf));
 						return false;
 					}
 					// Swap bytes after reading if needed (assuming VTK standard is Big Endian)
@@ -539,17 +570,17 @@ bool NIBR::TractogramReader::readStreamlinePointsFromFile(std::size_t n, std::ve
 			case VTK_ASCII: {
 				// Seeking should have placed us at the start of point data for this line
 				for (uint32_t i = 0; i < lineLen; ++i) {
-					if (fscanf(file, "%f %f %f", &tmp_p[0], &tmp_p[1], &tmp_p[2]) != 3) {
-						disp(MSG_ERROR, "VTK ASCII: Read error scanning point %u/%u for streamline %zu at offset %ld.", i + 1, lineLen, n, ftell(file));
+					if (fscanf(bf, "%f %f %f", &tmp_p[0], &tmp_p[1], &tmp_p[2]) != 3) {
+						disp(MSG_ERROR, "VTK ASCII: Read error scanning point %u/%u for streamline %zu at offset %ld.", i + 1, lineLen, n, ftell(bf));
 						// Check for EOF vs other errors
-						if (feof(file)) disp(MSG_ERROR, " (EOF reached unexpectedly)");
+						if (feof(bf)) disp(MSG_ERROR, " (EOF reached unexpectedly)");
 						return false;
 					}
 					points.emplace_back(Point{tmp_p[0], tmp_p[1], tmp_p[2]});
 					// Consume potential trailing whitespace/newline robustly
 					int c;
-					while ((c = fgetc(file)) != EOF && isspace(c)) {}
-					if (c != EOF) ungetc(c, file);
+					while ((c = fgetc(bf)) != EOF && isspace(c)) {}
+					if (c != EOF) ungetc(c, bf);
 				}
 				break;
 			}
@@ -623,15 +654,35 @@ bool TractogramReader::loadBatchContaining(std::size_t streamlineIndex) {
 
 	// --- Read the streamlines for this batch into the temporary vector ---
 	bool success = true;
-	for (std::size_t i = 0; i < countToLoad; ++i) {
-		std::size_t currentIndex = batchStart + i;
-		// Use the locked file reading function
-		if (!readStreamlinePointsFromFile(currentIndex, newBatchData[i])) {
-			disp(MSG_ERROR, "Failed to read streamline %zu into preload batch.", currentIndex);
-			success = false;
-			// Stop loading this batch on failure
-			break;
+
+	std::atomic<int64_t> mt_failed_streamline_idx(-1);
+
+	auto batchRead = [&] (MT::TASK task) {
+
+		if (mt_failed_streamline_idx.load(std::memory_order_relaxed) > -1) {
+            return;
+        }
+
+		std::size_t currentIndex 	= batchStart + task.no;
+        int fileHandleIndex 		= task.threadId % batchFile.size();
+        std::vector<Point> tmp;
+
+
+		if (!readStreamlinePointsFromFile(batchFile[fileHandleIndex], currentIndex, tmp)) {
+			int64_t expected = -1;
+			mt_failed_streamline_idx.compare_exchange_strong(expected, (int64_t)currentIndex, std::memory_order_relaxed);
+			return;
 		}
+
+		MT::PROC_MX().lock();
+		newBatchData[task.no] = std::move(tmp);
+		MT::PROC_MX().unlock();
+	};
+	MT::MTRUN(countToLoad,batchRead);
+
+	if (mt_failed_streamline_idx.load() > -1) {
+		disp(MSG_ERROR, "Failed to read streamline %d into preload batch.", mt_failed_streamline_idx.load());
+		success = false;
 	}
 
 	// --- If successful, move the temporary data to the main cache ---
@@ -658,6 +709,92 @@ bool TractogramReader::loadBatchContaining(std::size_t streamlineIndex) {
 	return success;
 }
 
+
+std::vector<NIBR::TractogramField> NIBR::TractogramReader::findTractogramFields() {
+
+	std::vector<NIBR::TractogramField> fieldList;
+
+    if (fileFormat == VTK_ASCII) {
+        disp(MSG_ERROR,"Can't read fields from ASCII files");
+        return fieldList;
+    }
+
+    auto input = file;
+    const std::size_t strLength = 256;
+	char dummy[strLength];
+
+    std::fseek(input, endPosOfStreamlines, SEEK_SET);
+    int tmp = std::fgetc(input);
+    if (tmp != '\n') std::ungetc(tmp,input);
+    std::fgets(dummy,strLength,input); // Skip the line about line number
+    std::fseek(input, sizeof(int)*(numberOfStreamlines+numberOfPoints),SEEK_CUR);
+    tmp = std::fgetc(input);
+    if (tmp != '\n') std::ungetc(tmp,input);
+
+    char* name = new char[128];
+    char* type = new char[128];
+    int   dimension;
+    bool  cellDataFound  = false;
+    bool  pointDataFound = false;
+    int   tmpi;
+
+	auto toUpperCase = [&] (const std::string& input) -> std::string {
+		std::string result = input;
+		for (char &c : result) {
+			c = std::toupper(static_cast<unsigned char>(c));
+		}
+		return result;
+	};
+    
+    while(feof(input) == 0) {
+        
+        std::fgets(dummy,strLength,input);
+        
+        if (std::string(dummy).find("CELL_DATA")!=std::string::npos) {
+            disp(MSG_DEBUG,"Cell data found");
+            cellDataFound   = true;
+            pointDataFound  = false;
+            continue;
+        }
+    
+        if (std::string(dummy).find("POINT_DATA")!=std::string::npos)  {
+            disp(MSG_DEBUG,"Point data found");
+            cellDataFound  = false;
+            pointDataFound = true;
+            continue;
+        }
+
+        if (std::string(dummy).find("SCALARS")!=std::string::npos) {
+            std::sscanf(dummy,"SCALARS %s %s %d\n", name, type, &dimension);
+            std::fgets(dummy,strLength,input);
+
+            disp(MSG_DEBUG,"Found field %s", name);
+
+            if (cellDataFound==true) {
+                TractogramField f = {STREAMLINE_OWNER,std::string(name),NIBR::getTypeId(toUpperCase(std::string(type))),dimension,NULL};
+                fieldList.push_back(f);
+                if (std::string(type)=="float") std::fseek(input,sizeof(float)*numberOfStreamlines*dimension,SEEK_CUR);
+                if (std::string(type)=="int")   std::fseek(input,sizeof(int)*numberOfStreamlines*dimension,SEEK_CUR);
+            }
+            if (pointDataFound==true) {
+                TractogramField f = {POINT_OWNER,std::string(name),NIBR::getTypeId(toUpperCase(std::string(type))),dimension,NULL};
+                fieldList.push_back(f);
+                if (std::string(type)=="float") std::fseek(input,sizeof(float)*numberOfPoints*dimension,SEEK_CUR);
+                if (std::string(type)=="int")   std::fseek(input,sizeof(int)*numberOfPoints*dimension,SEEK_CUR);
+            }
+            tmpi = std::fgetc(input); if (tmpi != '\n') std::ungetc(tmpi,input); // Make sure to go end of the line
+        }
+
+    }
+
+    delete[] name;
+    delete[] type;
+
+    disp(MSG_DEBUG,"Found %d fields", fieldList.size());
+    
+    return fieldList;
+
+}
 
 
 void NIBR::TractogramReader::printInfo() {
@@ -698,7 +835,7 @@ void NIBR::TractogramReader::printInfo() {
 
 	}
 
-	std::vector<NIBR::TractogramField> fields = findTractogramFields(*this);
+	auto fields = findTractogramFields();
 
 	std::cout << "Field count: " << fields.size() << std::endl << std::flush;
 

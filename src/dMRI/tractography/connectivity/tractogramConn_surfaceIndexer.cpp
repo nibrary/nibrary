@@ -103,7 +103,7 @@ void NIBR::SCsurfaceIndexer::run() {
     conn.resize(labelCnt, std::vector<std::set<std::size_t>>(labelCnt));
 
     // Create tractogram to surface map
-    tractogram2surfaceMapper(*tractogram, surf, tract2surfMap, true);
+    tractogram2surfaceMapper(tractogram, surf, tract2surfMap, true);
 
     // Compute connectome
     NIBR::MT::MTRUN(tractogram->numberOfStreamlines, "Computing connectome", [&](NIBR::MT::TASK task)->void{processStreamline(task.no);} );

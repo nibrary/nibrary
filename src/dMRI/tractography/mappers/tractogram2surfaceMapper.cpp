@@ -6,7 +6,7 @@ using namespace NIBR;
 
 // mapping contains streamline2faceMaps for each face of the input surface
 // if mapOnce is true, then a face will not have two instances from the same streamline
-void NIBR::tractogram2surfaceMapper(NIBR::TractogramReader& tractogram, NIBR::Surface* surf, std::vector<std::vector<NIBR::streamline2faceMap>>& mapping, bool mapOnce)
+void NIBR::tractogram2surfaceMapper(std::shared_ptr<NIBR::TractogramReader> tractogram, NIBR::Surface* surf, std::vector<std::vector<NIBR::streamline2faceMap>>& mapping, bool mapOnce)
 {
 
     surf->calcCentersOfFaces();
@@ -29,13 +29,13 @@ void NIBR::tractogram2surfaceMapper(NIBR::TractogramReader& tractogram, NIBR::Su
         int threadNo     = task.threadId;
 
         // If streamline does not have a segment, then exit
-        if (tractogram.len[streamlineId]<2) return;
+        if (tractogram->len[streamlineId]<2) return;
     
         double p0[3], p1[3], dir[3], t, length;
         
         int32_t A[3], B[3];
         
-        float** streamline = tractogram.readStreamline(streamlineId);
+        float** streamline = tractogram->readStreamline(streamlineId);
         
         NIBR::LineSegment seg;
         seg.id = streamlineId;
@@ -70,7 +70,7 @@ void NIBR::tractogram2surfaceMapper(NIBR::TractogramReader& tractogram, NIBR::Su
         A[2]  = std::round(p0[2]);
 
         // If streamline has many points and segments
-        for (uint32_t i=0; i<tractogram.len[streamlineId]-1; i++) {
+        for (uint32_t i=0; i<tractogram->len[streamlineId]-1; i++) {
 
             // End of segment in real and image space
             img.to_ijk(streamline[i+1],p1);
@@ -133,13 +133,13 @@ void NIBR::tractogram2surfaceMapper(NIBR::TractogramReader& tractogram, NIBR::Su
         }
         
         
-        for (uint32_t i=0; i<tractogram.len[streamlineId]; i++)
+        for (uint32_t i=0; i<tractogram->len[streamlineId]; i++)
             delete[] streamline[i];
         delete[] streamline;
         
 
     };
-    NIBR::MT::MTRUN(tractogram.numberOfStreamlines, NIBR::MT::MAXNUMBEROFTHREADS(), "Tractogram to surface mapping", doMapping);
+    NIBR::MT::MTRUN(tractogram->numberOfStreamlines, NIBR::MT::MAXNUMBEROFTHREADS(), "Tractogram to surface mapping", doMapping);
 
     // Clean up 
     for (int i = 0; i < img.imgDims[0]; i++) {

@@ -24,8 +24,7 @@ namespace NIBR
     template<typename T>
     std::unordered_map<int64_t,float> traceStreamline(
         size_t streamlineId,
-        int threadNo, 
-        TractogramReader* tractogram,
+        std::shared_ptr<NIBR::TractogramReader> tractogram,
         Image<T>& img,
         bool*** mask, 
         std::function<void(std::unordered_map<int64_t,float>*,Image<T>*,int*,NIBR::Segment&,void*)> f, void* fData)
@@ -36,10 +35,10 @@ namespace NIBR
 
         std::unordered_map<int64_t,float> vIdx;
 
-        int len = tractogram[threadNo].len[streamlineId];
+        int len = tractogram->len[streamlineId];
         if (len < 1) return vIdx;
         
-        float** streamline = tractogram[threadNo].readStreamline(streamlineId);
+        float** streamline = tractogram->readStreamline(streamlineId);
         
         double p0[3], p1[3], dir[3], length, lengthR, lengthScale;
 
@@ -171,7 +170,6 @@ namespace NIBR
 
         return vIdx;
 
-        
     }
 
 }

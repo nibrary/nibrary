@@ -117,7 +117,7 @@ std::vector<float> NIBR::getTractogramBBox(std::shared_ptr<NIBR::TractogramReade
 }
 
 // tuple<diffStreamlineIdx,sameStreamlineIdx>
-std::tuple<std::vector<std::size_t>,std::vector<std::size_t>> NIBR::tractogramDiff(std::shared_ptr<NIBR::TractogramReader> inp_tractogram, NIBR::TractogramReader* ref_tractogram)
+std::tuple<std::vector<std::size_t>,std::vector<std::size_t>> NIBR::tractogramDiff(std::shared_ptr<NIBR::TractogramReader> inp_tractogram, std::shared_ptr<NIBR::TractogramReader> ref_tractogram)
 {
 
     std::vector<std::size_t> diffStreamlineIdx;
@@ -199,7 +199,7 @@ std::tuple<std::vector<std::size_t>,std::vector<std::size_t>> NIBR::tractogramDi
 
 }
 
-std::vector<std::vector<std::vector<float>>> NIBR::tractogramMerge(NIBR::TractogramReader* inp1, NIBR::TractogramReader* inp2, bool checkDuplicates)
+std::vector<std::vector<std::vector<float>>> NIBR::tractogramMerge(std::shared_ptr<NIBR::TractogramReader> inp1, std::shared_ptr<NIBR::TractogramReader> inp2, bool checkDuplicates)
 {
 
     std::vector<std::vector<std::vector<float>>> trk1 = inp1->read();
@@ -257,7 +257,7 @@ std::vector<std::vector<std::vector<float>>> NIBR::tractogramMerge(NIBR::Tractog
 }
 
 
-TractogramField NIBR::colorTractogram(NIBR::TractogramReader* tractogram)
+TractogramField NIBR::colorTractogram(std::shared_ptr<NIBR::TractogramReader> tractogram)
 {
 
     float*** segmentColors = new float**[tractogram->numberOfStreamlines];

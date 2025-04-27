@@ -5,17 +5,17 @@
 
 using namespace NIBR;
 
-std::vector<std::unordered_map<int,float>> NIBR::index2surface(TractogramReader& tractogram, Surface& surf, float sigma)
+std::vector<std::unordered_map<int,float>> NIBR::index2surface(std::shared_ptr<NIBR::TractogramReader> tractogram, Surface& surf, float sigma)
 {
 
     std::vector<std::unordered_map<int,float>> index;
-    index.resize(tractogram.numberOfStreamlines);
+    index.resize(tractogram->numberOfStreamlines);
 
     surf.readMesh();
     surf.getNeighboringVertices();
     
     std::vector<std::unordered_map<int,float[3]>> s2f; // s2f stores the list of face indices and crossing point for each streamline
-    s2f.resize(tractogram.numberOfStreamlines);
+    s2f.resize(tractogram->numberOfStreamlines);
     {
         std::vector<std::vector<streamline2faceMap>> surfMap; // surfMap[n] stores the list of streamlines in n^th face of the mesh. surfMapp[n][s].index is the streamlineId of the s^th streamline crossing this face
 
@@ -82,20 +82,20 @@ std::vector<std::unordered_map<int,float>> NIBR::index2surface(TractogramReader&
 
 
     };
-    NIBR::MT::MTRUN(tractogram.numberOfStreamlines,"Indexing streamlines on surface",run);
+    NIBR::MT::MTRUN(tractogram->numberOfStreamlines,"Indexing streamlines on surface",run);
 
     return index;
 
 }
 
-void NIBR::index2surface(TractogramReader& tractogram, Surface& surf, float sigma, std::string filePrefix)
+void NIBR::index2surface(std::shared_ptr<NIBR::TractogramReader> tractogram, Surface& surf, float sigma, std::string filePrefix)
 {
 
     std::ofstream file_map(filePrefix+"_idx.bin", std::ios::binary | std::ios::out);
     std::ofstream file_pos(filePrefix+"_pos.bin", std::ios::binary | std::ios::out);
     
     std::vector<std::streampos> positions;
-    positions.resize(tractogram.numberOfStreamlines+1); // Also add end of file, which is handy when reading between pos[n] pos[n+1]
+    positions.resize(tractogram->numberOfStreamlines+1); // Also add end of file, which is handy when reading between pos[n] pos[n+1]
 
     surf.readMesh();
     surf.getNeighboringVertices();
@@ -106,7 +106,7 @@ void NIBR::index2surface(TractogramReader& tractogram, Surface& surf, float sigm
     
 
     std::vector<std::vector<std::pair<int,streamline2faceMap*>>> s2f; // s2f stores the list of face indices that each streamline crosses
-    s2f.resize(tractogram.numberOfStreamlines);
+    s2f.resize(tractogram->numberOfStreamlines);
 
     // Set variance and maxVertexMappingDistance
     if (sigma<=0) {
@@ -126,7 +126,7 @@ void NIBR::index2surface(TractogramReader& tractogram, Surface& surf, float sigm
     }
 
     int starting  = 0;
-    int remaining = tractogram.numberOfStreamlines;
+    int remaining = tractogram->numberOfStreamlines;
     int batchSize = (remaining < 500000) ? remaining : 500000;
 
     while (remaining > 0) {
@@ -207,7 +207,7 @@ void NIBR::index2surface(TractogramReader& tractogram, Surface& surf, float sigm
 
     }
 
-    positions[tractogram.numberOfStreamlines] = file_map.tellp();
+    positions[tractogram->numberOfStreamlines] = file_map.tellp();
     file_map.close();
 
     surfMap.clear(); // This is not needed anymore
@@ -358,15 +358,15 @@ std::unordered_map<int,std::unordered_map<int, float>> NIBR::readSurfaceIndexing
     return surfIdx;
 }
 
-std::vector<std::unordered_map<int,float>> NIBR::readSurfaceIndexing(TractogramReader& tractogram, std::string& indexFilePrefix)
+std::vector<std::unordered_map<int,float>> NIBR::readSurfaceIndexing(std::shared_ptr<NIBR::TractogramReader> tractogram, std::string& indexFilePrefix)
 {
 
-    std::vector<std::unordered_map<int,float>> surfIdx(tractogram.numberOfStreamlines);
+    std::vector<std::unordered_map<int,float>> surfIdx(tractogram->numberOfStreamlines);
 
     // Read the entire surface indexing pos file into memory
     std::ifstream surfPosFile(indexFilePrefix + "_pos.bin", std::ios::binary | std::ios::in);
     std::vector<std::streampos> positions;
-    positions.reserve(tractogram.numberOfStreamlines+1);
+    positions.reserve(tractogram->numberOfStreamlines+1);
 
     std::streampos tmp;
     while (surfPosFile.read(reinterpret_cast<char*>(&tmp), sizeof(std::streampos))) {
@@ -399,7 +399,7 @@ std::vector<std::unordered_map<int,float>> NIBR::readSurfaceIndexing(TractogramR
 
     };
 
-    MT::MTRUN(tractogram.numberOfStreamlines,"Reading surface indexing",runReader);
+    MT::MTRUN(tractogram->numberOfStreamlines,"Reading surface indexing",runReader);
 
     for (int n = 0; n < MT::MAXNUMBEROFTHREADS(); n++) {
         idxFile[n].close();

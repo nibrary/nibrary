@@ -9,7 +9,7 @@ namespace NIBR
 
     template<typename T>
     bool index2image(
-        TractogramReader& tractogram, 
+        std::shared_ptr<NIBR::TractogramReader> tractogram, 
         Image<T>& img, 
         bool*** masker,
         std::vector<int64_t>& inds,
@@ -23,7 +23,7 @@ namespace NIBR
     {
 
         // Generate task ranges so the tractogram is split into splitCount segments
-        std::vector<std::pair<int,int>> streamlineRange = MT::createTaskRange(tractogram.numberOfStreamlines,splitCount);
+        std::vector<std::pair<int,int>> streamlineRange = MT::createTaskRange(tractogram->numberOfStreamlines,splitCount);
         int batchCount = 0;
         for (auto range : streamlineRange) {
             int streamlineCount = range.second - range.first + 1;
@@ -47,7 +47,7 @@ namespace NIBR
 
             std::get<3>(gridData) = &batchNo;
 
-            Tractogram2ImageMapper<T> gridder(&tractogram,&img);
+            Tractogram2ImageMapper<T> gridder(tractogram,&img);
             gridder.setData((void*)(&gridData));
             gridder.setMask(masker);
             allocater(&gridder);
@@ -63,7 +63,7 @@ namespace NIBR
 
     template<typename T>
     bool index2image(
-        TractogramReader& tractogram, 
+        std::shared_ptr<NIBR::TractogramReader> tractogram, 
         Image<T>& img, 
         NIBR::Image<int>& mask, 
         std::function<void(Tractogram2ImageMapper<T>* tim, int* _gridPos, NIBR::Segment& _seg)> processor, 
@@ -132,7 +132,7 @@ namespace NIBR
 
     template<typename T>
     bool index2image(
-        TractogramReader& tractogram, 
+        std::shared_ptr<NIBR::TractogramReader> tractogram, 
         Image<T>& img, 
         std::function<void(Tractogram2ImageMapper<T>* tim, int* _gridPos, NIBR::Segment& _seg)> processor, 
         std::function<void(Tractogram2ImageMapper<T>* tim)> indexer, 
@@ -148,7 +148,7 @@ namespace NIBR
         auto refBb = img.getBoundingBox();
         mask.createFromBoundingBox(3,refBb,img.pixDims[0],false);
         
-        Tractogram2ImageMapper<int> masker(&tractogram,&mask);    
+        Tractogram2ImageMapper<int> masker(tractogram,&mask);    
         allocateGrid_4mask(&masker);
         masker.run(processor_4mask<int>, outputCompiler_4mask<int>);
         deallocateGrid_4mask(&masker);
@@ -157,37 +157,6 @@ namespace NIBR
 
     }
     
-
-    /*
-    // Return a void* with indexing information for each ind value in inds
-    template<typename T>
-    std::vector<void*> index2image(
-        TractogramReader& tractogram, 
-        Image<T>& img, 
-        bool*** masker,
-        std::vector<int64_t>& inds,
-        std::function<void(Tractogram2ImageMapper<T>* tim, int* _gridPos, NIBR::Segment& _seg)> processor, 
-        std::function<void(Tractogram2ImageMapper<T>* tim)> indexer, 
-        std::function<void(Tractogram2ImageMapper<T>* tim)> allocater,
-        std::function<void(Tractogram2ImageMapper<T>* tim)> deallocater)
-    {
-        std::vector<void*> indexing;
-
-        std::tuple<std::vector<int64_t>*,std::vector<void*>*> gridData;
-
-        std::get<0>(gridData) = &inds;
-        std::get<1>(gridData) = &indexing;
-
-        Tractogram2ImageMapper<T> gridder(&tractogram,&img);
-        gridder.setData((void*)(&gridData));
-        gridder.setMask(masker);
-        allocater(&gridder);
-        gridder.run(processor,indexer);
-        deallocater(&gridder);
-        
-        return indexing;
-    }
-    */
 
 }
 

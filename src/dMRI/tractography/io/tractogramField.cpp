@@ -4,17 +4,17 @@
 
 using namespace NIBR;
 
-auto initFieldReader(TractogramReader& tractogram) {
+auto initFieldReader(std::shared_ptr<NIBR::TractogramReader> tractogram) {
     
-    auto input = tractogram.file;
-    const size_t strLength = 256;
+    auto input = tractogram->file;
+    const std::size_t strLength = 256;
 	char dummy[strLength];
 
-    std::fseek(input, tractogram.endPosOfStreamlines, SEEK_SET);
+    std::fseek(input, tractogram->endPosOfStreamlines, SEEK_SET);
     int tmp = std::fgetc(input);
     if (tmp != '\n') std::ungetc(tmp,input);
     std::fgets(dummy,strLength,input); // Skip the line about line number
-    std::fseek(input, sizeof(int)*(tractogram.numberOfStreamlines+tractogram.numberOfPoints),SEEK_CUR);
+    std::fseek(input, sizeof(int)*(tractogram->numberOfStreamlines+tractogram->numberOfPoints),SEEK_CUR);
     tmp = std::fgetc(input);
     if (tmp != '\n') std::ungetc(tmp,input);
 
@@ -29,17 +29,17 @@ std::string toUpperCase(const std::string& input) {
     return result;
 }
 
-std::vector<NIBR::TractogramField> NIBR::findTractogramFields(TractogramReader& tractogram)
+std::vector<NIBR::TractogramField> NIBR::findTractogramFields(std::shared_ptr<NIBR::TractogramReader> tractogram)
 {
     std::vector<NIBR::TractogramField> fieldList;
-    if (tractogram.fileFormat == VTK_ASCII) {
+    if (tractogram->fileFormat == VTK_ASCII) {
         disp(MSG_ERROR,"Can't read fields from ASCII files");
         return fieldList;
     }
 
     auto input = initFieldReader(tractogram);
 
-    const size_t strLength = 256;
+    const std::size_t strLength = 256;
 	char  dummy[strLength];
     char* name = new char[128];
     char* type = new char[128];
@@ -75,14 +75,14 @@ std::vector<NIBR::TractogramField> NIBR::findTractogramFields(TractogramReader& 
             if (cellDataFound==true) {
                 TractogramField f = {STREAMLINE_OWNER,std::string(name),NIBR::getTypeId(toUpperCase(std::string(type))),dimension,NULL};
                 fieldList.push_back(f);
-                if (std::string(type)=="float") std::fseek(input,sizeof(float)*tractogram.numberOfStreamlines*dimension,SEEK_CUR);
-                if (std::string(type)=="int")   std::fseek(input,sizeof(int)*tractogram.numberOfStreamlines*dimension,SEEK_CUR);
+                if (std::string(type)=="float") std::fseek(input,sizeof(float)*tractogram->numberOfStreamlines*dimension,SEEK_CUR);
+                if (std::string(type)=="int")   std::fseek(input,sizeof(int)*tractogram->numberOfStreamlines*dimension,SEEK_CUR);
             }
             if (pointDataFound==true) {
                 TractogramField f = {POINT_OWNER,std::string(name),NIBR::getTypeId(toUpperCase(std::string(type))),dimension,NULL};
                 fieldList.push_back(f);
-                if (std::string(type)=="float") std::fseek(input,sizeof(float)*tractogram.numberOfPoints*dimension,SEEK_CUR);
-                if (std::string(type)=="int")   std::fseek(input,sizeof(int)*tractogram.numberOfPoints*dimension,SEEK_CUR);
+                if (std::string(type)=="float") std::fseek(input,sizeof(float)*tractogram->numberOfPoints*dimension,SEEK_CUR);
+                if (std::string(type)=="int")   std::fseek(input,sizeof(int)*tractogram->numberOfPoints*dimension,SEEK_CUR);
             }
             tmpi = std::fgetc(input); if (tmpi != '\n') std::ungetc(tmpi,input); // Make sure to go end of the line
         }
@@ -98,18 +98,18 @@ std::vector<NIBR::TractogramField> NIBR::findTractogramFields(TractogramReader& 
 
 }
 
-std::vector<NIBR::TractogramField> NIBR::readTractogramFields(TractogramReader& tractogram)
+std::vector<NIBR::TractogramField> NIBR::readTractogramFields(std::shared_ptr<NIBR::TractogramReader> tractogram)
 {
 
     std::vector<NIBR::TractogramField> fieldList;
-    if (tractogram.fileFormat == VTK_ASCII) {
+    if (tractogram->fileFormat == VTK_ASCII) {
         disp(MSG_ERROR,"Can't read fields from ASCII files");
         return fieldList;
     }
 
     auto input = initFieldReader(tractogram);
 
-    const size_t strLength = 256;
+    const std::size_t strLength = 256;
 	char  dummy[strLength];
     char* name = new char[128];
     char* type = new char[128];
@@ -152,10 +152,10 @@ std::vector<NIBR::TractogramField> NIBR::readTractogramFields(TractogramReader& 
                 float** fdata = NULL;
                 int**   idata = NULL;
                 
-                if (std::string(type)=="float") fdata = new float*[tractogram.numberOfStreamlines];
-                if (std::string(type)=="int")   idata = new int*[tractogram.numberOfStreamlines];
+                if (std::string(type)=="float") fdata = new float*[tractogram->numberOfStreamlines];
+                if (std::string(type)=="int")   idata = new int*[tractogram->numberOfStreamlines];
                 
-                for (size_t n=0; n<tractogram.numberOfStreamlines; n++) {
+                for (std::size_t n=0; n<tractogram->numberOfStreamlines; n++) {
                     
                     if (std::string(type)=="float") fdata[n] = new float[dimension];
                     if (std::string(type)=="int")   idata[n] = new int[dimension];
@@ -198,15 +198,15 @@ std::vector<NIBR::TractogramField> NIBR::readTractogramFields(TractogramReader& 
                 float*** fdata = NULL;
                 int***   idata = NULL;
                 
-                if (std::string(type)=="float") fdata = new float**[tractogram.numberOfStreamlines];
-                if (std::string(type)=="int")   idata = new   int**[tractogram.numberOfStreamlines];
+                if (std::string(type)=="float") fdata = new float**[tractogram->numberOfStreamlines];
+                if (std::string(type)=="int")   idata = new   int**[tractogram->numberOfStreamlines];
                 
-                for (size_t s=0; s<tractogram.numberOfStreamlines; s++) {
+                for (std::size_t s=0; s<tractogram->numberOfStreamlines; s++) {
 
-                    if (std::string(type)=="float") fdata[s] = new float*[tractogram.len[s]];
-                    if (std::string(type)=="int")   idata[s] = new   int*[tractogram.len[s]];
+                    if (std::string(type)=="float") fdata[s] = new float*[tractogram->len[s]];
+                    if (std::string(type)=="int")   idata[s] = new   int*[tractogram->len[s]];
 
-                    for (uint32_t l=0; l<tractogram.len[s]; l++) {
+                    for (uint32_t l=0; l<tractogram->len[s]; l++) {
                     
                         if (std::string(type)=="float") fdata[s][l] = new float[dimension];
                         if (std::string(type)=="int")   idata[s][l] = new   int[dimension];
@@ -255,10 +255,10 @@ std::vector<NIBR::TractogramField> NIBR::readTractogramFields(TractogramReader& 
 
 }
 
-TractogramField NIBR::readTractogramField(TractogramReader& tractogram,std::string fieldName) {
+TractogramField NIBR::readTractogramField(std::shared_ptr<NIBR::TractogramReader> tractogram,std::string fieldName) {
     
     TractogramField field;
-    if (tractogram.fileFormat == VTK_ASCII) {
+    if (tractogram->fileFormat == VTK_ASCII) {
         disp(MSG_ERROR,"Can't read fields from ASCII files");
         return field;
     }
@@ -267,7 +267,7 @@ TractogramField NIBR::readTractogramField(TractogramReader& tractogram,std::stri
 
     auto input = initFieldReader(tractogram);
 
-    const size_t strLength = 256;
+    const std::size_t strLength = 256;
 	char  dummy[strLength];
     char* name = new char[128];
     char* type = new char[128];
@@ -304,10 +304,10 @@ TractogramField NIBR::readTractogramField(TractogramReader& tractogram,std::stri
                     float** fdata = NULL;
                     int**   idata = NULL;
                     
-                    if (std::string(type)=="float") fdata = new float*[tractogram.numberOfStreamlines];
-                    if (std::string(type)=="int")   idata = new int*[tractogram.numberOfStreamlines];
+                    if (std::string(type)=="float") fdata = new float*[tractogram->numberOfStreamlines];
+                    if (std::string(type)=="int")   idata = new int*[tractogram->numberOfStreamlines];
                     
-                    for (size_t n=0; n<tractogram.numberOfStreamlines; n++) {
+                    for (std::size_t n=0; n<tractogram->numberOfStreamlines; n++) {
                         
                         if (std::string(type)=="float") fdata[n] = new float[dimension];
                         if (std::string(type)=="int")   idata[n] = new int[dimension];
@@ -345,15 +345,15 @@ TractogramField NIBR::readTractogramField(TractogramReader& tractogram,std::stri
                     float*** fdata = NULL;
                     int***   idata = NULL;
                     
-                    if (std::string(type)=="float") fdata = new float**[tractogram.numberOfStreamlines];
-                    if (std::string(type)=="int")   idata = new   int**[tractogram.numberOfStreamlines];
+                    if (std::string(type)=="float") fdata = new float**[tractogram->numberOfStreamlines];
+                    if (std::string(type)=="int")   idata = new   int**[tractogram->numberOfStreamlines];
                     
-                    for (size_t s=0; s<tractogram.numberOfStreamlines; s++) {
+                    for (std::size_t s=0; s<tractogram->numberOfStreamlines; s++) {
 
-                        if (std::string(type)=="float") fdata[s] = new float*[tractogram.len[s]];
-                        if (std::string(type)=="int")   idata[s] = new   int*[tractogram.len[s]];
+                        if (std::string(type)=="float") fdata[s] = new float*[tractogram->len[s]];
+                        if (std::string(type)=="int")   idata[s] = new   int*[tractogram->len[s]];
 
-                        for (uint32_t l=0; l<tractogram.len[s]; l++) {
+                        for (uint32_t l=0; l<tractogram->len[s]; l++) {
                         
                             if (std::string(type)=="float") fdata[s][l] = new float[dimension];
                             if (std::string(type)=="int")   idata[s][l] = new   int[dimension];
@@ -393,12 +393,12 @@ TractogramField NIBR::readTractogramField(TractogramReader& tractogram,std::stri
             } else {
                 
                 if (cellDataFound==true) {
-                    if (std::string(type)=="float") std::fseek(input,sizeof(float)*tractogram.numberOfStreamlines*dimension,SEEK_CUR);
-                    if (std::string(type)=="int")   std::fseek(input,sizeof(int)*tractogram.numberOfStreamlines*dimension,SEEK_CUR);
+                    if (std::string(type)=="float") std::fseek(input,sizeof(float)*tractogram->numberOfStreamlines*dimension,SEEK_CUR);
+                    if (std::string(type)=="int")   std::fseek(input,sizeof(int)*tractogram->numberOfStreamlines*dimension,SEEK_CUR);
                 }
                 if (pointDataFound==true) {
-                    if (std::string(type)=="float") std::fseek(input,sizeof(float)*tractogram.numberOfPoints*dimension,SEEK_CUR);
-                    if (std::string(type)=="int")   std::fseek(input,sizeof(int)*tractogram.numberOfPoints*dimension,SEEK_CUR);
+                    if (std::string(type)=="float") std::fseek(input,sizeof(float)*tractogram->numberOfPoints*dimension,SEEK_CUR);
+                    if (std::string(type)=="int")   std::fseek(input,sizeof(int)*tractogram->numberOfPoints*dimension,SEEK_CUR);
                 }
                 tmpi = std::fgetc(input); if (tmpi != '\n') std::ungetc(tmpi,input); // Make sure to go end of the line
                 
@@ -415,7 +415,7 @@ TractogramField NIBR::readTractogramField(TractogramReader& tractogram,std::stri
     return field;
 }
 
-void NIBR::clearField(TractogramField& field,TractogramReader& tractogram)
+void NIBR::clearField(TractogramField& field,std::shared_ptr<NIBR::TractogramReader> tractogram)
 {
 
     switch (field.datatype) {
@@ -473,7 +473,7 @@ void NIBR::clearField(TractogramField& field, std::vector<std::vector<std::vecto
 
 }
 
-TractogramField NIBR::makeTractogramFieldFromFile(TractogramReader& tractogram, std::string filePath, std::string name, std::string owner, std::string dataType, int dimension, bool isASCII) {
+TractogramField NIBR::makeTractogramFieldFromFile(std::shared_ptr<NIBR::TractogramReader> tractogram, std::string filePath, std::string name, std::string owner, std::string dataType, int dimension, bool isASCII) {
 
     // Create fields for vtk output
     TractogramField field;
@@ -501,7 +501,7 @@ TractogramField NIBR::makeTractogramFieldFromFile(TractogramReader& tractogram, 
 	input = fopen(filePath.c_str(),"rb+");
 
     auto readStreamlineData = [&](auto data, auto t) {
-        for (size_t s = 0; s < tractogram.numberOfStreamlines; s++) {
+        for (std::size_t s = 0; s < tractogram->numberOfStreamlines; s++) {
             data[s] = new decltype(t)[field.dimension];
 
             if (!isASCII) {
@@ -525,10 +525,10 @@ TractogramField NIBR::makeTractogramFieldFromFile(TractogramReader& tractogram, 
 
 
     auto readPointData = [&](auto data, auto t) {
-        for (size_t s = 0; s < tractogram.numberOfStreamlines; s++) {
-            data[s] = new decltype(&t)[tractogram.len[s]];
+        for (std::size_t s = 0; s < tractogram->numberOfStreamlines; s++) {
+            data[s] = new decltype(&t)[tractogram->len[s]];
 
-            for (uint32_t l = 0; l < tractogram.len[s]; l++) {
+            for (uint32_t l = 0; l < tractogram->len[s]; l++) {
                 data[s][l] = new decltype(t)[field.dimension];
                 
                 if (!isASCII) {
@@ -555,13 +555,13 @@ TractogramField NIBR::makeTractogramFieldFromFile(TractogramReader& tractogram, 
     if (field.datatype == FLOAT32_DT) {
 
         if (field.owner == STREAMLINE_OWNER) {
-            float** data = new float*[tractogram.numberOfStreamlines];
+            float** data = new float*[tractogram->numberOfStreamlines];
             readStreamlineData(data,float(0));
             field.data = (void*)data;
         }
 
         if (field.owner == POINT_OWNER) {
-            float*** data = new float**[tractogram.numberOfStreamlines];
+            float*** data = new float**[tractogram->numberOfStreamlines];
             readPointData(data,float(0));
             field.data = (void*)data;
         }
@@ -571,13 +571,13 @@ TractogramField NIBR::makeTractogramFieldFromFile(TractogramReader& tractogram, 
     if (field.datatype == INT32_DT) {
 
         if (field.owner == STREAMLINE_OWNER) {
-            int** data = new int*[tractogram.numberOfStreamlines];
+            int** data = new int*[tractogram->numberOfStreamlines];
             readStreamlineData(data,int(0));
             field.data = (void*)data;
         }
 
         if (field.owner == POINT_OWNER) {
-            int*** data = new int**[tractogram.numberOfStreamlines];
+            int*** data = new int**[tractogram->numberOfStreamlines];
             readPointData(data,int(0));
             field.data = (void*)data;
         }

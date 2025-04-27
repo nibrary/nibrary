@@ -22,21 +22,21 @@ namespace NIBR
         void*                   data{NULL};
     };
 
-    void clearField(TractogramField& field, TractogramReader& tractogram);
+    void clearField(TractogramField& field, std::shared_ptr<NIBR::TractogramReader> tractogram);
     void clearField(TractogramField& field, std::vector<std::vector<std::vector<float>>>& tractogram);
 
-    std::vector<NIBR::TractogramField> findTractogramFields(TractogramReader& tractogram);
-    std::vector<NIBR::TractogramField> readTractogramFields(TractogramReader& tractogram);
+    std::vector<NIBR::TractogramField> findTractogramFields(std::shared_ptr<NIBR::TractogramReader> tractogram);
+    std::vector<NIBR::TractogramField> readTractogramFields(std::shared_ptr<NIBR::TractogramReader> tractogram);
 
-    TractogramField readTractogramField(TractogramReader& tractogram,std::string name);
+    TractogramField readTractogramField(std::shared_ptr<NIBR::TractogramReader> tractogram,std::string name);
 
-    TractogramField makeTractogramFieldFromFile(TractogramReader& tractogram, std::string filePath, std::string name, std::string owner, std::string dataType, int dimension, bool isASCII);
+    TractogramField makeTractogramFieldFromFile(std::shared_ptr<NIBR::TractogramReader> tractogram, std::string filePath, std::string name, std::string owner, std::string dataType, int dimension, bool isASCII);
 
 }
 
 
 template<class T>
-void clearFieldWrapper(TractogramField& field,TractogramReader& tractogram) {    
+void clearFieldWrapper(TractogramField& field,std::shared_ptr<NIBR::TractogramReader> tractogram) {    
 
     if (field.data != NULL) {
 
@@ -44,8 +44,8 @@ void clearFieldWrapper(TractogramField& field,TractogramReader& tractogram) {
 
             T*** toDel = reinterpret_cast<T***>(field.data);
 
-            for (size_t s = 0; s < tractogram.numberOfStreamlines; s++) {
-                for (uint32_t l = 0; l < tractogram.len[s]; l++) {
+            for (size_t s = 0; s < tractogram->numberOfStreamlines; s++) {
+                for (uint32_t l = 0; l < tractogram->len[s]; l++) {
                     delete[] toDel[s][l];
                 }
                 delete[] toDel[s];
@@ -59,7 +59,7 @@ void clearFieldWrapper(TractogramField& field,TractogramReader& tractogram) {
 
             T** toDel = reinterpret_cast<T**>(field.data);
 
-            for (size_t s = 0; s < tractogram.numberOfStreamlines; s++) {
+            for (size_t s = 0; s < tractogram->numberOfStreamlines; s++) {
                 delete[] toDel[s];
             }
             

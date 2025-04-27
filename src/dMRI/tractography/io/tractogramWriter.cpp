@@ -8,7 +8,7 @@
 
 using namespace NIBR;
 
-bool NIBR::writeTractogram(std::string fname,NIBR::TractogramReader* tractogram) 
+bool NIBR::writeTractogram(std::string fname,std::shared_ptr<NIBR::TractogramReader> tractogram) 
 {
 
     std::string ext = getFileExtension(fname);
@@ -67,7 +67,7 @@ bool NIBR::writeTractogram(std::string fname,std::vector<std::vector<std::vector
 
 }
 
-bool NIBR::writeTractogram_VTK_binary(std::string fname,NIBR::TractogramReader* tractogram) {
+bool NIBR::writeTractogram_VTK_binary(std::string fname,std::shared_ptr<NIBR::TractogramReader> tractogram) {
 
     std::vector<std::size_t> idx;
     idx.reserve(tractogram->numberOfStreamlines);
@@ -78,7 +78,7 @@ bool NIBR::writeTractogram_VTK_binary(std::string fname,NIBR::TractogramReader* 
     
 }
 
-bool NIBR::writeTractogram_VTK_binary(std::string out_fname,NIBR::TractogramReader* tractogram,std::vector<std::size_t>& idx) {
+bool NIBR::writeTractogram_VTK_binary(std::string out_fname,std::shared_ptr<NIBR::TractogramReader> tractogram,std::vector<std::size_t>& idx) {
 
     // Prepare output
     FILE *out;
@@ -285,7 +285,7 @@ bool NIBR::writeTractogram_VTK_binary(std::string fname,std::vector<std::vector<
     return true;
 }
 
-bool NIBR::writeTractogram_VTK_ascii(std::string fname,NIBR::TractogramReader* tractogram) {
+bool NIBR::writeTractogram_VTK_ascii(std::string fname,std::shared_ptr<NIBR::TractogramReader> tractogram) {
 
     // Prepare output
     FILE *out;
@@ -346,7 +346,7 @@ bool NIBR::writeTractogram_VTK_ascii(std::string fname,NIBR::TractogramReader* t
 
 }
 
-bool NIBR::writeTractogram_VTK_ascii(std::string fname,NIBR::TractogramReader* tractogram,std::vector<std::size_t>& idx) {
+bool NIBR::writeTractogram_VTK_ascii(std::string fname,std::shared_ptr<NIBR::TractogramReader> tractogram,std::vector<std::size_t>& idx) {
 
     // Prepare output
     FILE *out;
@@ -482,7 +482,7 @@ bool NIBR::writeTractogram_VTK_ascii(std::string fname,std::vector<std::vector<s
     return true;
 }
 
-bool NIBR::writeTractogram_TRK(std::string fname,NIBR::TractogramReader* tractogram) {
+bool NIBR::writeTractogram_TRK(std::string fname,std::shared_ptr<NIBR::TractogramReader> tractogram) {
 
     // Prepare output
     FILE *out;
@@ -537,7 +537,7 @@ bool NIBR::writeTractogram_TRK(std::string fname,NIBR::TractogramReader* tractog
     return true;
 }
 
-bool NIBR::writeTractogram_TRK(std::string fname,NIBR::TractogramReader* tractogram,std::vector<std::size_t>& idx) {
+bool NIBR::writeTractogram_TRK(std::string fname,std::shared_ptr<NIBR::TractogramReader> tractogram,std::vector<std::size_t>& idx) {
 
     // Prepare output
     FILE *out;
@@ -654,7 +654,7 @@ bool NIBR::writeTractogram_TRK(std::string fname,std::vector<std::vector<std::ve
     return true;
 }
 
-bool NIBR::writeTractogram_TCK(std::string fname,NIBR::TractogramReader* tractogram) {
+bool NIBR::writeTractogram_TCK(std::string fname,std::shared_ptr<NIBR::TractogramReader> tractogram) {
 
     // Prepare output
     FILE *out;
@@ -692,7 +692,7 @@ bool NIBR::writeTractogram_TCK(std::string fname,NIBR::TractogramReader* tractog
     return true;
 }
 
-bool NIBR::writeTractogram_TCK(std::string fname,NIBR::TractogramReader* tractogram,std::vector<std::size_t>& idx) {
+bool NIBR::writeTractogram_TCK(std::string fname,std::shared_ptr<NIBR::TractogramReader> tractogram,std::vector<std::size_t>& idx) {
 
     // Prepare output
     FILE *out;
@@ -768,7 +768,7 @@ bool NIBR::writeTractogram_TCK(std::string fname,std::vector<std::vector<std::ve
 }
 
 
-bool NIBR::writeTractogram(std::string fname,NIBR::TractogramReader* tractogram,std::vector<std::size_t>& idx) 
+bool NIBR::writeTractogram(std::string fname,std::shared_ptr<NIBR::TractogramReader> tractogram,std::vector<std::size_t>& idx) 
 {
 
     std::string ext = getFileExtension(fname);
@@ -790,27 +790,25 @@ bool NIBR::writeTractogram(std::string fname,NIBR::TractogramReader* tractogram,
 
 
 bool NIBR::writeTractogram(std::string out_fname,std::string inp_fname,std::vector<std::size_t>& idx) {
-    NIBR::TractogramReader tractogram(inp_fname);
-    return writeTractogram(out_fname,&tractogram,idx);
+    auto tractogram = std::make_shared<NIBR::TractogramReader>(inp_fname);
+    return writeTractogram(out_fname,tractogram,idx);
 }
 
 
 bool NIBR::writeTractogram(std::string out_kept_fname,std::string out_rmvd_fname,std::string inp_fname,std::vector<std::size_t>& idx) {
 
-    // Prep input
-
-    NIBR::TractogramReader tractogram(inp_fname);
-    NIBR::writeTractogram(out_kept_fname,&tractogram,idx);
+    auto tractogram = std::make_shared<NIBR::TractogramReader>(inp_fname);
+    NIBR::writeTractogram(out_kept_fname,tractogram,idx);
 
 
     // Rmvd tractogram
     std::vector<std::size_t> rmvd_idx;
-    for (std::size_t i=0; i<tractogram.numberOfStreamlines; i++)
+    for (std::size_t i=0; i<tractogram->numberOfStreamlines; i++)
         rmvd_idx.push_back(i);
 
     removeIdx(rmvd_idx,idx);
 
-    writeTractogram(out_rmvd_fname,&tractogram,rmvd_idx);
+    writeTractogram(out_rmvd_fname,tractogram,rmvd_idx);
 
     return true;
 }

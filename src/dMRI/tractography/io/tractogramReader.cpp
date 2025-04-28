@@ -1,83 +1,82 @@
+#include "dMRI/tractography/io/tractogramReader.h"
+#include "tractogramField.h"
 #include <cstdint>
 #include <cstring>
 #include <iterator>
-#include <type_traits>
-#include <cctype>
-#include <atomic>
-
-#include "tractogramReader.h"
-#include "tractogramField.h"
-#include "base/dataTypeHandler.h"
 
 using namespace NIBR;
-
-TractogramReader::TractogramReader(const std::string& _fileName, std::size_t _preloadCount)
-        : fileName(_fileName),
-          preloadCount(_preloadCount)
-{
-	std::memset(imgDims, 0, sizeof(imgDims));
-	std::memset(pixDims, 0, sizeof(pixDims));
-	std::memset(voxOrdr, 0, sizeof(voxOrdr));
-	std::memset(ijk2xyz, 0, sizeof(ijk2xyz));
-	std::memset(xyz2ijk, 0, sizeof(xyz2ijk));
-	ijk2xyz[3][3] = 1.0f; // Ensure valid affine matrix base
-	xyz2ijk[3][3] = 1.0f;
-	if (!initReader()) {
-		cleanupMemory();
-		throw std::runtime_error("Failed to initialize TractogramReader for file: " + _fileName);
-	}
-	disp(MSG_DEBUG, "TractogramReader initialized successfully for %s", fileName.c_str());
+			
+NIBR::TractogramReader::TractogramReader() {
+	fileName 		= "";
+	fileDescription = "";
+	file 			= NULL;
+	threadId 		= 0;
 }
 
-TractogramReader::~TractogramReader() {
-	cleanupMemory();
-	disp(MSG_DEBUG, "TractogramReader destroyed for %s", fileName.c_str());
+NIBR::TractogramReader::TractogramReader(std::string _fileName) {
+	fileName 		= "";
+	fileDescription = "";
+	file 			= NULL;
+	threadId 		= 0;
+	initReader(_fileName);
 }
 
-void TractogramReader::cleanupMemory() {
+NIBR::TractogramReader::TractogramReader(const TractogramReader& obj) {
+	this->copyFrom(obj);
+}
+
+NIBR::TractogramReader::~TractogramReader() {
+	fileName.erase();
+	fileDescription.erase();
 	
-	std::lock_guard<std::mutex> lock(reader_mutex);
-
-	disp(MSG_DEBUG, "Cleaning up memory for %s", fileName.c_str());
-	
-	if (file != NULL) {
-		fclose(file);
-		file = NULL;
-		disp(MSG_DEBUG, "Closed file handle for %s", fileName.c_str());
-	}
-
-	for (auto bf : batchFile) {
-		if (bf != NULL) {
-			fclose(bf);
-			bf = NULL;
-			disp(MSG_DEBUG, "Closed file batch file handle");
-		}
-	}
-	batchFile.clear();
-
+	if (file != NULL)			fclose(file);
 	if (len != NULL)			delete[] len;
 	if (streamlinePos != NULL) 	delete[] streamlinePos;
 
-	fileName.erase();
-	fileDescription.erase();
-
-	resetCache();
-
-	numberOfStreamlines = 0;
-	numberOfPoints 	 	= 0;
+	file 			= NULL;
+	len 			= NULL;
+	streamlinePos 	= NULL;
 }
 
 
-bool NIBR::TractogramReader::initReader() {
 
-	std::lock_guard<std::mutex> lock(reader_mutex);
+void NIBR::TractogramReader::copyFrom(const TractogramReader& obj) {
+	fileName 			= obj.fileName;
+	fileDescription 	= obj.fileDescription;
+	fileFormat	 		= obj.fileFormat;
+	numberOfPoints 		= obj.numberOfPoints;
+	numberOfStreamlines = obj.numberOfStreamlines;
+	len 				= obj.len;
+	streamlinePos 		= obj.streamlinePos;
 
-	file = fopen(fileName.c_str(), "rb");
-
-	if (file == NULL) {
-		disp(MSG_ERROR, "Failed to open tractogram file: %s", fileName.c_str());
-		return false;
+	n_scalars_trk 		= obj.n_scalars_trk;
+	n_properties_trk 	= obj.n_properties_trk;
+	for(int i=0;i<4;++i) {
+		for(int j=0;j<4;++j){
+			ijk2xyz[i][j] = obj.ijk2xyz[i][j];
+			xyz2ijk[i][j] = obj.xyz2ijk[i][j];
+		}
 	}
+
+	file = fopen(fileName.c_str(), "rb+");
+}
+
+void NIBR::TractogramReader::destroyCopy() {
+	fileName.erase();
+	fileDescription.erase();
+	if (file != NULL) fclose(file);
+	file 		  = NULL;
+	len 		  = NULL;
+	streamlinePos = NULL;
+}
+
+bool NIBR::TractogramReader::initReader(std::string _fileName) {
+
+	fileName = _fileName;
+	file = fopen(fileName.c_str(), "rb+");
+
+	if (file == NULL)
+		return false;
 
 	const std::size_t strLength = 256;
 	char dummy[strLength];
@@ -86,7 +85,6 @@ bool NIBR::TractogramReader::initReader() {
 
 	disp(MSG_DEBUG,"File extension: %s", extension.c_str());
 
-	// --- TCK Format ---
 	if (extension == "tck") {
 
 		fileFormat 		= TCK;
@@ -344,21 +342,297 @@ bool NIBR::TractogramReader::initReader() {
 	}
 	endPosOfStreamlines = ftell(file);
 
-	for (int n = 0; n < MT::MAXNUMBEROFTHREADS(); n++) {
+	return true;
+}
 
-		FILE* bf = fopen(fileName.c_str(), "rb");
+float** NIBR::TractogramReader::readStreamline(std::size_t n) {
 
-		if (bf == NULL) {
-			disp(MSG_ERROR, "Failed to open tractogram file for parallel reading.");
-			return false;
+	float** points;
+	points = new float* [len[n]];
+
+	fseek(file, streamlinePos[n], SEEK_SET);
+
+	if (fileFormat == TCK) {
+		float tmp;
+		for (uint32_t i = 0; i < len[n]; i++) {
+			points[i] = new float[3];
+
+			for (int j = 0; j < 3; j++) {
+				std::fread(&tmp, sizeof(float), 1, file);
+				points[i][j] = tmp;
+			}
 		}
-
-		batchFile.push_back(bf);
-
 	}
 
 
-	return true;
+	if (fileFormat == TRK) {
+		float tmp, p_tmp[3];
+		
+		for (uint32_t i = 0; i < len[n]; i++) {
+
+			points[i] = new float[3];
+
+			for (int j = 0; j < 3; j++) {
+				std::fread(&tmp, sizeof(float), 1, file);
+				p_tmp[j] = tmp - 0.5f;
+			}
+			applyTransform(points[i],p_tmp,ijk2xyz);
+			
+			for (int j = 0; j < n_scalars_trk; j++)
+				std::fread(&tmp, sizeof(float), 1, file);
+		}
+	}
+	
+
+	if (fileFormat == VTK_BINARY) {
+		float tmp;
+		for (uint32_t i = 0; i < len[n]; i++) {
+			points[i] = new float[3];
+
+			for (int j = 0; j < 3; j++) {
+				std::fread(&tmp, sizeof(float), 1, file);
+				swapByteOrder(tmp);
+				points[i][j] = tmp;
+			}
+		}
+	}
+
+	if (fileFormat == VTK_ASCII) {
+
+		for (uint32_t i = 0; i < len[n]; i++) {
+			points[i] = new float[3];
+			std::fscanf(file, "%f %f %f ", &points[i][0], &points[i][1], &points[i][2]);
+		}
+
+	}
+
+	return points;
+
+}
+
+void NIBR::TractogramReader::readPoint(std::size_t n, uint32_t l, float* point) {
+
+	if (fileFormat == TCK) {
+		fseek(file, streamlinePos[n] + sizeof(float) * 3 * l, SEEK_SET);
+		float tmp;
+		for (int j = 0; j < 3; j++) {
+			std::fread(&tmp, sizeof(float), 1, file);
+			point[j] = tmp;
+		}
+	}
+
+	if (fileFormat == TRK) {
+		fseek(file, streamlinePos[n] + sizeof(float) * (3+n_scalars_trk) * l, SEEK_SET);
+		float tmp;
+		for (int j = 0; j < 3; j++) {
+			std::fread(&tmp, sizeof(float), 1, file);
+			point[j]=tmp - 0.5f;
+		}
+		applyTransform(point,ijk2xyz);
+	}
+
+	if (fileFormat == VTK_BINARY) {
+		fseek(file, streamlinePos[n] + sizeof(float) * 3 * l, SEEK_SET);
+		float tmp;
+		for (int j = 0; j < 3; j++) {
+			std::fread(&tmp, sizeof(float), 1, file);
+			swapByteOrder(tmp);
+			point[j] = tmp;
+		}
+	}
+
+	// For ASCII files, reading points is not efficient
+	if (fileFormat == VTK_ASCII) {
+		fseek(file, streamlinePos[n], SEEK_SET);
+		for (uint32_t i = 0; i < (l - 1); i++)
+			std::fscanf(file, "%*f %*f %*f ");
+		std::fscanf(file, "%f %f %f ", &point[0], &point[1], &point[2]);
+	}
+
+}
+
+
+std::vector<Point> NIBR::TractogramReader::readStreamlinePoints(std::size_t n) {
+
+	std::vector<Point> points;
+	points.reserve(len[n]);
+
+	fseek(file, streamlinePos[n], SEEK_SET);
+
+	if (fileFormat == TCK) {
+		for (uint32_t i = 0; i < len[n]; i++) {
+			Point p;
+			std::fread(&p.x, sizeof(float), 1, file);
+			std::fread(&p.y, sizeof(float), 1, file);
+			std::fread(&p.z, sizeof(float), 1, file);
+			points.push_back(p);
+		}
+	}
+
+
+	if (fileFormat == TRK) {
+		for (uint32_t i = 0; i < len[n]; i++) {
+			Point p;
+			std::fread(&p.x, sizeof(float), 1, file);
+			std::fread(&p.y, sizeof(float), 1, file);
+			std::fread(&p.z, sizeof(float), 1, file);
+			p.x -= 0.5f;
+			p.y -= 0.5f;
+			p.z -= 0.5f;
+			applyTransform(p,ijk2xyz);
+			points.push_back(p);
+			fseek(file, sizeof(float)*n_scalars_trk, SEEK_CUR);			
+		}
+	}
+
+	if (fileFormat == VTK_BINARY) {
+		for (uint32_t i = 0; i < len[n]; i++) {
+			Point p;
+			std::fread(&p.x, sizeof(float), 1, file); swapByteOrder(p.x);
+			std::fread(&p.y, sizeof(float), 1, file); swapByteOrder(p.y);
+			std::fread(&p.z, sizeof(float), 1, file); swapByteOrder(p.z);
+			points.push_back(p);
+		}
+	}
+
+	if (fileFormat == VTK_ASCII) {
+
+		for (uint32_t i = 0; i < len[n]; i++) {
+			Point p;
+			std::fscanf(file, "%f %f %f ", &p.x, &p.y, &p.z);
+			points.push_back(p);
+		}
+
+	}
+
+	return points;
+
+}
+
+
+
+
+
+
+
+std::vector<std::vector<float>> NIBR::TractogramReader::readStreamlineVector(std::size_t n) {
+
+	std::vector<std::vector<float>> points;
+	points.reserve(len[n]);
+
+	fseek(file, streamlinePos[n], SEEK_SET);
+
+	if (fileFormat == TCK) {
+		for (uint32_t i = 0; i < len[n]; i++) {
+			std::vector<float> p(3);
+			std::fread(&p[0], sizeof(float), 1, file);
+			std::fread(&p[1], sizeof(float), 1, file);
+			std::fread(&p[2], sizeof(float), 1, file);
+			points.push_back(p);
+		}
+	}
+
+
+	if (fileFormat == TRK) {
+		for (uint32_t i = 0; i < len[n]; i++) {
+
+			float x,y,z;
+
+			std::fread(&x, sizeof(float), 1, file);
+			std::fread(&y, sizeof(float), 1, file);
+			std::fread(&z, sizeof(float), 1, file);
+			x -= 0.5f;
+			y -= 0.5f;
+			z -= 0.5f;
+
+			std::vector<float> p(3);
+			p[0] = x*ijk2xyz[0][0] + y*ijk2xyz[0][1] + z*ijk2xyz[0][2] + ijk2xyz[0][3];
+			p[1] = x*ijk2xyz[1][0] + y*ijk2xyz[1][1] + z*ijk2xyz[1][2] + ijk2xyz[1][3];
+			p[2] = x*ijk2xyz[2][0] + y*ijk2xyz[2][1] + z*ijk2xyz[2][2] + ijk2xyz[2][3];
+
+			points.push_back(p);
+			fseek(file, sizeof(float)*n_scalars_trk, SEEK_CUR);			
+		}
+	}
+
+	if (fileFormat == VTK_BINARY) {
+		for (uint32_t i = 0; i < len[n]; i++) {
+			std::vector<float> p(3);
+			std::fread(&p[0], sizeof(float), 1, file); swapByteOrder(p[0]);
+			std::fread(&p[1], sizeof(float), 1, file); swapByteOrder(p[1]);
+			std::fread(&p[2], sizeof(float), 1, file); swapByteOrder(p[2]);
+			points.push_back(p);
+		}
+	}
+
+	if (fileFormat == VTK_ASCII) {
+
+		for (uint32_t i = 0; i < len[n]; i++) {
+			std::vector<float> p(3);
+			std::fscanf(file, "%f %f %f ", &p[0], &p[1], &p[2]);
+			points.push_back(p);
+		}
+
+	}
+
+	return points;
+
+}
+
+
+
+std::vector<std::vector<std::vector<float>>> NIBR::TractogramReader::read() {
+
+	std::vector<std::vector<std::vector<float>>> out;
+
+	if (numberOfStreamlines==0) 
+		return out;
+
+	out.resize(numberOfStreamlines);
+
+	for (std::size_t n=0; n<numberOfStreamlines; n++) {
+		out[n].resize(len[n]);
+		for (int l=0; l<int(len[n]); l++)
+			out[n][l].resize(3);
+	}
+
+	int bakMaxThreads = NIBR::MT::MAXNUMBEROFTHREADS();
+	if (int(numberOfStreamlines)<NIBR::MT::MAXNUMBEROFTHREADS())
+		NIBR::MT::MAXNUMBEROFTHREADS() = numberOfStreamlines;
+
+	NIBR::TractogramReader* inp = new NIBR::TractogramReader[NIBR::MT::MAXNUMBEROFTHREADS()]();
+    for (int t = 0; t < NIBR::MT::MAXNUMBEROFTHREADS(); t++) {
+        inp[t].copyFrom(*this);
+	}
+
+	auto mtReader = [&](NIBR::MT::TASK task)->void{
+
+		float** streamline = inp[task.threadId].readStreamline(task.no);
+
+		for (uint32_t l=0; l<len[task.no]; l++) {
+			out[task.no][l][0] = streamline[l][0];
+			out[task.no][l][1] = streamline[l][1];
+			out[task.no][l][2] = streamline[l][2];
+			delete[] streamline[l];
+		}
+		delete[] streamline;
+
+    };
+
+	if (VERBOSE()>VERBOSE_INFO)
+		NIBR::MT::MTRUN(numberOfStreamlines, "Reading streamlines", mtReader);
+	else
+		NIBR::MT::MTRUN(numberOfStreamlines, mtReader);
+	
+	for (int t = 0; t < NIBR::MT::MAXNUMBEROFTHREADS(); t++)
+        inp[t].destroyCopy();
+
+	delete[] inp;
+
+	NIBR::MT::MAXNUMBEROFTHREADS() = bakMaxThreads;
+
+	return out;
+
 }
 
 
@@ -487,7 +761,7 @@ void NIBR::TractogramReader::printInfo() {
 
 	}
 
-	auto fields = findTractogramFields();
+	std::vector<NIBR::TractogramField> fields = findTractogramFields();
 
 	std::cout << "Field count: " << fields.size() << std::endl << std::flush;
 
@@ -501,352 +775,4 @@ void NIBR::TractogramReader::printInfo() {
 	return;
 
 
-}
-
-
-
-
-float** NIBR::TractogramReader::readStreamlineRawFromFile(FILE* bf, std::size_t n) {
-
-	float** points;
-	points = new float* [len[n]];
-
-	fseek(bf, streamlinePos[n], SEEK_SET);
-
-	if (fileFormat == TCK) {
-		float tmp;
-		for (uint32_t i = 0; i < len[n]; i++) {
-			points[i] = new float[3];
-
-			for (int j = 0; j < 3; j++) {
-				std::fread(&tmp, sizeof(float), 1, bf);
-				points[i][j] = tmp;
-			}
-		}
-	}
-
-
-	if (fileFormat == TRK) {
-		float tmp, p_tmp[3];
-		
-		for (uint32_t i = 0; i < len[n]; i++) {
-
-			points[i] = new float[3];
-
-			for (int j = 0; j < 3; j++) {
-				std::fread(&tmp, sizeof(float), 1, bf);
-				p_tmp[j] = tmp - 0.5f;
-			}
-			applyTransform(points[i],p_tmp,ijk2xyz);
-			
-			for (int j = 0; j < n_scalars_trk; j++)
-				std::fread(&tmp, sizeof(float), 1, bf);
-		}
-	}
-	
-
-	if (fileFormat == VTK_BINARY) {
-		float tmp;
-		for (uint32_t i = 0; i < len[n]; i++) {
-			points[i] = new float[3];
-
-			for (int j = 0; j < 3; j++) {
-				std::fread(&tmp, sizeof(float), 1, bf);
-				swapByteOrder(tmp);
-				points[i][j] = tmp;
-			}
-		}
-	}
-
-	if (fileFormat == VTK_ASCII) {
-
-		for (uint32_t i = 0; i < len[n]; i++) {
-			points[i] = new float[3];
-			std::fscanf(bf, "%f %f %f ", &points[i][0], &points[i][1], &points[i][2]);
-		}
-
-	}
-
-	return points;
-
-}
-
-
-
-
-bool TractogramReader::loadBatchContaining(std::size_t streamlineIndex) {
-
-    // Calculate the start index of the batch
-    std::size_t batchStart = (streamlineIndex / preloadCount) * preloadCount;
-
-    // Check if already loaded
-    if (batchStart == preloadedStartIndex && !preloadedStreamlines.empty()) {
-        return true;
-    }
-
-    disp(MSG_DETAIL, "Loading cache batch starting at index %zu (for requested index %zu)...", batchStart, streamlineIndex);
-
-    // Determine actual number to load
-    std::size_t countToLoad = std::min(preloadCount, numberOfStreamlines - batchStart);
-    if (countToLoad == 0) {
-        resetCache(); // Clear previous cache if requesting beyond end
-        return false; // Index out of bounds
-    }
-
-    // --- Read the streamlines for this batch ---
-    // Create a temporary vector to hold the newly read float** pointers
-    std::vector<float**> newBatchData(countToLoad, nullptr); // Initialize with nullptrs
-    bool success = true;
-
-    // --- Fallback: Sequential Loading (if parallel is complex/not implemented) ---
-    for (std::size_t i = 0; i < countToLoad; ++i) {
-        std::size_t currentIndex = batchStart + i;
-        // Use the primary file handle for sequential loading
-        float** streamline_ptr = readStreamlineRawFromFile(file, currentIndex);
-
-        // Check if read failed for a non-empty streamline
-        if (!streamline_ptr && len[currentIndex] > 0) {
-            disp(MSG_ERROR, "Failed to read streamline %zu into preload batch.", currentIndex);
-            success = false;
-            break; // Stop loading this batch
-        }
-        newBatchData[i] = streamline_ptr; // Store pointer (nullptr if empty)
-    }
-    // --- END Sequential Loading ---
-
-
-    // --- If successful, replace the old cache with the new batch ---
-    if (success) {
-         try {
-             // First, clear the old cache (deletes old float** data)
-             resetCache();
-             // Now, move the newly read data into the main cache
-             preloadedStreamlines = std::move(newBatchData);
-             preloadedStartIndex = batchStart; // Update the index of the loaded batch
-             disp(MSG_DEBUG, "Successfully preloaded %zu streamlines starting at index %zu.", preloadedStreamlines.size(), batchStart);
-         } catch (const std::bad_alloc& e) {
-             // Should be unlikely with move, but handle defensively
-             disp(MSG_FATAL, "Failed to move preloaded data to cache: %s", e.what());
-             // Cleanup the data we allocated in newBatchData before it was moved
-             for(size_t i=0; i<newBatchData.size(); ++i) deleteStreamlineRaw(newBatchData[i], (batchStart+i < numberOfStreamlines) ? len[batchStart+i] : 0);
-             resetCache(); // Ensure main cache is reset
-             success = false;
-         }
-    } else {
-        disp(MSG_ERROR, "Failed to load batch starting at index %zu.", batchStart);
-        // Cleanup the partially/failed loaded data in newBatchData
-        for(size_t i=0; i<newBatchData.size(); ++i) deleteStreamlineRaw(newBatchData[i], (batchStart+i < numberOfStreamlines) ? len[batchStart+i] : 0);
-        // Ensure main cache is still in a clean state (should have been reset if old data existed)
-        resetCache();
-    }
-
-    return success;
-}
-
-// Safely delete memory allocated for a float** streamline
-void TractogramReader::deleteStreamlineRaw(float** points, uint32_t numPoints) {
-    if (!points) return;
-    for (uint32_t i = 0; i < numPoints; ++i) {
-        delete[] points[i]; // Delete each float[3] array
-    }
-    delete[] points; // Delete the array of float* pointers
-}
-
-void TractogramReader::resetCache() {
-    // Assumes reader_mutex is held
-    // disp(MSG_DEBUG, "Resetting preload cache. Deleting %zu cached streamlines.", preloadedStreamlines.size());
-    // if (len && !preloadedStreamlines.empty() && preloadedStartIndex < numberOfStreamlines) {
-    //     std::size_t countInCache = preloadedStreamlines.size();
-    //     for (std::size_t i = 0; i < countInCache; ++i) {
-    //         std::size_t streamlineIdx = preloadedStartIndex + i;
-    //         // Check index validity before accessing len
-    //         if (streamlineIdx < numberOfStreamlines) {
-    //              deleteStreamlineRaw(preloadedStreamlines[i], len[streamlineIdx]);
-    //         } else {
-    //              // Should not happen, but handle defensively
-    //              deleteStreamlineRaw(preloadedStreamlines[i], 0); // Pass 0 length if index is bad
-    //         }
-    //     }
-    // } else {
-    //     // Fallback if len is not available or cache is empty/invalid index
-    //     for (float** pts : preloadedStreamlines) {
-    //          // We don't know the length, which is risky.
-    //          // Assume deleteStreamlineRaw handles nullptr points[i] gracefully if needed.
-    //          // This path indicates a potential logic error elsewhere.
-    //          if (pts) delete[] pts; // Delete only the outer array if inner is unknown
-    //     }
-    // }
-
-	// Caller clears memory
-    preloadedStreamlines.clear();
-    preloadedStreamlines.shrink_to_fit(); // Optional: release memory
-    preloadedStartIndex = std::numeric_limits<std::size_t>::max(); // Reset start index
-    disp(MSG_DEBUG, "Preload cache reset complete.");
-}
-
-
-
-
-float** TractogramReader::readStreamline(std::size_t n) {
-    // Acquire lock for the entire operation
-    std::lock_guard<std::mutex> lock(reader_mutex);
-
-    if (n >= numberOfStreamlines) {
-        disp(MSG_WARN,"Requested streamline index %zu is out of bounds (0-%zu).", n, numberOfStreamlines > 0 ? numberOfStreamlines-1 : 0);
-        return nullptr;
-    }
-
-    // --- Preloading Logic (inside lock) ---
-    if (preloadCount > 0) {
-        std::size_t requestedBatchStart = (n / preloadCount) * preloadCount;
-
-		// Check if the required batch is currently loaded
-		if (requestedBatchStart != preloadedStartIndex || preloadedStreamlines.empty()) {
-
-			missedCacheCounter++;
-
-			if (missedCacheCounter < MT::MAXNUMBEROFTHREADS()) {
-				disp(MSG_DEBUG, "Cache load failed for streamline %zu. Falling back to direct read.", n);
-				float** out = readStreamlineRawFromFile(file,n);
-				if (!out && len[n]>0) {
-					disp(MSG_ERROR, "Direct read fallback also failed for streamline %zu.", n);
-					return NULL;
-				}
-				return out;
-			} else {
-				disp(MSG_DEBUG, "Too many missed caches. Attempting to load batch starting at %zu.", n, requestedBatchStart);
-				if (!loadBatchContaining(n)) {
-					disp(MSG_ERROR, "Failed to load required cache batch for streamline %zu.", n);
-					return NULL;
-				}
-				disp(MSG_DEBUG, "Cache loaded successfully for batch starting at %zu.", requestedBatchStart);
-			}
-		}
-
-        // Cache hit (or cache miss just loaded the batch)
-        std::size_t indexInCache = n - preloadedStartIndex;
-        if (indexInCache < preloadedStreamlines.size()) {
-             disp(MSG_DEBUG, "Cache hit for streamline %zu.", n);
-            // Return pointer directly from cache. CAUTION: Cache owns this memory.
-            return preloadedStreamlines[indexInCache];
-        } else {
-            // This indicates a logic error if loadBatchContaining_Locked succeeded
-            disp(MSG_FATAL,"Logic error: Streamline %zu not found in cache after loading batch starting %zu.", n, preloadedStartIndex);
-            return nullptr; // Return null on error
-        }
-
-    } else {
-        float** out = readStreamlineRawFromFile(file,n);
-		if (!out && len[n]>0) {
-			disp(MSG_ERROR, "Direct read fallback also failed for streamline %zu.", n);
-			return NULL;
-		}
-		return out;
-    }
-}
-
-
-std::vector<Point> TractogramReader::readStreamlinePoints(std::size_t n) {
-    std::vector<Point> points_vec;
-    
-    // Call readStreamline which handles locking and caching
-    float** points_raw = readStreamline(n); 
-
-    // Need to re-acquire lock briefly to get length safely
-    uint32_t lineLen = 0;
-    { // Short lock scope
-        std::lock_guard<std::mutex> lock(reader_mutex);
-        if (len == nullptr || n >= numberOfStreamlines) {
-             // Error already logged by readStreamline or index is invalid
-             return points_vec; // Return empty
-        }
-        lineLen = len[n];
-    } // Lock released
-
-
-    if (points_raw != nullptr && lineLen > 0) {
-        try {
-            points_vec.reserve(lineLen);
-            for (uint32_t i = 0; i < lineLen; ++i) {
-                if (points_raw[i] != nullptr) { // Check inner pointer
-                    points_vec.push_back({points_raw[i][0], points_raw[i][1], points_raw[i][2]});
-                } else {
-                    // Handle potential null inner pointer if allocation failed partially
-                    disp(MSG_ERROR, "Null inner pointer encountered during conversion for streamline %zu, point %u.", n, i);
-                    points_vec.clear(); // Invalidate result
-                    return points_vec;
-                }
-            }
-        } catch (const std::bad_alloc& e) {
-            disp(MSG_ERROR, "Memory allocation failed during Point conversion for streamline %zu: %s", n, e.what());
-            points_vec.clear(); // Return empty on error
-        }
-    } else if (lineLen > 0 && points_raw == nullptr) {
-         // Log error if readStreamline failed for a non-empty streamline
-         disp(MSG_WARN, "readStreamlinePoints: Failed to get raw data for streamline %zu.", n);
-    }
-    // If lineLen is 0, points_raw might be null, return empty vector which is correct.
-
-    return points_vec;
-}
-
-
-// Reads streamline 'n' and converts to std::vector<std::vector<float>>.
-std::vector<std::vector<float>> TractogramReader::readStreamlineVector(std::size_t n) {
-	std::vector<std::vector<float>> points_vec;
-   
-   // Call readStreamline which handles locking and caching
-   float** points_raw = readStreamline(n); 
-
-   // Need to re-acquire lock briefly to get length safely
-   uint32_t lineLen = 0;
-   { // Short lock scope
-	   std::lock_guard<std::mutex> lock(reader_mutex);
-	   if (len == nullptr || n >= numberOfStreamlines) {
-			return points_vec; // Return empty
-	   }
-	   lineLen = len[n];
-   } // Lock released
-
-
-   if (points_raw != nullptr && lineLen > 0) {
-	   try {
-		   points_vec.reserve(lineLen);
-		   for (uint32_t i = 0; i < lineLen; ++i) {
-				if (points_raw[i] != nullptr) {
-				   points_vec.push_back({points_raw[i][0], points_raw[i][1], points_raw[i][2]});
-				} else {
-				   disp(MSG_ERROR, "Null inner pointer encountered during vector<float> conversion for streamline %zu, point %u.", n, i);
-				   points_vec.clear();
-				   return points_vec;
-				}
-		   }
-	   } catch (const std::bad_alloc& e) {
-		   disp(MSG_ERROR, "Memory allocation failed during vector<float> conversion for streamline %zu: %s", n, e.what());
-		   points_vec.clear();
-	   }
-   } else if (lineLen > 0 && points_raw == nullptr) {
-		disp(MSG_WARN, "readStreamlineVector: Failed to get raw data for streamline %zu.", n);
-   }
-
-   return points_vec;
-}
-
-// Reads all streamlines into a vector of vectors of float vectors.
-std::vector<std::vector<std::vector<float>>> TractogramReader::read() {
-    std::vector<std::vector<std::vector<float>>> allStreamlines;
-     if (numberOfStreamlines == 0) return allStreamlines;
-
-    disp(MSG_INFO, "Reading all %zu streamlines into vector<vector<float>>...", numberOfStreamlines);
-    try {
-        allStreamlines.reserve(numberOfStreamlines);
-        for (std::size_t n = 0; n < numberOfStreamlines; ++n) {
-            allStreamlines.push_back(readStreamlineVector(n)); // Uses caching internally
-        }
-     } catch (const std::bad_alloc& e) {
-         disp(MSG_FATAL, "Memory allocation failed while reading all streamlines (Vectors): %s", e.what());
-         allStreamlines.clear();
-     }
-    disp(MSG_INFO, "Finished reading all streamlines.");
-    return allStreamlines;
 }

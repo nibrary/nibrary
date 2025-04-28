@@ -1,16 +1,12 @@
 #pragma once
 
-#include <cstdio>
+#include <stdio.h>
 #include <fstream>
 #include <iostream>
 #include <string>
 #include <cstring>
-#include <cstdint>
-#include <limits>
 #include <vector>
-#include <stdexcept>
-#include <mutex>
-
+#include <float.h>
 #include "base/nibr.h"
 #include "math/core.h"
 #include "image/image.h"
@@ -18,6 +14,8 @@
 
 namespace NIBR
 {
+
+    struct TractogramField;
 
     struct trkFileStruct {
 
@@ -62,38 +60,64 @@ namespace NIBR
         TRK
     } TRACTOGRAMFILEFORMAT;
 
-    struct TractogramField;
-
     class TractogramReader {
         
     public:
         
-        TractogramReader(const std::string& _fileName, std::size_t _preloadCount = 100000000);
+        TractogramReader();
+        TractogramReader(std::string _fileName);
         ~TractogramReader();
-
-        // Copying not allowed because file handle, cache, mutex cannot be triviallycopied 
-        TractogramReader(const TractogramReader& obj) = delete;
-        TractogramReader& operator=(const TractogramReader&) = delete;
-
-        bool isOpen() {return file != NULL;}
+        TractogramReader(const TractogramReader& obj);
+        void copyFrom(const TractogramReader& obj);
+        void destroyCopy();
         void printInfo();
 
-        template <typename T>
-        void setReferenceImage(const Image<T>* ref);
+        bool     isOpen() {return file!=NULL; };
         
-        std::vector<std::vector<std::vector<float>>>    read(); // Reads all the streamlines        
-        float**                                         readStreamline(std::size_t n);
-        std::vector<std::vector<float>>                 readStreamlineVector(std::size_t n);
-        std::vector<Point>                              readStreamlinePoints(std::size_t n);
+        bool     initReader(std::string _fileName);
+        void     setThreadId (uint32_t _threadId) {threadId=_threadId;}
+        uint32_t getThreadId () {return threadId;}
 
-        FILE                   *file                = NULL;
-        std::string             fileName            = "";
-        std::string             fileDescription     = "";
-        TRACTOGRAMFILEFORMAT    fileFormat          = VTK_BINARY;
-        std::size_t             numberOfPoints      = 0;
-        std::size_t             numberOfStreamlines = 0;
-        uint32_t*               len                 = NULL;
-        long                    endPosOfStreamlines = 0;
+        template<typename T>
+        void     setReferenceImage(Image<T>* ref) 
+        {
+            for(int i=0;i<3;++i) {
+                for(int j=0;j<4;++j) {
+                    ijk2xyz[i][j] = ref->ijk2xyz[i][j];
+                    xyz2ijk[i][j] = ref->xyz2ijk[i][j];
+                }
+            }
+
+            for(int j=0;j<3;++j) {
+                ijk2xyz[3][j] = 0;
+                xyz2ijk[3][j] = 0;
+                imgDims[j]    = ref->imgDims[j];
+                pixDims[j]    = ref->pixDims[j];
+            }
+
+            ijk2xyz[3][3] = 1;
+            xyz2ijk[3][3] = 1;
+
+            std::strcpy(voxOrdr,"LAS");             // TODO: Compute this properly and not assume LAS.
+
+        }
+        
+        std::vector<std::vector<std::vector<float>>>    read(); // Reads all the streamlines
+        void                                            readPoint(std::size_t n, uint32_t l, float* p);
+        float**                                         readStreamline(std::size_t n);
+        std::vector<Point>                              readStreamlinePoints(std::size_t n);
+        std::vector<std::vector<float>>                 readStreamlineVector(std::size_t n);
+
+        std::vector<TractogramField>                    findTractogramFields();
+
+        FILE                   *file;
+        std::string             fileName;
+        std::string             fileDescription;
+        TRACTOGRAMFILEFORMAT    fileFormat;
+        
+        std::size_t             numberOfPoints;
+        std::size_t             numberOfStreamlines;
+        uint32_t*               len;
 
         // Nifti assumes voxel center to be 0,0,0.
         // TRK assumes 0,0,0 to be one of the corners. But which corner? 
@@ -108,75 +132,22 @@ namespace NIBR
 
         short                   imgDims[3];
         float                   pixDims[3];
-        char                    voxOrdr[4];         // We assume this to be LAS for now
+        char                    voxOrdr[4];          // We assume this to be LAS for now
         float                   ijk2xyz[4][4];
         float                   xyz2ijk[4][4];
-
         
+        long                    endPosOfStreamlines; // file positions for the end of streamline points
 
     private:
-
-
-        long*                   streamlinePos       = NULL;      // file positions for first points of streamlines
-
-        mutable std::mutex      reader_mutex;       // Mutex for thread safety
+        uint32_t                threadId;
 
         // TRK specific
-        short                   n_scalars_trk    = 0; // TRK file format extension
-        short                   n_properties_trk = 0; // TRK file format extension
+        short                   n_scalars_trk;       // TRK file format extension
+        short                   n_properties_trk;    // TRK file format extension
 
-        std::vector<TractogramField>        findTractogramFields(); // used for printing info only
-
-        // Preloading cache state
-        std::size_t             preloadCount        = 0;
-        std::size_t             preloadedStartIndex = std::numeric_limits<std::size_t>::max();
-        std::vector<float**>    preloadedStreamlines;
-
-        // Helper functions
-
-        // Not locked
-        bool initReader();
-        void cleanupMemory();
-        void deleteStreamlineRaw(float** points, uint32_t numPoints);
-        void resetCache();
-
-        // Locked
-        bool    loadBatchContaining(std::size_t streamlineIndex);
-        float** readStreamlineRawFromFile(FILE* bf, std::size_t n);
-
-        int   missedCacheCounter = 0;
-
-        // Parallel batch loading
-        std::vector<FILE*> batchFile;
+        long*                   streamlinePos;       // file positions for first points of streamlines
 
     };
-
-    // TODO: Compute this properly and not assume LAS.
-    template<typename T>
-    void TractogramReader::setReferenceImage(const Image<T>* ref) 
-    {
-        std::lock_guard<std::mutex> lock(reader_mutex);
-
-        for(int i=0;i<3;++i) {
-            for(int j=0;j<4;++j) {
-                ijk2xyz[i][j] = ref->ijk2xyz[i][j];
-                xyz2ijk[i][j] = ref->xyz2ijk[i][j];
-            }
-        }
-
-        for(int j=0;j<3;++j) {
-            ijk2xyz[3][j] = 0;
-            xyz2ijk[3][j] = 0;
-            imgDims[j]    = ref->imgDims[j];
-            pixDims[j]    = ref->pixDims[j];
-        }
-
-        ijk2xyz[3][3] = 1;
-        xyz2ijk[3][3] = 1;
-
-        std::strcpy(voxOrdr,"LAS");             
-
-    }
 
 }
 

@@ -22,7 +22,7 @@ namespace NIBR
 
         std::set<int> marked;
 
-        auto f = [&](const NIBR::MT::TASK& task)->void {
+        auto f = [&](NIBR::MT::TASK task)->void {
             
             int64_t i,j,k; 
 
@@ -77,7 +77,7 @@ namespace NIBR
 
         std::vector<int> inds = getNonZeroIndices(&inp);
 
-        auto f = [&](const NIBR::MT::TASK& task)->void {
+        auto f = [&](NIBR::MT::TASK task)->void {
             
             int64_t i,j,k; 
 

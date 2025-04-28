@@ -106,7 +106,7 @@ void NIBR::SCsurfaceIndexer::run() {
     tractogram2surfaceMapper(tractogram, surf, tract2surfMap, true);
 
     // Compute connectome
-    NIBR::MT::MTRUN(tractogram->numberOfStreamlines, "Computing connectome", [&](const NIBR::MT::TASK& task)->void{processStreamline(task.no);} );
+    NIBR::MT::MTRUN(tractogram->numberOfStreamlines, "Computing connectome", [&](NIBR::MT::TASK task)->void{processStreamline(task.no);} );
 }
 
 

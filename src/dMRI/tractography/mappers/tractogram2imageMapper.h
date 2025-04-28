@@ -20,7 +20,8 @@ namespace NIBR
 
     public:
 
-        Tractogram2ImageMapper(std::shared_ptr<NIBR::TractogramReader> _tractogram, NIBR::Image<T>* _img);
+        Tractogram2ImageMapper(NIBR::TractogramReader* _tractogram, NIBR::Image<T>* _img);
+        // Tractogram2ImageMapper(NIBR::TractogramReader* _tractogram, NIBR::Image<T>* _img, bool allocateGrid);
         
         ~Tractogram2ImageMapper();
         
@@ -64,18 +65,18 @@ namespace NIBR
 
     private:
         
-        std::shared_ptr<NIBR::TractogramReader> tractogram = NULL;
+        NIBR::TractogramReader* tractogram;
 
-        bool                                    mapOnce;
-        std::tuple<float,int>                   smoothing;
+        bool                    mapOnce;
+        std::tuple<float,int>   smoothing;
 
-        std::vector<float>                      weights;
-        FILE**                                  weightFile;
-        WEIGHTTYPE                              weightType;
+        std::vector<float>      weights;
+        FILE**                  weightFile;
+        WEIGHTTYPE              weightType;
 
-        int*                                    cumLen;
+        int*                    cumLen;
         
-        bool                                    maskFromImage;
+        bool                    maskFromImage;
     };
 
     // Explicit instantiations
@@ -111,7 +112,7 @@ template<typename T> template<class GRIDTYPE>
 void NIBR::Tractogram2ImageMapper<T>::deallocateGrid() 
 {
     if (!grid.empty()) {
-        auto resetGrid = [&](const NIBR::MT::TASK& task)->void{
+        auto resetGrid = [&](NIBR::MT::TASK task)->void{
             const int64_t& ind = task.no;
             if (grid[ind]!=NULL) {
                 delete ((GRIDTYPE*)(grid[ind]));

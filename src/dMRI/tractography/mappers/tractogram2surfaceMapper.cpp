@@ -23,7 +23,7 @@ void NIBR::tractogram2surfaceMapper(std::shared_ptr<NIBR::TractogramReader> trac
         map2surf[t].resize(surf->nf);
     }
 
-    auto doMapping = [&](const NIBR::MT::TASK& task)->void {
+    auto doMapping = [&](NIBR::MT::TASK task)->void {
 
         int streamlineId = task.no;
         int threadNo     = task.threadId;
@@ -150,7 +150,7 @@ void NIBR::tractogram2surfaceMapper(std::shared_ptr<NIBR::TractogramReader> trac
     }
     delete[] mask;
 
-    auto finMapping = [&](const NIBR::MT::TASK& task)->void {  
+    auto finMapping = [&](NIBR::MT::TASK task)->void {  
 
         int f = task.no; 
 

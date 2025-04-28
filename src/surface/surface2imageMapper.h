@@ -149,7 +149,7 @@ namespace NIBR
             }
         }
 
-        auto createMask = [&](const NIBR::MT::TASK& task)->void {
+        auto createMask = [&](NIBR::MT::TASK task)->void {
             int64_t i,j,k;
             img->ind2sub(int64_t(task.no),i,j,k);
             mask[i][j][k] = (!grid[i][j][k].empty()) ? true : false;
@@ -298,7 +298,7 @@ namespace NIBR
                     }
                 }
                 
-                auto write_field_label = [&](const NIBR::MT::TASK& task) {
+                auto write_field_label = [&](NIBR::MT::TASK task) {
                     if (img->data[task.no] > OUTSIDE)
                         img->data[task.no] = (sf->owner==NIBR::FACE) ? sf->idata[int(img->data[task.no]-1)][0] : flabel[int(img->data[task.no]-1)][0];
                     else

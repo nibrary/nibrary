@@ -10,9 +10,15 @@
 using namespace NIBR;
 
 
-std::vector<std::vector<std::vector<float>>> NIBR::applyTransform(std::shared_ptr<NIBR::TractogramReader> tractogram, float M[][4]) {
+std::vector<std::vector<std::vector<float>>> NIBR::applyTransform(NIBR::TractogramReader* _tractogram, float M[][4]) {
+
+    // Initialize tractogram and make copies for multithreader
+    NIBR::TractogramReader* tractogram = new NIBR::TractogramReader[NIBR::MT::MAXNUMBEROFTHREADS()]();
+    for (int t = 0; t < NIBR::MT::MAXNUMBEROFTHREADS(); t++) {
+        tractogram[t].copyFrom(*_tractogram);
+    }
     
-    int N = tractogram->numberOfStreamlines;
+    int N = tractogram[0].numberOfStreamlines;
     
     if (N<1) {
         return std::vector<std::vector<std::vector<float>>>();
@@ -22,11 +28,11 @@ std::vector<std::vector<std::vector<float>>> NIBR::applyTransform(std::shared_pt
     out.resize(N);
 
     // Iterate throught the whole tractogram
-    auto transform = [&](const NIBR::MT::TASK& task)->void{
+    auto transform = [&](NIBR::MT::TASK task)->void{
 
-        float** streamline = tractogram->readStreamline(task.no);
+        float** streamline = tractogram[task.threadId].readStreamline(task.no);
 
-        int len = tractogram->len[task.no];
+        int len = tractogram[task.threadId].len[task.no];
 
         out[task.no].reserve(len);
 
@@ -44,24 +50,35 @@ std::vector<std::vector<std::vector<float>>> NIBR::applyTransform(std::shared_pt
 
     NIBR::MT::MTRUN(N, "Applying transform", transform);
 
+    for (int t = 0; t < NIBR::MT::MAXNUMBEROFTHREADS(); t++) {
+        tractogram[t].destroyCopy();
+    }
+    delete[] tractogram;
+
     return out;
 
 }
 
 
 
-std::vector<float> NIBR::getTractogramBBox(std::shared_ptr<NIBR::TractogramReader> tractogram) {
+std::vector<float> NIBR::getTractogramBBox(NIBR::TractogramReader* _tractogram) {
 
     std::vector<float> bb(6,0); 
+
+    // Initialize tractogram and make copies for multithreader
+    NIBR::TractogramReader* tractogram = new NIBR::TractogramReader[NIBR::MT::MAXNUMBEROFTHREADS()]();
+    for (int t = 0; t < NIBR::MT::MAXNUMBEROFTHREADS(); t++) {
+        tractogram[t].copyFrom(*_tractogram);
+    }
     
-    int N = tractogram->numberOfStreamlines;
+    int N = tractogram[0].numberOfStreamlines;
     
     if (N<1) {
         return bb;
     }
 
     // Initialize bb using the first streamline
-    float** firstStreamline = tractogram->readStreamline(0);
+    float** firstStreamline = tractogram[0].readStreamline(0);
     bb[0] = firstStreamline[0][0];
     bb[1] = firstStreamline[0][0];
     bb[2] = firstStreamline[0][1];
@@ -69,21 +86,21 @@ std::vector<float> NIBR::getTractogramBBox(std::shared_ptr<NIBR::TractogramReade
     bb[4] = firstStreamline[0][2];
     bb[5] = firstStreamline[0][2];
 
-    for (uint32_t i=0; i<tractogram->len[0]; i++)
+    for (uint32_t i=0; i<tractogram[0].len[0]; i++)
         delete[] firstStreamline[i];
     delete[] firstStreamline;
 
     // Iterate throught the whole tractogram
-    auto findBB = [&](const NIBR::MT::TASK& task)->void{
+    auto findBB = [&](NIBR::MT::TASK task)->void{
         
         // Local bounding box for the current streamline
         std::vector<float> localBB(6);
-        float** streamline = tractogram->readStreamline(task.no);
+        float** streamline = tractogram[task.threadId].readStreamline(task.no);
         localBB[0] = localBB[1] = streamline[0][0];  // x min and max
         localBB[2] = localBB[3] = streamline[0][1];  // y min and max
         localBB[4] = localBB[5] = streamline[0][2];  // z min and max
 
-        for (uint32_t i = 1; i < tractogram->len[task.no]; i++) {
+        for (uint32_t i = 1; i < tractogram[task.threadId].len[task.no]; i++) {
             localBB[0] = std::min(localBB[0], streamline[i][0]);  // Update x min
             localBB[1] = std::max(localBB[1], streamline[i][0]);  // Update x max
             localBB[2] = std::min(localBB[2], streamline[i][1]);  // Update y min
@@ -92,7 +109,7 @@ std::vector<float> NIBR::getTractogramBBox(std::shared_ptr<NIBR::TractogramReade
             localBB[5] = std::max(localBB[5], streamline[i][2]);  // Update z max
         }
 
-        for (uint32_t i=0; i<tractogram->len[task.no]; i++)
+        for (uint32_t i=0; i<tractogram[task.threadId].len[task.no]; i++)
             delete[] streamline[i];
         delete[] streamline;
 
@@ -112,21 +129,26 @@ std::vector<float> NIBR::getTractogramBBox(std::shared_ptr<NIBR::TractogramReade
         
     NIBR::MT::MTRUN(N, NIBR::MT::MAXNUMBEROFTHREADS(), "Finding tractogram bounding box", findBB);
 
+    for (int t = 0; t < NIBR::MT::MAXNUMBEROFTHREADS(); t++) {
+        tractogram[t].destroyCopy();
+    }
+    delete[] tractogram;
+
     return bb;
 
 }
 
 // tuple<diffStreamlineIdx,sameStreamlineIdx>
-std::tuple<std::vector<std::size_t>,std::vector<std::size_t>> NIBR::tractogramDiff(std::shared_ptr<NIBR::TractogramReader> inp_tractogram, std::shared_ptr<NIBR::TractogramReader> ref_tractogram)
+std::tuple<std::vector<size_t>,std::vector<size_t>> NIBR::tractogramDiff(NIBR::TractogramReader* inp_tractogram, NIBR::TractogramReader* ref_tractogram)
 {
 
-    std::vector<std::size_t> diffStreamlineIdx;
-    std::vector<std::size_t> sameStreamlineIdx;
+    std::vector<size_t> diffStreamlineIdx;
+    std::vector<size_t> sameStreamlineIdx;
 
     int N = ref_tractogram->numberOfStreamlines;
 
     if (N==0) {
-        for (std::size_t n=0; n<inp_tractogram->numberOfStreamlines; n++)
+        for (size_t n=0; n<inp_tractogram->numberOfStreamlines; n++)
             diffStreamlineIdx.push_back(n);
         return std::make_tuple(diffStreamlineIdx,sameStreamlineIdx);
     }
@@ -137,7 +159,12 @@ std::tuple<std::vector<std::size_t>,std::vector<std::size_t>> NIBR::tractogramDi
 	if (int(inp_tractogram->numberOfStreamlines)<NIBR::MT::MAXNUMBEROFTHREADS())
 		NIBR::MT::MAXNUMBEROFTHREADS() = inp_tractogram->numberOfStreamlines;
 
-	auto compare = [&](const NIBR::MT::TASK& task)->void {
+	NIBR::TractogramReader* inp = new NIBR::TractogramReader[NIBR::MT::MAXNUMBEROFTHREADS()]();
+    for (int t = 0; t < NIBR::MT::MAXNUMBEROFTHREADS(); t++) {
+        inp[t].copyFrom(*inp_tractogram);
+    }
+
+	auto compare = [&](NIBR::MT::TASK task)->void {
 
 		float**  streamline = NULL;
         bool     isRead     = false;
@@ -153,7 +180,7 @@ std::tuple<std::vector<std::size_t>,std::vector<std::size_t>> NIBR::tractogramDi
             if (ref_tractogram->len[n] == len) {
 
                 if (isRead==false) {
-                    streamline = inp_tractogram->readStreamline(task.no);
+                    streamline = inp[task.threadId].readStreamline(task.no);
                     isRead     = true;
                 }
                 
@@ -192,6 +219,10 @@ std::tuple<std::vector<std::size_t>,std::vector<std::size_t>> NIBR::tractogramDi
 		NIBR::MT::MTRUN(inp_tractogram->numberOfStreamlines, "Comparing streamlines", compare);
 	else
 		NIBR::MT::MTRUN(inp_tractogram->numberOfStreamlines, compare);
+	
+	for (int t = 0; t < NIBR::MT::MAXNUMBEROFTHREADS(); t++)
+        inp[t].destroyCopy();
+	delete[] inp;
 
     NIBR::MT::MAXNUMBEROFTHREADS() = bakMaxThreads;
 
@@ -199,7 +230,7 @@ std::tuple<std::vector<std::size_t>,std::vector<std::size_t>> NIBR::tractogramDi
 
 }
 
-std::vector<std::vector<std::vector<float>>> NIBR::tractogramMerge(std::shared_ptr<NIBR::TractogramReader> inp1, std::shared_ptr<NIBR::TractogramReader> inp2, bool checkDuplicates)
+std::vector<std::vector<std::vector<float>>> NIBR::tractogramMerge(NIBR::TractogramReader* inp1, NIBR::TractogramReader* inp2, bool checkDuplicates)
 {
 
     std::vector<std::vector<std::vector<float>>> trk1 = inp1->read();
@@ -211,9 +242,9 @@ std::vector<std::vector<std::vector<float>>> NIBR::tractogramMerge(std::shared_p
         return trk1;
     }
 
-    std::vector<std::size_t> existsInInp1;
+    std::vector<size_t> existsInInp1;
 
-	auto compare = [&](const NIBR::MT::TASK& task)->void {
+	auto compare = [&](NIBR::MT::TASK task)->void {
 
 		const auto& streamline  = trk2[task.no];
 
@@ -257,13 +288,13 @@ std::vector<std::vector<std::vector<float>>> NIBR::tractogramMerge(std::shared_p
 }
 
 
-TractogramField NIBR::colorTractogram(std::shared_ptr<NIBR::TractogramReader> tractogram)
+TractogramField NIBR::colorTractogram(NIBR::TractogramReader* tractogram)
 {
 
     float*** segmentColors = new float**[tractogram->numberOfStreamlines];
 
     // Iterate throught the whole tractogram
-    auto getColors = [&](const NIBR::MT::TASK& task)->void{
+    auto getColors = [&](NIBR::MT::TASK task)->void{
         auto streamline = tractogram->readStreamlineVector(task.no);
         segmentColors[task.no] = colorStreamline(streamline);
     };

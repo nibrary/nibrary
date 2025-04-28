@@ -57,7 +57,7 @@ namespace NIBR
         tim->img->allocData();
 
 
-        auto genOut = [&](const NIBR::MT::TASK& task)->void{
+        auto genOut = [&](NIBR::MT::TASK task)->void{
 
             int64_t ind    = task.no;
             int64_t sub[7] = {0,0,0,0,0,0,0};

@@ -102,7 +102,7 @@ void TranShi2015::recon()
 
     // std::ofstream file("data.csv");      // Used with the gradient_csv_save function
 
-    auto reconstructVoxel = [&](const NIBR::MT::TASK& task)->void {
+    auto reconstructVoxel = [&](NIBR::MT::TASK task)->void {
 
         int64_t voxelIndex = voxelIndicesToReconstruct[task.no]; // This is the index of the voxel to reconstruct
 

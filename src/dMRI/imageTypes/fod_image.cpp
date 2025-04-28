@@ -137,7 +137,7 @@ bool NIBR::FOD_Image::read() {
     float* ddata = new float[nnt*voxCnt];
     int    shNum = getNumberOfSHCoeffs(shOrder);
 
-    auto loadingTask = [&](const NIBR::MT::TASK& task)->void {
+    auto loadingTask = [&](NIBR::MT::TASK task)->void {
         
         std::vector<int64_t> sub = nnzVoxelSubs[task.no];
         float *FOD               = new float[shNum];

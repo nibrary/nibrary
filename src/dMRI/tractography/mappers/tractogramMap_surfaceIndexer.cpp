@@ -42,7 +42,7 @@ std::vector<std::unordered_map<int,float>> NIBR::index2surface(std::shared_ptr<N
     float maxVertexMappingDistance = 3.0f*sigma;  // we will not consider any vertex beyond 3*sigma
     float variance                 = sigma*sigma;
 
-    auto run = [&](const NIBR::MT::TASK& task)->void{
+    auto run = [&](NIBR::MT::TASK task)->void{
 
         // Loop all the faces this streamline crosses
         for (auto s : s2f[task.no]) {
@@ -135,7 +135,7 @@ void NIBR::index2surface(std::shared_ptr<NIBR::TractogramReader> tractogram, Sur
         batchData.resize(batchSize);
         std::atomic_int counter(0);
 
-        auto run = [&](const NIBR::MT::TASK& task)->void{
+        auto run = [&](NIBR::MT::TASK task)->void{
 
             // Loop all the faces this streamline crosses
             for (auto s : s2f[starting+task.no]) {
@@ -240,7 +240,7 @@ std::unordered_map<int, float> NIBR::continuousSurfaceMap(const std::vector<int>
     }
     posFile.close();
 
-    auto runMapper = [&](const NIBR::MT::TASK& task)->void {
+    auto runMapper = [&](NIBR::MT::TASK task)->void {
 
         int streamlineIndex = streamlineIndices[task.no];
         
@@ -281,7 +281,7 @@ std::unordered_map<int, float> NIBR::continuousSurfaceMap(const std::vector<int>
     std::unordered_map<int, float> continuousMap;
     std::mutex continuousMapLock;
 
-    auto runMapper = [&](const NIBR::MT::TASK& task)->void {
+    auto runMapper = [&](NIBR::MT::TASK task)->void {
 
         int streamlineIndex = streamlineIndices[task.no];
         
@@ -331,7 +331,7 @@ std::unordered_map<int,std::unordered_map<int, float>> NIBR::readSurfaceIndexing
         idxFile[n].open(indexFilePrefix + "_idx.bin", std::ios::binary | std::ios::in);
     }
 
-    auto runReader = [&](const NIBR::MT::TASK& task)->void {
+    auto runReader = [&](NIBR::MT::TASK task)->void {
 
         int streamlineIndex = streamlineIndices[task.no];
 
@@ -381,7 +381,7 @@ std::vector<std::unordered_map<int,float>> NIBR::readSurfaceIndexing(std::shared
         idxFile[n].open(indexFilePrefix + "_idx.bin", std::ios::binary | std::ios::in);
     }
 
-    auto runReader = [&](const NIBR::MT::TASK& task)->void {
+    auto runReader = [&](NIBR::MT::TASK task)->void {
 
         const std::size_t& streamlineIndex = task.no;
         

@@ -315,7 +315,7 @@ namespace NIBR
 
         createFromTemplate(img,true);
 
-        NIBR::MT::MTRUN(img.numel, NIBR::MT::MAXNUMBEROFTHREADS(),[&](const NIBR::MT::TASK& task)->void {data[task.no] = img.data[task.no];});        
+        NIBR::MT::MTRUN(img.numel, NIBR::MT::MAXNUMBEROFTHREADS(),[&](NIBR::MT::TASK task)->void {data[task.no] = img.data[task.no];});        
 
         return *this;
     }
@@ -352,7 +352,7 @@ namespace NIBR
 
         createFromTemplate(img,true);
 
-        NIBR::MT::MTRUN(img.numel, NIBR::MT::MAXNUMBEROFTHREADS(),[&](const NIBR::MT::TASK& task)->void {data[task.no] = img.data[task.no];});
+        NIBR::MT::MTRUN(img.numel, NIBR::MT::MAXNUMBEROFTHREADS(),[&](NIBR::MT::TASK task)->void {data[task.no] = img.data[task.no];});
 
         return *this;
     }
@@ -474,7 +474,7 @@ namespace NIBR
         
         int64_t* newIndices = (int64_t*) malloc(numel*sizeof(int64_t));
         
-        auto run = [&](const NIBR::MT::TASK& task) {
+        auto run = [&](NIBR::MT::TASK task) {
             int64_t sub[7];
             ind2sub(task.no,sub);
             newIndices[task.no] = sub[0]*s2i[0] + sub[1]*s2i[1] + sub[2]*s2i[2] + sub[3]*s2i[3] + sub[4]*s2i[4] + sub[5]*s2i[5] + sub[6]*s2i[6];

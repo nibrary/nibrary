@@ -65,7 +65,7 @@ namespace NIBR
             batchData.resize(batchSize);
             std::atomic_int counter(0);
 
-            auto run = [&](NIBR::MT::TASK task)->void{
+            auto run = [&](const NIBR::MT::TASK& task)->void{
 
                 int64_t ind = inds->at(starting+task.no);
 
@@ -137,7 +137,7 @@ namespace NIBR
         
         indexing->resize(numberOfIndices);
 
-        auto indexStreamlines = [&](NIBR::MT::TASK task)->void{
+        auto indexStreamlines = [&](const NIBR::MT::TASK& task)->void{
             const int64_t& ind = inds->at(task.no);
 
             if (tim->grid[ind] != NULL) {

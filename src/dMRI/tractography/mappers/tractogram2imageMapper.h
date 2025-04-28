@@ -112,7 +112,7 @@ template<typename T> template<class GRIDTYPE>
 void NIBR::Tractogram2ImageMapper<T>::deallocateGrid() 
 {
     if (!grid.empty()) {
-        auto resetGrid = [&](NIBR::MT::TASK task)->void{
+        auto resetGrid = [&](const NIBR::MT::TASK& task)->void{
             const int64_t& ind = task.no;
             if (grid[ind]!=NULL) {
                 delete ((GRIDTYPE*)(grid[ind]));

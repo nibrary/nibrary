@@ -28,7 +28,7 @@ std::vector<std::vector<std::vector<float>>> NIBR::applyTransform(NIBR::Tractogr
     out.resize(N);
 
     // Iterate throught the whole tractogram
-    auto transform = [&](NIBR::MT::TASK task)->void{
+    auto transform = [&](const NIBR::MT::TASK& task)->void{
 
         float** streamline = tractogram[task.threadId].readStreamline(task.no);
 
@@ -91,7 +91,7 @@ std::vector<float> NIBR::getTractogramBBox(NIBR::TractogramReader* _tractogram) 
     delete[] firstStreamline;
 
     // Iterate throught the whole tractogram
-    auto findBB = [&](NIBR::MT::TASK task)->void{
+    auto findBB = [&](const NIBR::MT::TASK& task)->void{
         
         // Local bounding box for the current streamline
         std::vector<float> localBB(6);
@@ -164,7 +164,7 @@ std::tuple<std::vector<size_t>,std::vector<size_t>> NIBR::tractogramDiff(NIBR::T
         inp[t].copyFrom(*inp_tractogram);
     }
 
-	auto compare = [&](NIBR::MT::TASK task)->void {
+	auto compare = [&](const NIBR::MT::TASK& task)->void {
 
 		float**  streamline = NULL;
         bool     isRead     = false;
@@ -244,7 +244,7 @@ std::vector<std::vector<std::vector<float>>> NIBR::tractogramMerge(NIBR::Tractog
 
     std::vector<size_t> existsInInp1;
 
-	auto compare = [&](NIBR::MT::TASK task)->void {
+	auto compare = [&](const NIBR::MT::TASK& task)->void {
 
 		const auto& streamline  = trk2[task.no];
 
@@ -294,7 +294,7 @@ TractogramField NIBR::colorTractogram(NIBR::TractogramReader* tractogram)
     float*** segmentColors = new float**[tractogram->numberOfStreamlines];
 
     // Iterate throught the whole tractogram
-    auto getColors = [&](NIBR::MT::TASK task)->void{
+    auto getColors = [&](const NIBR::MT::TASK& task)->void{
         auto streamline = tractogram->readStreamlineVector(task.no);
         segmentColors[task.no] = colorStreamline(streamline);
     };

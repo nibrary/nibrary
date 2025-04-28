@@ -45,6 +45,9 @@ if (BUILD_DCM2NIIX)
         conditional_move("${CMAKE_SOURCE_DIR}/external/dcm2niix/SuperBuild/SuperBuild.cmake" "${CMAKE_SOURCE_DIR}/external/dcm2niix/SuperBuild/SuperBuild_cmake_nibr_bak")
         conditional_copy_file("${CMAKE_SOURCE_DIR}/external/dcm2niix_patch/SuperBuild.cmake" "${CMAKE_SOURCE_DIR}/external/dcm2niix/SuperBuild/SuperBuild.cmake")
 
+        conditional_move("${CMAKE_SOURCE_DIR}/external/dcm2niix/console/ucm.cmake" "${CMAKE_SOURCE_DIR}/external/dcm2niix/console/ucm_cmake_bak")
+        conditional_copy_file("${CMAKE_SOURCE_DIR}/external/dcm2niix_patch/ucm.cmake" "${CMAKE_SOURCE_DIR}/external/dcm2niix/console/ucm.cmake")
+
         set(BUILDING_DCM2NIIX_FROM_SOURCE TRUE CACHE INTERNAL "dcm2niix will be built from local source")
 
     elseif (EXISTS "${CMAKE_SOURCE_DIR}/external/dcm2niix_v${DCM2NIIX_VERSION}/CMakeLists.txt")
@@ -76,6 +79,9 @@ if (BUILD_DCM2NIIX)
 
         conditional_move("${CMAKE_SOURCE_DIR}/external/dcm2niix/SuperBuild/SuperBuild.cmake" "${CMAKE_SOURCE_DIR}/external/dcm2niix/SuperBuild/SuperBuild_cmake_nibr_bak")
         conditional_copy_file("${CMAKE_SOURCE_DIR}/external/dcm2niix_patch/SuperBuild.cmake" "${CMAKE_SOURCE_DIR}/external/dcm2niix/SuperBuild/SuperBuild.cmake")
+
+        conditional_move("${CMAKE_SOURCE_DIR}/external/dcm2niix/console/ucm.cmake" "${CMAKE_SOURCE_DIR}/external/dcm2niix/console/ucm_cmake_bak")
+        conditional_copy_file("${CMAKE_SOURCE_DIR}/external/dcm2niix_patch/ucm.cmake" "${CMAKE_SOURCE_DIR}/external/dcm2niix/console/ucm.cmake")
 
         set(BUILDING_DCM2NIIX_FROM_SOURCE TRUE CACHE INTERNAL "dcm2niix will be built from local source")
 
@@ -135,6 +141,9 @@ if (BUILD_DCM2NIIX)
             conditional_move("${DCM2NIIX_SOURCE_DIR}/SuperBuild/SuperBuild.cmake" "${DCM2NIIX_SOURCE_DIR}/SuperBuild/SuperBuild_cmake_nibr_bak")
             conditional_copy_file("${CMAKE_SOURCE_DIR}/external/dcm2niix_patch/SuperBuild.cmake" "${DCM2NIIX_SOURCE_DIR}/SuperBuild/SuperBuild.cmake")
 
+            conditional_move("${DCM2NIIX_SOURCE_DIR}/console/ucm.cmake" "${DCM2NIIX_SOURCE_DIR}/console/ucm_cmake_bak")
+            conditional_copy_file("${CMAKE_SOURCE_DIR}/external/dcm2niix_patch/ucm.cmake" "${DCM2NIIX_SOURCE_DIR}/console/ucm.cmake")
+
         endif()
 
     endif()
@@ -181,4 +190,3 @@ if (BUILD_DCM2NIIX)
     endif()
 
 endif()
-

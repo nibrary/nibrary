@@ -17,7 +17,7 @@ void NIBR::surfaceMask(NIBR::Image<bool>* img, NIBR::Surface* surf)
     Surface& closed = surf->compClosedAndOpen[0];
     closed.prepIglAABBTree();
 
-    auto getMask = [&](NIBR::MT::TASK task)->void {
+    auto getMask = [&](const NIBR::MT::TASK& task)->void {
 
         int64_t ind = task.no;
 
@@ -43,7 +43,7 @@ void NIBR::surfaceMaskWithBoundary(NIBR::Image<int8_t>* img, NIBR::Surface* surf
     Surface& closed = surf->compClosedAndOpen[0];
     closed.prepIglAABBTree();
 
-    auto getMaskAndBoundary = [&](NIBR::MT::TASK task)->void {
+    auto getMaskAndBoundary = [&](const NIBR::MT::TASK& task)->void {
 
         int64_t ind = task.no;
 
@@ -73,7 +73,7 @@ void NIBR::surfaceEDT(NIBR::Image<float>* img, NIBR::Surface* surf)
 
     surf->enablePointCheck(img->smallestPixDim);
 
-    auto getEDT = [&](NIBR::MT::TASK task)->void {
+    auto getEDT = [&](const NIBR::MT::TASK& task)->void {
 
         int64_t ind = task.no;
         float p[3];
@@ -96,7 +96,7 @@ void NIBR::surfacePVF(NIBR::Image<float>* img, NIBR::Surface* surf)
 
     surf->enablePointCheck(img->smallestPixDim);
 
-    auto estimPartVol = [&](NIBR::MT::TASK task)->void {
+    auto estimPartVol = [&](const NIBR::MT::TASK& task)->void {
         
         int64_t ind = task.no;
         int64_t ijk[3];
@@ -168,7 +168,7 @@ void NIBR::surfaceMAT(NIBR::Image<float>* img, NIBR::Surface* surf)
 
     float halfVox   = img->pixDims[0]*std::sqrt(3)+EPS4;
 
-    auto getEDTpair = [&](NIBR::MT::TASK task)->void {
+    auto getEDTpair = [&](const NIBR::MT::TASK& task)->void {
 
         int64_t ind = task.no;
         float p[3];
@@ -236,7 +236,7 @@ void NIBR::surfaceMAT(NIBR::Image<float>* img, NIBR::Surface* surf)
 
     std::vector<std::pair<int64_t, float>> v;
 
-    auto getMaximalSpheres = [&](NIBR::MT::TASK task)->void {
+    auto getMaximalSpheres = [&](const NIBR::MT::TASK& task)->void {
 
         float radius = vedt[task.no].second;
         int R        = std::ceil(radius/img->pixDims[0]);    // We assume isotropic voxel size
@@ -285,7 +285,7 @@ void NIBR::surfaceMAT(NIBR::Image<float>* img, NIBR::Surface* surf)
     img->deallocData();
     img->allocData();
 
-    auto writeMAT = [&](NIBR::MT::TASK task)->void {
+    auto writeMAT = [&](const NIBR::MT::TASK& task)->void {
         img->data[v[task.no].first] = v[task.no].second;
     };
     NIBR::MT::MTRUN(v.size(), writeMAT);
@@ -306,7 +306,7 @@ void NIBR::surfaceMIS(NIBR::Image<float>* img, NIBR::Surface* surf)
 
     float halfVox   = img->pixDims[0]*std::sqrt(3)+EPS4;
 
-    auto getEDTpair = [&](NIBR::MT::TASK task)->void {
+    auto getEDTpair = [&](const NIBR::MT::TASK& task)->void {
 
         int64_t ind = task.no;
         float p[3];
@@ -373,7 +373,7 @@ void NIBR::surfaceMIS(NIBR::Image<float>* img, NIBR::Surface* surf)
 
     std::mutex* ijkAvailability = new std::mutex[img->voxCnt];
 
-    auto getMaximalSpheres = [&](NIBR::MT::TASK task)->void {
+    auto getMaximalSpheres = [&](const NIBR::MT::TASK& task)->void {
 
         float radius = vedt[task.no].second;
         int R        = std::ceil(radius/img->pixDims[0]);    // We assume isotropic voxel size

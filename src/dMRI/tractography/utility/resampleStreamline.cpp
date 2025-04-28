@@ -154,7 +154,7 @@ std::vector<std::vector<std::vector<float>>> NIBR::resampleTractogram_withStepSi
     for (int t = 0; t < numberOfThreads; t++)
         tractogram[t].copyFrom(*_tractogram);
 
-    auto resample = [&](NIBR::MT::TASK task)->void {
+    auto resample = [&](const NIBR::MT::TASK& task)->void {
         out[task.no] = NIBR::resampleStreamline_withStepSize(&tractogram[task.threadId], task.no, step);
     };
 
@@ -193,7 +193,7 @@ std::vector<std::vector<std::vector<float>>> NIBR::resampleTractogram_withStepCo
     for (int t = 0; t < numberOfThreads; t++)
         tractogram[t].copyFrom(*_tractogram);
 
-    auto resample = [&](NIBR::MT::TASK task)->void {
+    auto resample = [&](const NIBR::MT::TASK& task)->void {
         out[task.no] = NIBR::resampleStreamline_withStepCount(&tractogram[task.threadId], task.no, N);
     };
 

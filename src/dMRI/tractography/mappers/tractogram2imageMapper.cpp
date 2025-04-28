@@ -179,7 +179,7 @@ void NIBR::Tractogram2ImageMapper<T>::run(
         ) {
 
     // Process the tractogram and fill
-    NIBR::MT::MTRUN(tractogram->numberOfStreamlines, NIBR::MT::MAXNUMBEROFTHREADS(), "Tractogram to image mapping", [&](NIBR::MT::TASK task)->void {
+    NIBR::MT::MTRUN(tractogram->numberOfStreamlines, NIBR::MT::MAXNUMBEROFTHREADS(), "Tractogram to image mapping", [&](const NIBR::MT::TASK& task)->void {
         processStreamline(task.no,task.threadId, processor_f);
         });
 
@@ -197,7 +197,7 @@ void NIBR::Tractogram2ImageMapper<T>::run(
         ) {
 
     // Process the tractogram and fill
-    NIBR::MT::MTRUN(endInd-beginInd+1, NIBR::MT::MAXNUMBEROFTHREADS(), "Tractogram to image mapping", [&](NIBR::MT::TASK task)->void {
+    NIBR::MT::MTRUN(endInd-beginInd+1, NIBR::MT::MAXNUMBEROFTHREADS(), "Tractogram to image mapping", [&](const NIBR::MT::TASK& task)->void {
         processStreamline(task.no+beginInd,task.threadId, processor_f);
         });
 

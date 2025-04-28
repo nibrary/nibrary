@@ -106,7 +106,7 @@ void NIBR::SF_Image::smooth(float angle) {
     
     // We will find and only process those voxels which have non-zero values
     std::vector<std::vector<int64_t>> nnzVoxelSubs;
-    auto findNonZeroVoxels = [&](NIBR::MT::TASK task)->void {
+    auto findNonZeroVoxels = [&](const NIBR::MT::TASK& task)->void {
         
         int64_t i   = task.no;
         
@@ -132,7 +132,7 @@ void NIBR::SF_Image::smooth(float angle) {
         sdata[n] = 0;
 
     // Apply smoothing
-    auto applySmoothing = [&](NIBR::MT::TASK task)->void {
+    auto applySmoothing = [&](const NIBR::MT::TASK& task)->void {
         
         std::vector<int64_t> sub = nnzVoxelSubs[task.no];    
         

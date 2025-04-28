@@ -658,7 +658,7 @@ bool TractogramReader::loadBatchContaining(std::size_t streamlineIndex) {
 
 	std::atomic<int64_t> mt_failed_streamline_idx(-1);
 
-	auto batchRead = [&] (MT::TASK task) {
+	auto batchRead = [&] (MT::TASK& task) {
 
 		if (mt_failed_streamline_idx.load(std::memory_order_relaxed) > -1) {
             return;

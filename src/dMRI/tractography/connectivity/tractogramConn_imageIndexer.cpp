@@ -80,7 +80,7 @@ void NIBR::SCimageIndexer::run() {
     }
 
     // Convert labels in the image
-    auto convertLabels = [&](NIBR::MT::TASK task)->void {
+    auto convertLabels = [&](const NIBR::MT::TASK& task)->void {
         int val = img->data[task.no];
 
         if (isBg(val)) {
@@ -101,7 +101,7 @@ void NIBR::SCimageIndexer::run() {
     labelCnt = original_labels.size();
     conn.resize(labelCnt, std::vector<std::set<std::size_t>>(labelCnt));
 
-    NIBR::MT::MTRUN(tractogram->numberOfStreamlines, "Computing connectome", [&](NIBR::MT::TASK task)->void{processStreamline(task.no);} );
+    NIBR::MT::MTRUN(tractogram->numberOfStreamlines, "Computing connectome", [&](const NIBR::MT::TASK& task)->void{processStreamline(task.no);} );
 }
 
 

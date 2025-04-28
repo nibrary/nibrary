@@ -147,7 +147,7 @@ std::vector<std::vector<std::vector<float>>> NIBR::resampleTractogram_withStepSi
 
     out.resize(tractogram->numberOfStreamlines);
 
-    auto resample = [&](NIBR::MT::TASK task)->void {
+    auto resample = [&](const NIBR::MT::TASK& task)->void {
         out[task.no] = NIBR::resampleStreamline_withStepSize(tractogram, task.no, step);
     };
 
@@ -174,7 +174,7 @@ std::vector<std::vector<std::vector<float>>> NIBR::resampleTractogram_withStepCo
 
     out.resize(tractogram->numberOfStreamlines);
 
-    auto resample = [&](NIBR::MT::TASK task)->void {
+    auto resample = [&](const NIBR::MT::TASK& task)->void {
         out[task.no] = NIBR::resampleStreamline_withStepCount(tractogram, task.no, N);
     };
 

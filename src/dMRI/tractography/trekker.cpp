@@ -699,7 +699,7 @@ void Trekker::run() {
     TRACKER::pw.print();
     
     // Run
-    auto runTrekker = [&](NIBR::MT::TASK task)->bool {
+    auto runTrekker = [&](const NIBR::MT::TASK& task)->bool {
         TrackingThread tracker(task.no);
         return tracker.track();        
     };

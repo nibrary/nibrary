@@ -123,7 +123,7 @@ void* resetIndexingAndCopyData(T* inp, int64_t* imgDims, int* indexOrder) {
     // void* out = (T*) malloc(numel*sizeof(T));
     void* out = (void*)(new T[numel]());
 
-    auto run = [&](NIBR::MT::TASK task) {
+    auto run = [&](const NIBR::MT::TASK& task) {
         int64_t sub[7];
         int64_t offset;
         int64_t ind = task.no;

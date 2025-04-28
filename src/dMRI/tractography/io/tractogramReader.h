@@ -68,7 +68,7 @@ namespace NIBR
         
     public:
         
-        TractogramReader(const std::string& _fileName, std::size_t _preloadCount = 100000);
+        TractogramReader(const std::string& _fileName, std::size_t _preloadCount = 100000000);
         ~TractogramReader();
 
         // Copying not allowed because file handle, cache, mutex cannot be triviallycopied 
@@ -128,20 +128,21 @@ namespace NIBR
         std::vector<TractogramField>        findTractogramFields(); // used for printing info only
 
         // Preloading cache state
-        std::size_t                         preloadCount        = 0;
-        std::size_t                         preloadedStartIndex = std::numeric_limits<std::size_t>::max();
-        std::vector<std::vector<Point>>     preloadedStreamlines;
+        std::size_t             preloadCount        = 0;
+        std::size_t             preloadedStartIndex = std::numeric_limits<std::size_t>::max();
+        std::vector<float**>    preloadedStreamlines;
 
         // Helper functions
 
         // Not locked
         bool initReader();
         void cleanupMemory();
+        void deleteStreamlineRaw(float** points, uint32_t numPoints);
         void resetCache();
 
         // Locked
-        bool  loadBatchContaining(std::size_t streamlineIndex);
-        bool  readStreamlinePointsFromFile(FILE* bf, std::size_t n, std::vector<Point>& points);
+        bool    loadBatchContaining(std::size_t streamlineIndex);
+        float** readStreamlineRawFromFile(FILE* bf, std::size_t n);
 
         int   missedCacheCounter = 0;
 

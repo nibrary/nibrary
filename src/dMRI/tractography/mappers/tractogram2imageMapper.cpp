@@ -14,18 +14,19 @@ NIBR::Tractogram2ImageMapper<T>::Tractogram2ImageMapper(NIBR::TractogramReader* 
         tractogram[t].copyFrom(*_tractogram);
     }
 
-    mask       = NULL;
-    weightFile = NULL;
-    weightType = NO_WEIGHT;
-    cumLen     = NULL;
-    mapOnce    = false;
-    img        = _img;
+    mask            = NULL;
+    weightFile      = NULL;
+    weightType      = NO_WEIGHT;
+    cumLen          = NULL;
+    mapOnce         = false;
+    img             = _img;
+    mutexGrid       = NULL;
+    useMutexGrid    = true;
 
     img->readHeader();
 
-    gridMutex = new std::mutex[img->voxCnt];
-
     smoothing = std::make_tuple(0,0);
+    batchSize = 1000;
 
     maskFromImage = false;
 
@@ -59,7 +60,10 @@ NIBR::Tractogram2ImageMapper<T>::Tractogram2ImageMapper::~Tractogram2ImageMapper
     if (cumLen!=NULL)
         delete[] cumLen;
 
-    delete[] gridMutex;
+    if (mutexGrid!=NULL)
+        delete[] mutexGrid;
+    
+    mutexMap.clear();
 
 }
 
@@ -93,8 +97,16 @@ bool NIBR::Tractogram2ImageMapper<T>::setMask(NIBR::Image<int>* maskImg) {
         mask[i] = new bool*[maskImg->imgDims[1]];
         for (int j = 0; j < maskImg->imgDims[1]; j++) {
             mask[i][j] = new bool[maskImg->imgDims[2]];
-            for (int k = 0; k < maskImg->imgDims[2]; k++)
-                mask[i][j][k] = ((*maskImg)(i,j,k)>0) ? true : false;
+            for (int k = 0; k < maskImg->imgDims[2]; k++) {
+                if ((*maskImg)(i,j,k)>0) {
+                    mask[i][j][k] = true;
+                    if (!useMutexGrid) {
+                        mutexMap.try_emplace(static_cast<uint32_t>(maskImg->sub2ind(i, j, k)));
+                    }
+                } else {
+                    mask[i][j][k] = false;
+                }                
+            }
         }
     }
 
@@ -135,14 +147,44 @@ bool NIBR::Tractogram2ImageMapper<T>::setMask(NIBR::Image<int>* maskImg, int sel
         mask[i] = new bool*[maskImg->imgDims[1]];
         for (int j = 0; j < maskImg->imgDims[1]; j++) {
             mask[i][j] = new bool[maskImg->imgDims[2]];
-            for (int k = 0; k < maskImg->imgDims[2]; k++)
-                mask[i][j][k] = ((*maskImg)(i,j,k)==selectedLabel) ? true : false;
+            for (int k = 0; k < maskImg->imgDims[2]; k++) {
+                if ((*maskImg)(i,j,k)==selectedLabel) {
+                    mask[i][j][k] = true;
+                    if (!useMutexGrid) {
+                        mutexMap.try_emplace(static_cast<uint32_t>(maskImg->sub2ind(i, j, k)));
+                    }
+                } else {
+                    mask[i][j][k] = false;
+                }
+            }
         }
     }
 
     maskFromImage = true;
 
     return true;
+
+}
+
+
+template<typename T>
+void NIBR::Tractogram2ImageMapper<T>::setMask(bool*** _mask) {
+
+    mask = _mask;
+
+    if (!useMutexGrid) {
+        for (int i = 0; i < img->imgDims[0]; i++) {
+            for (int j = 0; j < img->imgDims[1]; j++) {
+                for (int k = 0; k < img->imgDims[2]; k++) {
+                    if (mask[i][j][k]) {
+                        if (!useMutexGrid) {
+                            mutexMap.try_emplace(static_cast<uint32_t>(img->sub2ind(i, j, k)));
+                        }
+                    }
+                }
+            }
+        }
+    }
 
 }
 
@@ -189,7 +231,9 @@ void NIBR::Tractogram2ImageMapper<T>::run(
         ) 
 {
 
-    std::size_t batchSize = 1000;
+    if (useMutexGrid) {
+        mutexGrid = new std::mutex[img->voxCnt];
+    }
 
     batchSize = ( (NIBR::MT::MAXNUMBEROFTHREADS() + 1) > int(batchSize) ) ? (NIBR::MT::MAXNUMBEROFTHREADS() + 1) : batchSize;
 

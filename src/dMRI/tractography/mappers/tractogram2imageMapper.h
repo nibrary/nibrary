@@ -5,6 +5,7 @@
 #include "dMRI/tractography/io/tractogramReader.h"
 #include "image/image.h"
 #include <atomic>
+#include <map>
 
 typedef enum {
     NO_WEIGHT,
@@ -21,8 +22,6 @@ namespace NIBR
     public:
 
         Tractogram2ImageMapper(NIBR::TractogramReader* _tractogram, NIBR::Image<T>* _img);
-        // Tractogram2ImageMapper(NIBR::TractogramReader* _tractogram, NIBR::Image<T>* _img, bool allocateGrid);
-        
         ~Tractogram2ImageMapper();
         
         void run (
@@ -30,28 +29,25 @@ namespace NIBR
             std::function<void(Tractogram2ImageMapper<T>* tim)> outputCompiler_f
         );
 
-        // // Runs only for streamlines between beginInd and endInd (both inclusive)
-        // void run (
-        //     std::function<void(Tractogram2ImageMapper<T>* tim, int* _gridPos, NIBR::Segment& _seg)> processor_f,
-        //     std::function<void(Tractogram2ImageMapper<T>* tim)> outputCompiler_f,
-        //     int beginInd,
-        //     int endInd
-        // );
-
         bool processStreamline(std::vector<float**>& _kernel, int _streamlineId, uint16_t _threadNo, std::function<void(Tractogram2ImageMapper<T>* tim, int* _gridPos, NIBR::Segment& _seg)> f );
         
         void setMapOnce(bool val) {mapOnce=val;}
         bool setMask(NIBR::Image<int>* maskImg);
         bool setMask(NIBR::Image<int>* maskImg, int selectedLabel);
-        void setMask(bool*** _mask) {mask = _mask;}
+        void setMask(bool*** _mask);
         void anisotropicSmoothing(std::tuple<float,int> _smoothing) {smoothing = _smoothing;}
         void setWeights(std::string _weightFile, WEIGHTTYPE _weightType);
         void setWeights(std::vector<float> _weights, WEIGHTTYPE _weightType);
         void setData(void* _data) {data = _data;}
+        void setBatchSize(std::size_t _batchSize) {batchSize = _batchSize;}
+        void optimizeForSmallMask(bool val) {useMutexGrid = !val;}
 
-        bool***                 mask;
-        std::vector<void*>      grid;      // Grid holds a void* for each img->voxCnt
-        std::mutex*             gridMutex; // Keeps track of with voxels are available to be processed in the grid
+        bool***                                 mask;
+        std::vector<void*>                      grid;          // Grid holds a void* for each img->voxCnt
+
+        bool                                    useMutexGrid;
+        std::mutex*                             mutexGrid;     // Keeps track of with voxels are available to be processed in the grid
+        std::unordered_map<uint32_t,std::mutex> mutexMap;
 
         template<class GRIDTYPE>
         void allocateGrid();
@@ -73,6 +69,8 @@ namespace NIBR
         std::vector<float>      weights;
         FILE**                  weightFile;
         WEIGHTTYPE              weightType;
+
+        std::size_t             batchSize;
 
         int*                    cumLen;
         

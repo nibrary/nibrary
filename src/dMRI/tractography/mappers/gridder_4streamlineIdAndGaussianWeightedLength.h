@@ -53,7 +53,7 @@ namespace NIBR
         lineIntegral += G->eval(squared_dist(voxCenter, p)) * rem;
 
         {
-            std::lock_guard<std::mutex> lock(tim->gridMutex[ind]);
+            std::lock_guard<std::mutex> lock( (tim->useMutexGrid) ? tim->mutexGrid[ind] : tim->mutexMap[ind]);
 
             if (tim->grid[ind]==NULL) { // Allocate memory here
                 std::unordered_map<int,float>* streamlineIdsAndGaussionWeightedLength = new std::unordered_map<int,float>();

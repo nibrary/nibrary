@@ -235,7 +235,8 @@ void NIBR::Tractogram2ImageMapper<T>::run(
         mutexGrid = new std::mutex[img->voxCnt];
     }
 
-    batchSize = ( (NIBR::MT::MAXNUMBEROFTHREADS() + 1) > int(batchSize) ) ? (NIBR::MT::MAXNUMBEROFTHREADS() + 1) : batchSize;
+    batchSize = std::min(batchSize,tractogram[0].numberOfStreamlines);
+    batchSize = (batchSize < std::size_t(NIBR::MT::MAXNUMBEROFTHREADS() + 1)) ? std::size_t(NIBR::MT::MAXNUMBEROFTHREADS() + 1) : batchSize;
 
     std::vector<float**> batch;
     batch.resize(batchSize,NULL);

@@ -30,15 +30,15 @@ namespace NIBR
             std::function<void(Tractogram2ImageMapper<T>* tim)> outputCompiler_f
         );
 
-        // Runs only for streamlines between beginInd and endInd (both inclusive)
-        void run (
-            std::function<void(Tractogram2ImageMapper<T>* tim, int* _gridPos, NIBR::Segment& _seg)> processor_f,
-            std::function<void(Tractogram2ImageMapper<T>* tim)> outputCompiler_f,
-            int beginInd,
-            int endInd
-        );
+        // // Runs only for streamlines between beginInd and endInd (both inclusive)
+        // void run (
+        //     std::function<void(Tractogram2ImageMapper<T>* tim, int* _gridPos, NIBR::Segment& _seg)> processor_f,
+        //     std::function<void(Tractogram2ImageMapper<T>* tim)> outputCompiler_f,
+        //     int beginInd,
+        //     int endInd
+        // );
 
-        bool processStreamline(int _streamlineId, uint16_t _threadNo, std::function<void(Tractogram2ImageMapper<T>* tim, int* _gridPos, NIBR::Segment& _seg)> f );
+        bool processStreamline(std::vector<float**>& _kernel, int _streamlineId, uint16_t _threadNo, std::function<void(Tractogram2ImageMapper<T>* tim, int* _gridPos, NIBR::Segment& _seg)> f );
         
         void setMapOnce(bool val) {mapOnce=val;}
         bool setMask(NIBR::Image<int>* maskImg);

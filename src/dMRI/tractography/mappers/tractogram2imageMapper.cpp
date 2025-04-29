@@ -186,39 +186,97 @@ template<typename T>
 void NIBR::Tractogram2ImageMapper<T>::run(
         std::function<void(Tractogram2ImageMapper<T>* tim, int* _gridPos, NIBR::Segment& _seg)> processor_f,
         std::function<void(Tractogram2ImageMapper<T>* tim)> outputCompiler_f
-        ) {
+        ) 
+{
+
+    std::size_t batchSize = 1000;
+
+    batchSize = ( (NIBR::MT::MAXNUMBEROFTHREADS() + 1) > int(batchSize) ) ? (NIBR::MT::MAXNUMBEROFTHREADS() + 1) : batchSize;
+
+    std::vector<float**> batch;
+    batch.resize(batchSize,NULL);
+
+    std::atomic<std::size_t> batchStart(0);
+
+    auto range = MT::createTaskRange(batchSize,NIBR::MT::MAXNUMBEROFTHREADS());
+
+    auto batchReadAndProcess = [&](const NIBR::MT::TASK& task, NIBR::MT::Barrier& barrier)->void {
+
+        if (task.no >= batchStart) {
+
+            // Wait until all threads arrive here
+            barrier.arrive_and_wait();
+
+            std::size_t expectedStart = batchStart;
+            std::size_t N = tractogram[0].numberOfStreamlines;
+
+            for (int n = range[task.threadId].first; n <= range[task.threadId].second; n++) {
+                std::size_t idx = n + expectedStart;
+                if (idx < N) {
+                    batch[n] = tractogram[task.threadId].readStreamline(idx);
+                } else {
+                    break;
+                }
+            }
+
+            // Wait until all threads arrive here
+            barrier.arrive_and_wait();
+
+            // Ensure atomic incremental of batchStart only once
+            batchStart.compare_exchange_strong(
+                expectedStart,              // Expected current value
+                expectedStart + batchSize,  // New value if CAS succeeds (start of the *next* batch)
+                std::memory_order_acq_rel,  // Use acquire-release for combined effects
+                std::memory_order_acquire   // Use acquire on failure (we re-read anyway)
+            );
+
+        }
+
+        std::vector<float**> kernel;
+        kernel.resize(std::get<1>(smoothing)+1);
+        kernel[0] = batch[task.no % batchSize];
+
+        processStreamline(kernel,task.no,task.threadId, processor_f);
+    };
 
     // Process the tractogram and fill
-    NIBR::MT::MTRUN(tractogram[0].numberOfStreamlines, NIBR::MT::MAXNUMBEROFTHREADS(), "Tractogram to image mapping", [&](const NIBR::MT::TASK& task)->void {
-        processStreamline(task.no,task.threadId, processor_f);
-        });
+    NIBR::MT::MTRUN(tractogram[0].numberOfStreamlines, NIBR::MT::MAXNUMBEROFTHREADS(), "Tractogram to image mapping", batchReadAndProcess);
 
     // Compile output
     outputCompiler_f(this);
-    
+
 }
 
-template<typename T>
-void NIBR::Tractogram2ImageMapper<T>::run(
-        std::function<void(Tractogram2ImageMapper<T>* tim, int* _gridPos, NIBR::Segment& _seg)> processor_f,
-        std::function<void(Tractogram2ImageMapper<T>* tim)> outputCompiler_f,
-        int beginInd,
-        int endInd
-        ) {
+// template<typename T>
+// void NIBR::Tractogram2ImageMapper<T>::run(
+//         std::function<void(Tractogram2ImageMapper<T>* tim, int* _gridPos, NIBR::Segment& _seg)> processor_f,
+//         std::function<void(Tractogram2ImageMapper<T>* tim)> outputCompiler_f,
+//         int beginInd,
+//         int endInd
+//         ) 
+// {
 
-    // Process the tractogram and fill
-    NIBR::MT::MTRUN(endInd-beginInd+1, NIBR::MT::MAXNUMBEROFTHREADS(), "Tractogram to image mapping", [&](const NIBR::MT::TASK& task)->void {
-        processStreamline(task.no+beginInd,task.threadId, processor_f);
-        });
+//     auto batchReadAndProcess = [&](const NIBR::MT::TASK& task, NIBR::MT::Barrier& barrier)->void {
 
-    // Compile output
-    outputCompiler_f(this);
+        
+//         std::vector<float**> kernel;
+//         kernel.resize(std::get<1>(smoothing)+1);
+//         kernel[0] = tractogram[task.threadId].readStreamline(task.no);
+
+//         processStreamline(kernel,task.no+beginInd,task.threadId, processor_f);
+//     };
+
+//     // Process the tractogram and fill
+//     NIBR::MT::MTRUN(endInd-beginInd+1, NIBR::MT::MAXNUMBEROFTHREADS(), "Tractogram to image mapping", batchReadAndProcess);
     
-}
+//     // Compile output
+//     outputCompiler_f(this);
+    
+// }
 
 
 template<typename T1>
-bool NIBR::Tractogram2ImageMapper<T1>::processStreamline(int streamlineId, uint16_t threadNo, std::function<void(Tractogram2ImageMapper<T1>* tim, int* gridPos, NIBR::Segment& seg)> f ) {
+bool NIBR::Tractogram2ImageMapper<T1>::processStreamline(std::vector<float**>& kernel, int streamlineId, uint16_t threadNo, std::function<void(Tractogram2ImageMapper<T1>* tim, int* gridPos, NIBR::Segment& seg)> f ) {
     
     // If streamline is empty, exit.
     int len = tractogram[threadNo].len[streamlineId];
@@ -228,11 +286,6 @@ bool NIBR::Tractogram2ImageMapper<T1>::processStreamline(int streamlineId, uint1
     double p0[3], p1[3], dir[3], length, lengthR, lengthScale, t;
 
     int32_t A[3], B[3];
-
-    // Make streamline kernel, which is used if anisotropic smoothing is applied
-    std::vector<float**> kernel;
-    kernel.resize(std::get<1>(smoothing)+1);
-    kernel[0] = tractogram[threadNo].readStreamline(streamlineId);
     
     if (std::get<0>(smoothing) > 0 ) {
 

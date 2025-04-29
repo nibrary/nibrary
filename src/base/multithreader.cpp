@@ -292,7 +292,7 @@ std::vector<std::pair<int,int>> NIBR::MT::createTaskRange(int taskCount, int wor
             remainder--;
         }
 
-        taskRange.emplace_back(begin, end);
+        taskRange.emplace_back(std::make_pair(begin, end));
 
         // Set the starting point for the next iteration
         begin = end + 1;

@@ -155,43 +155,7 @@ namespace NIBR
         }
         file_pos.close();
 
-        
-        /*
-        std::cout << "Size of positions: "  << positions.size() << std::endl;
-        std::cout << "Positions: "          << positions[0] << " - " << positions[1] << std::endl;
-        std::cout << "Size of a pos: "      << sizeof(std::streampos) << std::endl  << std::endl ;
-        */
 
     }
-
-
-    /*
-    template<typename T>
-    inline void indexStreamlineIdAndGaussionWeightedLengthToData(Tractogram2ImageMapper<T>* tim) {
-
-        using indData = std::tuple<std::vector<int64_t>*,std::vector<void*>*>;
-
-        auto inds     = std::get<1>(*(indData*)(tim->data));
-        auto indexing = std::get<2>(*(indData*)(tim->data));
-
-        int64_t numberOfIndices = inds->size();
-        
-        indexing->resize(numberOfIndices);
-
-        auto indexStreamlines = [&](const NIBR::MT::TASK& task)->void{
-            const int64_t& ind = inds->at(task.no);
-
-            if (tim->grid[ind] != NULL) {
-                indexing->at(task.no) = tim->grid[ind];
-                tim->grid[ind]        = NULL;
-            } else {
-                indexing->at(task.no) = (void*)(new std::unordered_map<int,float>());
-            }
-            
-        };
-        NIBR::MT::MTRUN(numberOfIndices,indexStreamlines);
-
-    }
-    */
 
 }

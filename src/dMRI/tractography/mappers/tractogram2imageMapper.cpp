@@ -204,7 +204,7 @@ void NIBR::Tractogram2ImageMapper<T>::setWeights(std::string _weightFile, WEIGHT
     for (size_t n=1; n<tractogram[0].numberOfStreamlines; n++)
         cumLen[n] = cumLen[n-1] + tractogram[0].len[n-1];
 
-    disp(MSG_DEBUG,"Read cumLen");
+    // NIBR::disp(MSG_DETAIL,"Read cumLen");
 
 }
 
@@ -219,7 +219,7 @@ void NIBR::Tractogram2ImageMapper<T>::setWeights(std::vector<float> _weights, WE
     for (size_t n=1; n<tractogram[0].numberOfStreamlines; n++)
         cumLen[n] = cumLen[n-1] + tractogram[0].len[n-1];
 
-    disp(MSG_DEBUG,"Read cumLen");
+    // NIBR::disp(MSG_DETAIL,"Read cumLen");
 
 }
 
@@ -229,9 +229,17 @@ void NIBR::Tractogram2ImageMapper<T>::run(
         std::function<void(Tractogram2ImageMapper<T>* tim)> outputCompiler_f
         )
 {
+    // NIBR::disp(MSG_DETAIL,"Starting complete run");
+
+    if (useMutexGrid) {
+        mutexGrid = new std::mutex[img->voxCnt];
+    }
+
     if (tractogram->isPreloaded() == false) {
+        // NIBR::disp(MSG_DETAIL,"Calling runAndDeleteStreamlines");
         return runAndDeleteStreamlines(processor_f,outputCompiler_f);
     } else {
+        // NIBR::disp(MSG_DETAIL,"Calling runAndKeepStreamlines");
         return runAndKeepStreamlines(processor_f,outputCompiler_f);
     }
     
@@ -243,20 +251,31 @@ void NIBR::Tractogram2ImageMapper<T>::run(
         std::function<void(Tractogram2ImageMapper<T>* tim)> outputCompiler_f,
         int beginInd,
         int endInd
-        ) {
+        ) 
+{
+
+    // NIBR::disp(MSG_DETAIL,"Starting partial run");
+
+    if (useMutexGrid) {
+        mutexGrid = new std::mutex[img->voxCnt];
+    }
 
     // Process the tractogram and fill
-    NIBR::MT::MTRUN(endInd-beginInd+1, NIBR::MT::MAXNUMBEROFTHREADS(), "Tractogram to image mapping", [&](NIBR::MT::TASK task)->void {
+    NIBR::MT::MTRUN(endInd-beginInd+1, NIBR::MT::MAXNUMBEROFTHREADS(), "Tractogram part to image mapping", [&](const NIBR::MT::TASK& task)->void {
 
             std::vector<float**> kernel;
             kernel.resize(std::get<1>(smoothing)+1);
+
+            // NIBR::disp(MSG_DETAIL,"Reading streamline %d", int(task.no+beginInd));
             kernel[0] = tractogram[task.threadId].readStreamline(task.no+beginInd);
 
+            // NIBR::disp(MSG_DETAIL,"Processing streamline %d", int(task.no+beginInd));
             processStreamline(kernel,task.no+beginInd,task.threadId, processor_f, !tractogram->isPreloaded());
 
         });
 
     // Compile output
+    // NIBR::disp(MSG_DETAIL,"Compiling output part");
     outputCompiler_f(this);
     
 }
@@ -267,10 +286,6 @@ void NIBR::Tractogram2ImageMapper<T>::runAndDeleteStreamlines(
         std::function<void(Tractogram2ImageMapper<T>* tim)> outputCompiler_f
         ) 
 {
-
-    if (useMutexGrid) {
-        mutexGrid = new std::mutex[img->voxCnt];
-    }
 
     batchSize = std::min(batchSize,tractogram[0].numberOfStreamlines);
     batchSize = (batchSize < std::size_t(NIBR::MT::MAXNUMBEROFTHREADS() + 1)) ? std::size_t(NIBR::MT::MAXNUMBEROFTHREADS() + 1) : batchSize;
@@ -325,6 +340,7 @@ void NIBR::Tractogram2ImageMapper<T>::runAndDeleteStreamlines(
     NIBR::MT::MTRUN(tractogram[0].numberOfStreamlines, NIBR::MT::MAXNUMBEROFTHREADS(), "Tractogram to image mapping", batchReadAndProcess);
 
     // Compile output
+    // NIBR::disp(MSG_DETAIL,"Compiling output all");
     outputCompiler_f(this);
 
 }
@@ -335,10 +351,6 @@ void NIBR::Tractogram2ImageMapper<T>::runAndKeepStreamlines(
         std::function<void(Tractogram2ImageMapper<T>* tim)> outputCompiler_f
         ) 
 {
-
-    if (useMutexGrid) {
-        mutexGrid = new std::mutex[img->voxCnt];
-    }
 
     auto fetchAndProcess = [&](const NIBR::MT::TASK& task)->void {
         std::vector<float**> kernel;
@@ -444,7 +456,7 @@ bool NIBR::Tractogram2ImageMapper<T1>::processStreamline(std::vector<float**>& k
         
     }
 
-    disp(MSG_DEBUG,"Streamline: %d: len: %d", streamlineId, tractogram[threadNo].len[streamlineId]);
+    // NIBR::disp(MSG_DETAIL,"Streamline: %d: len: %d", streamlineId, tractogram[threadNo].len[streamlineId]);
 
     // Iterate over the kernel
     int streamlineCounter = 0;
@@ -453,19 +465,19 @@ bool NIBR::Tractogram2ImageMapper<T1>::processStreamline(std::vector<float**>& k
     
         NIBR::Segment seg;
         seg.streamlineNo = streamlineId;
-        // disp(MSG_DEBUG,"seg.streamlineNo: %d",seg.streamlineNo);
+        // NIBR::disp(MSG_DETAIL,"seg.streamlineNo: %d",seg.streamlineNo);
 
         if (weightType!=NO_WEIGHT) {
 
-            disp(MSG_DEBUG,"Making segment data.");
+            // NIBR::disp(MSG_DETAIL,"Making segment data.");
             seg.data = new float;
 
             if (weights.empty()) {
                 if (weightType==STREAMLINE_WEIGHT) {
                     fseek(weightFile[threadNo], sizeof(float)*streamlineId, SEEK_SET);
-                    disp(MSG_DEBUG,"Reading weight.");
+                    // NIBR::disp(MSG_DETAIL,"Reading weight.");
                     std::fread((float*)seg.data, sizeof(float), 1, weightFile[threadNo]);
-                    disp(MSG_DEBUG,"Weight: %.2f", *(float*)seg.data);
+                    // NIBR::disp(MSG_DETAIL,"Weight: %.2f", *(float*)seg.data);
                 } else {
                     fseek(weightFile[threadNo], sizeof(float)*cumLen[streamlineId], SEEK_SET);
                 }
@@ -521,9 +533,9 @@ bool NIBR::Tractogram2ImageMapper<T1>::processStreamline(std::vector<float**>& k
 
             if ( img->isInside(A) && ((mask==NULL) || mask[A[0]][A[1]][A[2]]) ) {
 
-                disp(MSG_DEBUG,"seg.p:      [%.2f, %.2f, %.2f]",  seg.p[0],  seg.p[1],  seg.p[2]);
-                disp(MSG_DEBUG,"seg.dir:    [%.2f, %.2f, %.2f]",seg.dir[0],seg.dir[1],seg.dir[2]);
-                disp(MSG_DEBUG,"seg.length: %.2f",seg.length);
+                // NIBR::disp(MSG_DETAIL,"seg.p:      [%.2f, %.2f, %.2f]",  seg.p[0],  seg.p[1],  seg.p[2]);
+                // NIBR::disp(MSG_DETAIL,"seg.dir:    [%.2f, %.2f, %.2f]",seg.dir[0],seg.dir[1],seg.dir[2]);
+                // NIBR::disp(MSG_DETAIL,"seg.length: %.2f",seg.length);
 
                 if (mapOnce) {
                     voxelChecker = voxelInds.insert(sub2ind());

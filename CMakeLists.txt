@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 3.15.0)
 
 set(nibrary_VERSION_MAJOR 0)
-set(nibrary_VERSION_MINOR 3)
-set(nibrary_VERSION_PATCH 1)
+set(nibrary_VERSION_MINOR 4)
+set(nibrary_VERSION_PATCH 0)
 
 project(nibrary VERSION ${nibrary_VERSION_MAJOR}.${nibrary_VERSION_MINOR}.${nibrary_VERSION_PATCH} LANGUAGES CXX C)
 

@@ -21,11 +21,21 @@ NIBR::TractogramReader::TractogramReader(std::string _fileName) {
 	initReader(_fileName);
 }
 
+NIBR::TractogramReader::TractogramReader(std::string _fileName, bool _usePreload) {
+	fileName 		= "";
+	fileDescription = "";
+	file 			= NULL;
+	threadId 		= 0;
+	usePreload 		= _usePreload;
+	initReader(_fileName,usePreload);
+}
+
 NIBR::TractogramReader::TractogramReader(const TractogramReader& obj) {
 	this->copyFrom(obj);
 }
 
 NIBR::TractogramReader::~TractogramReader() {
+
 	fileName.erase();
 	fileDescription.erase();
 	
@@ -33,21 +43,34 @@ NIBR::TractogramReader::~TractogramReader() {
 	if (len != NULL)			delete[] len;
 	if (streamlinePos != NULL) 	delete[] streamlinePos;
 
-	file 			= NULL;
-	len 			= NULL;
-	streamlinePos 	= NULL;
+	file 						= NULL;
+	len 						= NULL;
+	streamlinePos 				= NULL;
+
+	if (usePreload) {
+		for (std::size_t n = 0; n < numberOfStreamlines; n++) {
+			for (std::size_t l = 0; l < len[n]; l++) {
+				delete[] streamlinesInMemoryAsFloat->at(n)[l];
+			}
+			delete[] streamlinesInMemoryAsFloat->at(n);
+		}
+		streamlinesInMemoryAsFloat->clear();
+	}
+	streamlinesInMemoryAsFloat 	= NULL;
+
 }
 
 
 
 void NIBR::TractogramReader::copyFrom(const TractogramReader& obj) {
-	fileName 			= obj.fileName;
-	fileDescription 	= obj.fileDescription;
-	fileFormat	 		= obj.fileFormat;
-	numberOfPoints 		= obj.numberOfPoints;
-	numberOfStreamlines = obj.numberOfStreamlines;
-	len 				= obj.len;
-	streamlinePos 		= obj.streamlinePos;
+	fileName 					= obj.fileName;
+	fileDescription 			= obj.fileDescription;
+	fileFormat	 				= obj.fileFormat;
+	numberOfPoints 				= obj.numberOfPoints;
+	numberOfStreamlines 		= obj.numberOfStreamlines;
+	len 						= obj.len;
+	streamlinePos 				= obj.streamlinePos;
+	streamlinesInMemoryAsFloat 	= obj.streamlinesInMemoryAsFloat;
 
 	n_scalars_trk 		= obj.n_scalars_trk;
 	n_properties_trk 	= obj.n_properties_trk;
@@ -58,22 +81,44 @@ void NIBR::TractogramReader::copyFrom(const TractogramReader& obj) {
 		}
 	}
 
-	file = fopen(fileName.c_str(), "rb+");
+	file = fopen(fileName.c_str(), "rb");
 }
 
 void NIBR::TractogramReader::destroyCopy() {
 	fileName.erase();
 	fileDescription.erase();
 	if (file != NULL) fclose(file);
-	file 		  = NULL;
-	len 		  = NULL;
-	streamlinePos = NULL;
+	file 		  				= NULL;
+	len 		  				= NULL;
+	streamlinePos 				= NULL;
+	streamlinesInMemoryAsFloat 	= NULL;
+}
+
+bool NIBR::TractogramReader::initReader(std::string _fileName,bool _usePreload) {
+
+	usePreload = _usePreload;
+
+	if (usePreload) {
+
+		streamlinesInMemoryAsFloat = new std::vector<float**>();
+
+		if (!initReader(_fileName)) 
+			return false;
+
+		return readToMemory();
+
+	} else {
+		return initReader(_fileName);
+	}
+	
+	return true;
 }
 
 bool NIBR::TractogramReader::initReader(std::string _fileName) {
 
-	fileName = _fileName;
-	file = fopen(fileName.c_str(), "rb+");
+	fileName 	= _fileName;
+	file 		= fopen(fileName.c_str(), "rb");
+	usePreload 	= false;
 
 	if (file == NULL)
 		return false;
@@ -339,7 +384,33 @@ bool NIBR::TractogramReader::initReader(std::string _fileName) {
 	return true;
 }
 
+float** NIBR::TractogramReader::copyStreamlineFromMemory(std::size_t n) {
+
+	if (finishedLoading) {
+
+		float** points;
+		points = new float* [len[n]];
+
+		for (uint32_t i = 0; i < len[n]; i++) {
+			points[i] = new float[3];
+			for (int j = 0; j < 3; j++) {
+				points[i][j] = streamlinesInMemoryAsFloat->at(n)[i][j];
+			}
+		}
+
+		return points;
+
+	} else {
+		return NULL;
+	}
+
+}
+
 float** NIBR::TractogramReader::readStreamline(std::size_t n) {
+
+	if (finishedLoading) {
+		return streamlinesInMemoryAsFloat->at(n);
+	}
 
 	float** points;
 	points = new float* [len[n]];
@@ -626,6 +697,39 @@ std::vector<std::vector<std::vector<float>>> NIBR::TractogramReader::read() {
 	NIBR::MT::MAXNUMBEROFTHREADS() = bakMaxThreads;
 
 	return out;
+
+}
+
+bool NIBR::TractogramReader::readToMemory() {
+
+	if (numberOfStreamlines==0) 
+		return true;
+
+	streamlinesInMemoryAsFloat->resize(numberOfStreamlines);
+
+	NIBR::TractogramReader* inp = new NIBR::TractogramReader[NIBR::MT::MAXNUMBEROFTHREADS()]();
+    for (int t = 0; t < NIBR::MT::MAXNUMBEROFTHREADS(); t++) {
+        inp[t].copyFrom(*this);
+	}
+
+	auto mtReader = [&](const NIBR::MT::TASK& task)->void{
+		streamlinesInMemoryAsFloat->at(task.no) = inp[task.threadId].readStreamline(task.no);
+    };
+
+	if (VERBOSE()>VERBOSE_INFO)
+		NIBR::MT::MTRUN(numberOfStreamlines, "Reading streamlines", mtReader);
+	else
+		NIBR::MT::MTRUN(numberOfStreamlines, mtReader);
+
+	for (int t = 0; t < NIBR::MT::MAXNUMBEROFTHREADS(); t++)
+        inp[t].destroyCopy();
+
+	delete[] inp;	
+
+	finishedLoading = true;
+
+	std::cout << "finished reading" << std::endl;
+	return true;
 
 }
 

@@ -3,6 +3,7 @@
 #include "base/nibr.h"
 #include "dMRI/tractography/mappers/tractogram2imageMapper.h"
 #include "dMRI/tractography/mappers/gridder_4mask.h"
+#include "unordered_dense/unordered_dense.h"
 
 namespace NIBR
 {
@@ -155,6 +156,37 @@ namespace NIBR
         
         return NIBR::index2image(tractogram,img,mask,processor,indexer,allocater,deallocater,data,filePrefix,splitCount);
 
+    }
+
+    template<typename T>
+    bool index2image(
+        TractogramReader& tractogram, 
+        Image<T>& img, 
+        bool*** masker,
+        std::function<void(Tractogram2ImageMapper<T>* tim, int* _gridPos, NIBR::Segment& _seg)> processor, 
+        std::function<void(Tractogram2ImageMapper<T>* tim)> indexer,
+        std::function<void(Tractogram2ImageMapper<T>* tim)> allocater,
+        std::function<void(Tractogram2ImageMapper<T>* tim)> deallocater,
+        void* G,
+        ankerl::unordered_dense::map<int,ankerl::unordered_dense::map<int,float>>* contributions)
+    {
+        
+        // gridData: <function* G, std::unordered_map<int,std::vector<std::pair<int,float>>>* contributions>
+        std::tuple<void*,ankerl::unordered_dense::map<int,ankerl::unordered_dense::map<int,float>>*> gridData;
+        std::get<0>(gridData) = G;
+        std::get<1>(gridData) = contributions;
+
+        Tractogram2ImageMapper<T> gridder(&tractogram,&img);
+        gridder.optimizeForSmallMask(true);
+        gridder.setData((void*)(&gridData));
+        gridder.setMask(masker);
+        allocater(&gridder);
+
+        gridder.run(processor,indexer);
+        
+        deallocater(&gridder);    
+        
+        return true;
     }
     
 

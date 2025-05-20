@@ -6,6 +6,7 @@
 #include "image/image.h"
 #include <atomic>
 #include <map>
+#include <mutex>
 
 typedef enum {
     NO_WEIGHT,
@@ -29,12 +30,11 @@ namespace NIBR
             std::function<void(Tractogram2ImageMapper<T>* tim)> outputCompiler_f
         );
 
-        bool processStreamline(std::vector<float**>& _kernel, int _streamlineId, uint16_t _threadNo, std::function<void(Tractogram2ImageMapper<T>* tim, int* _gridPos, NIBR::Segment& _seg)> f );
-        
         void setMapOnce(bool val) {mapOnce=val;}
         bool setMask(NIBR::Image<int>* maskImg);
         bool setMask(NIBR::Image<int>* maskImg, int selectedLabel);
         void setMask(bool*** _mask);
+        void setMaskVector(bool*** _mask);
         void anisotropicSmoothing(std::tuple<float,int> _smoothing) {smoothing = _smoothing;}
         void setWeights(std::string _weightFile, WEIGHTTYPE _weightType);
         void setWeights(std::vector<float> _weights, WEIGHTTYPE _weightType);
@@ -48,6 +48,7 @@ namespace NIBR
         bool                                    useMutexGrid;
         std::mutex*                             mutexGrid;     // Keeps track of with voxels are available to be processed in the grid
         std::unordered_map<uint32_t,std::mutex> mutexMap;
+        std::mutex                              contribMutex;                       
 
         template<class GRIDTYPE>
         void allocateGrid();
@@ -60,6 +61,24 @@ namespace NIBR
         void*                   data;
 
     private:
+
+        void runAndDeleteStreamlines (
+            std::function<void(Tractogram2ImageMapper<T>* tim, int* _gridPos, NIBR::Segment& _seg)> processor_f,
+            std::function<void(Tractogram2ImageMapper<T>* tim)> outputCompiler_f
+        );
+
+        void runAndKeepStreamlines (
+            std::function<void(Tractogram2ImageMapper<T>* tim, int* _gridPos, NIBR::Segment& _seg)> processor_f,
+            std::function<void(Tractogram2ImageMapper<T>* tim)> outputCompiler_f
+        );
+
+        bool processStreamline(
+            std::vector<float**>& _kernel, 
+            int _streamlineId, 
+            uint16_t _threadNo, 
+            std::function<void(Tractogram2ImageMapper<T>* tim, int* _gridPos, NIBR::Segment& _seg)> f, 
+            bool deleteStreamline 
+        );
         
         NIBR::TractogramReader* tractogram;
 

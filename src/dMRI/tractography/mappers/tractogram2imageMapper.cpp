@@ -223,9 +223,22 @@ void NIBR::Tractogram2ImageMapper<T>::setWeights(std::vector<float> _weights, WE
 
 }
 
-
 template<typename T>
 void NIBR::Tractogram2ImageMapper<T>::run(
+        std::function<void(Tractogram2ImageMapper<T>* tim, int* _gridPos, NIBR::Segment& _seg)> processor_f,
+        std::function<void(Tractogram2ImageMapper<T>* tim)> outputCompiler_f
+        )
+{
+    if (tractogram->isPreloaded() == false) {
+        return runAndDeleteStreamlines(processor_f,outputCompiler_f);
+    } else {
+        return runAndKeepStreamlines(processor_f,outputCompiler_f);
+    }
+    
+}
+
+template<typename T>
+void NIBR::Tractogram2ImageMapper<T>::runAndDeleteStreamlines(
         std::function<void(Tractogram2ImageMapper<T>* tim, int* _gridPos, NIBR::Segment& _seg)> processor_f,
         std::function<void(Tractogram2ImageMapper<T>* tim)> outputCompiler_f
         ) 
@@ -281,7 +294,7 @@ void NIBR::Tractogram2ImageMapper<T>::run(
         kernel.resize(std::get<1>(smoothing)+1);
         kernel[0] = batch[task.no % batchSize];
 
-        processStreamline(kernel,task.no,task.threadId, processor_f);
+        processStreamline(kernel,task.no,task.threadId, processor_f, true);
     };
 
     // Process the tractogram and fill
@@ -292,36 +305,34 @@ void NIBR::Tractogram2ImageMapper<T>::run(
 
 }
 
-// template<typename T>
-// void NIBR::Tractogram2ImageMapper<T>::run(
-//         std::function<void(Tractogram2ImageMapper<T>* tim, int* _gridPos, NIBR::Segment& _seg)> processor_f,
-//         std::function<void(Tractogram2ImageMapper<T>* tim)> outputCompiler_f,
-//         int beginInd,
-//         int endInd
-//         ) 
-// {
+template<typename T>
+void NIBR::Tractogram2ImageMapper<T>::runAndKeepStreamlines(
+        std::function<void(Tractogram2ImageMapper<T>* tim, int* _gridPos, NIBR::Segment& _seg)> processor_f,
+        std::function<void(Tractogram2ImageMapper<T>* tim)> outputCompiler_f
+        ) 
+{
 
-//     auto batchReadAndProcess = [&](const NIBR::MT::TASK& task, NIBR::MT::Barrier& barrier)->void {
+    if (useMutexGrid) {
+        mutexGrid = new std::mutex[img->voxCnt];
+    }
 
-        
-//         std::vector<float**> kernel;
-//         kernel.resize(std::get<1>(smoothing)+1);
-//         kernel[0] = tractogram[task.threadId].readStreamline(task.no);
+    auto fetchAndProcess = [&](const NIBR::MT::TASK& task)->void {
+        std::vector<float**> kernel;
+        kernel.resize(std::get<1>(smoothing)+1);
+        kernel[0] = tractogram[task.threadId].readStreamline(task.no);
+        processStreamline(kernel,task.no,task.threadId, processor_f, false);
+    };
 
-//         processStreamline(kernel,task.no+beginInd,task.threadId, processor_f);
-//     };
+    // Process the tractogram and fill
+    NIBR::MT::MTRUN(tractogram[0].numberOfStreamlines, NIBR::MT::MAXNUMBEROFTHREADS(), "Tractogram to image mapping", fetchAndProcess);
 
-//     // Process the tractogram and fill
-//     NIBR::MT::MTRUN(endInd-beginInd+1, NIBR::MT::MAXNUMBEROFTHREADS(), "Tractogram to image mapping", batchReadAndProcess);
-    
-//     // Compile output
-//     outputCompiler_f(this);
-    
-// }
+    // Compile output
+    outputCompiler_f(this);
 
+}
 
 template<typename T1>
-bool NIBR::Tractogram2ImageMapper<T1>::processStreamline(std::vector<float**>& kernel, int streamlineId, uint16_t threadNo, std::function<void(Tractogram2ImageMapper<T1>* tim, int* gridPos, NIBR::Segment& seg)> f ) {
+bool NIBR::Tractogram2ImageMapper<T1>::processStreamline(std::vector<float**>& kernel, int streamlineId, uint16_t threadNo, std::function<void(Tractogram2ImageMapper<T1>* tim, int* gridPos, NIBR::Segment& seg)> f, bool deleteStreamline) {
     
     // If streamline is empty, exit.
     int len = tractogram[threadNo].len[streamlineId];
@@ -412,6 +423,8 @@ bool NIBR::Tractogram2ImageMapper<T1>::processStreamline(std::vector<float**>& k
     disp(MSG_DEBUG,"Streamline: %d: len: %d", streamlineId, tractogram[threadNo].len[streamlineId]);
 
     // Iterate over the kernel
+    int streamlineCounter = 0;
+
     for (float** streamline : kernel) {
     
         NIBR::Segment seg;
@@ -461,8 +474,17 @@ bool NIBR::Tractogram2ImageMapper<T1>::processStreamline(std::vector<float**>& k
                 f(this, A, seg);
                 
             }
-            delete[] streamline[0];
-            delete[] streamline;
+
+            if (deleteStreamline) {
+                delete[] streamline[0];
+                delete[] streamline;
+            } else {
+                if (streamlineCounter > 0) {
+                    delete[] streamline[0];
+                    delete[] streamline;
+                }
+            }
+            
             continue;
         }
         
@@ -607,10 +629,17 @@ bool NIBR::Tractogram2ImageMapper<T1>::processStreamline(std::vector<float**>& k
             delete (float*)(seg.data);
         }
 
-        
-        for (int l=0; l<len; l++)
-            delete[] streamline[l];
-        delete[] streamline;
+        if (deleteStreamline) {
+            for (int l=0; l<len; l++)
+                delete[] streamline[l];
+            delete[] streamline;
+        } else {
+            if (streamlineCounter > 0) {
+                for (int l=0; l<len; l++)
+                    delete[] streamline[l];
+                delete[] streamline;
+            }
+        }
 
     }
     

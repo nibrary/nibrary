@@ -64,13 +64,18 @@ namespace NIBR
         
         TractogramReader();
         TractogramReader(std::string _fileName);
+        TractogramReader(std::string _fileName, bool _usePreload);
+
         ~TractogramReader();
         TractogramReader(const TractogramReader& obj);
         void copyFrom(const TractogramReader& obj);
         void destroyCopy();
         void printInfo();
+        bool isPreloaded() {return usePreload;}
         
         bool     initReader(std::string _fileName);
+        bool     initReader(std::string _fileName, bool _usePreload);
+
         void     setThreadId (uint32_t _threadId) {threadId=_threadId;}
         uint32_t getThreadId () {return threadId;}
 
@@ -104,6 +109,8 @@ namespace NIBR
         std::vector<Point>                              readStreamlinePoints(std::size_t n);
         std::vector<std::vector<float>>                 readStreamlineVector(std::size_t n);
 
+        float**                                         copyStreamlineFromMemory(std::size_t n);
+
         FILE                   *file;
         std::string             fileName;
         std::string             fileDescription;
@@ -131,13 +138,22 @@ namespace NIBR
         float                   xyz2ijk[4][4];
         
         long*                   streamlinePos;      // file positions for first points of streamlines
-
+        std::vector<float**>*   streamlinesInMemoryAsFloat;
+    
     private:
+
+        bool                    readToMemory();
+
         uint32_t                threadId;
 
         // TRK specific
         short                   n_scalars_trk;      // TRK file format extension
         short                   n_properties_trk;   // TRK file format extension
+
+        // loading the whole tractogram to memory
+        bool                    usePreload      = false;    // if we load the whole thing in memory
+        bool                    finishedLoading = false;    //this is set to true after reading the whole thing in memmory
+            
 
     };
 

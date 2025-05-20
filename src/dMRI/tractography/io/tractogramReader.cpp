@@ -730,8 +730,7 @@ bool NIBR::TractogramReader::readToMemory() {
 	delete[] inp;	
 
 	finishedLoading = true;
-
-	std::cout << "finished reading" << std::endl;
+	
 	return true;
 
 }

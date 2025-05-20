@@ -35,7 +35,7 @@ void NIBR::getParallelStreamlines(std::vector<std::vector<std::vector<float>>>& 
         }
 
     // Iterate throught the whole tractogram
-    auto genParallel = [&](NIBR::MT::TASK task)->void{
+    auto genParallel = [&](const NIBR::MT::TASK& task)->void{
 
         int len = tractogram[task.threadId].len[task.no];
 
@@ -146,7 +146,7 @@ void NIBR::getParallelStreamlines(std::vector<std::vector<std::vector<float>>>& 
     }
 
     // Iterate throught the whole tractogram
-    auto genParallel = [&](NIBR::MT::TASK task)->void{
+    auto genParallel = [&](const NIBR::MT::TASK& task)->void{
 
         int len = tractogram[task.threadId].len[task.no];
 

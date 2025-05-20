@@ -158,7 +158,7 @@ namespace NIBR
     template<typename T1,typename T2>
     void imgSub(NIBR::Image<T1>& img1,NIBR::Image<T2>& img2) {
         
-        auto f = [&](NIBR::MT::TASK task)->void {
+        auto f = [&](const NIBR::MT::TASK& task)->void {
             img1.data[task.no] -= img2.data[task.no];
         };
         
@@ -173,7 +173,7 @@ namespace NIBR
         if (imgOut.data == NULL)
             imgOut.create(img1.numberOfDimensions,img1.imgDims,img1.pixDims,img1.ijk2xyz,true);
 
-        auto f = [&](NIBR::MT::TASK task)->void {
+        auto f = [&](const NIBR::MT::TASK& task)->void {
             imgOut.data[task.no] = img1.data[task.no] - img2.data[task.no];
         };
         
@@ -185,7 +185,7 @@ namespace NIBR
     template<typename T1,typename T2>
     void imgSub(NIBR::Image<T1>& img1,T2 x) {
         
-        auto f = [&](NIBR::MT::TASK task)->void {
+        auto f = [&](const NIBR::MT::TASK& task)->void {
             img1.data[task.no] -= x;
         };
         
@@ -200,7 +200,7 @@ namespace NIBR
         if (imgOut.data == NULL)
             imgOut.create(img1.numberOfDimensions,img1.imgDims,img1.pixDims,img1.ijk2xyz,true);
         
-        auto f = [&](NIBR::MT::TASK task)->void {
+        auto f = [&](const NIBR::MT::TASK& task)->void {
             imgOut.data[task.no] = img1.data[task.no] - x;
         };
         
@@ -217,7 +217,7 @@ namespace NIBR
     template<typename T1,typename T2>
     void imgMult(NIBR::Image<T1>& img1,NIBR::Image<T2>& img2) {
         
-        auto f = [&](NIBR::MT::TASK task)->void {
+        auto f = [&](const NIBR::MT::TASK& task)->void {
             img1.data[task.no] *= img2.data[task.no];
         };
         
@@ -232,7 +232,7 @@ namespace NIBR
         if (imgOut.data == NULL)
             imgOut.create(img1.numberOfDimensions,img1.imgDims,img1.pixDims,img1.ijk2xyz,true);
 
-        auto f = [&](NIBR::MT::TASK task)->void {
+        auto f = [&](const NIBR::MT::TASK& task)->void {
             imgOut.data[task.no] = img1.data[task.no] * img2.data[task.no];
         };
         
@@ -244,7 +244,7 @@ namespace NIBR
     template<typename T1,typename T2>
     void imgMult(NIBR::Image<T1>& img1,T2 x) {
         
-        auto f = [&](NIBR::MT::TASK task)->void {
+        auto f = [&](const NIBR::MT::TASK& task)->void {
             img1.data[task.no] *= x;
         };
         
@@ -259,7 +259,7 @@ namespace NIBR
         if (imgOut.data == NULL)
             imgOut.create(img1.numberOfDimensions,img1.imgDims,img1.pixDims,img1.ijk2xyz,true);
         
-        auto f = [&](NIBR::MT::TASK task)->void {
+        auto f = [&](const NIBR::MT::TASK& task)->void {
             imgOut.data[task.no] = img1.data[task.no] * x;
         };
         
@@ -277,7 +277,7 @@ namespace NIBR
     template<typename T1,typename T2>
     void imgDiv(NIBR::Image<T1>& img1,NIBR::Image<T2>& img2) {
         
-        auto f = [&](NIBR::MT::TASK task)->void {
+        auto f = [&](const NIBR::MT::TASK& task)->void {
             img1.data[task.no] = (img1.data[task.no]==0) ? 0 : img1.data[task.no]/img2.data[task.no];                
         };
         
@@ -292,7 +292,7 @@ namespace NIBR
         if (imgOut.data == NULL)
             imgOut.create(img1.numberOfDimensions,img1.imgDims,img1.pixDims,img1.ijk2xyz,true);
 
-        auto f = [&](NIBR::MT::TASK task)->void {
+        auto f = [&](const NIBR::MT::TASK& task)->void {
             imgOut.data[task.no] = img1.data[task.no] / img2.data[task.no];
         };
         
@@ -304,7 +304,7 @@ namespace NIBR
     template<typename T1,typename T2>
     void imgDiv(NIBR::Image<T1>& img1,T2 x) {
         
-        auto f = [&](NIBR::MT::TASK task)->void {
+        auto f = [&](const NIBR::MT::TASK& task)->void {
             img1.data[task.no] /= x;
         };
         
@@ -319,7 +319,7 @@ namespace NIBR
         if (imgOut.data == NULL)
             imgOut.create(img1.numberOfDimensions,img1.imgDims,img1.pixDims,img1.ijk2xyz,true);
         
-        auto f = [&](NIBR::MT::TASK task)->void {
+        auto f = [&](const NIBR::MT::TASK& task)->void {
             imgOut.data[task.no] = img1.data[task.no] / x;
         };
         
@@ -334,7 +334,7 @@ namespace NIBR
     template<typename T>
     void imgAbs(NIBR::Image<T>& img) {
         
-        auto f = [&](NIBR::MT::TASK task)->void {
+        auto f = [&](const NIBR::MT::TASK& task)->void {
             if (getSign(img.data[task.no])==-1)
                 img.data[task.no] = -img.data[task.no];
         };
@@ -350,7 +350,7 @@ namespace NIBR
         if (imgOut.data == NULL)
             imgOut.createFromTemplate(img,true);
         
-        auto f = [&](NIBR::MT::TASK task)->void {
+        auto f = [&](const NIBR::MT::TASK& task)->void {
             imgOut.data[task.no] = (getSign(img.data[task.no])==-1) ? -img.data[task.no] : img.data[task.no];
         };
         
@@ -364,7 +364,7 @@ namespace NIBR
     template<typename T>
     void imgNot(NIBR::Image<T>& img) {
         
-        auto f = [&](NIBR::MT::TASK task)->void {
+        auto f = [&](const NIBR::MT::TASK& task)->void {
             img.data[task.no] = !img.data[task.no];
         };
         
@@ -379,7 +379,7 @@ namespace NIBR
         if (imgOut.data == NULL)
             imgOut.createFromTemplate(img,true);
         
-        auto f = [&](NIBR::MT::TASK task)->void {
+        auto f = [&](const NIBR::MT::TASK& task)->void {
             imgOut.data[task.no] = !(img.data[task.no]>0);
         };
         
@@ -393,7 +393,7 @@ namespace NIBR
     template<typename T>
     void imgSqrt(NIBR::Image<T>& img) {
         
-        auto f = [&](NIBR::MT::TASK task)->void {
+        auto f = [&](const NIBR::MT::TASK& task)->void {
             img.data[task.no] = std::sqrt(img.data[task.no]);
         };
         
@@ -408,7 +408,7 @@ namespace NIBR
         if (imgOut.data == NULL)
             imgOut.createFromTemplate(img,true);
         
-        auto f = [&](NIBR::MT::TASK task)->void {
+        auto f = [&](const NIBR::MT::TASK& task)->void {
             imgOut.data[task.no] = std::sqrt(img.data[task.no]);
         };
         
@@ -423,7 +423,7 @@ namespace NIBR
     template<typename T1,typename T2>
     void imgPow(NIBR::Image<T1>& img1,T2 x) {
         
-        auto f = [&](NIBR::MT::TASK task)->void {
+        auto f = [&](const NIBR::MT::TASK& task)->void {
             img1.data[task.no] = std::pow(img1.data[task.no],x);
         };
         
@@ -438,7 +438,7 @@ namespace NIBR
         if (imgOut.data == NULL)
             imgOut.create(img1.numberOfDimensions,img1.imgDims,img1.pixDims,img1.ijk2xyz,true);
         
-        auto f = [&](NIBR::MT::TASK task)->void {
+        auto f = [&](const NIBR::MT::TASK& task)->void {
             imgOut.data[task.no] = std::pow(img1.data[task.no],x);
         };
         
@@ -628,7 +628,7 @@ namespace NIBR
             return;
         }
         
-        auto f = [&](NIBR::MT::TASK task)->void {
+        auto f = [&](const NIBR::MT::TASK& task)->void {
 
             double val = 0.0;
             for (int t = 0; t < img.valCnt; t++) {
@@ -658,7 +658,7 @@ namespace NIBR
             return;
         }
         
-        auto f = [&](NIBR::MT::TASK task)->void {
+        auto f = [&](const NIBR::MT::TASK& task)->void {
             double val = 0.0;
             for (int t = 0; t < img.valCnt; t++) {
                 val += (*img.at(task.no,t))*(*img.at(task.no,t));

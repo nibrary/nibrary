@@ -20,7 +20,7 @@ void NIBR::sf2sh(NIBR::Image<float>* out, NIBR::Image<float>* inp, std::vector<s
 
     // We will find and only process those voxels which have non-zero values
     std::vector<std::vector<int64_t>> nnzVoxelSubs;
-    auto findNonZeroVoxels = [&](NIBR::MT::TASK task)->void {
+    auto findNonZeroVoxels = [&](const NIBR::MT::TASK& task)->void {
         
         int64_t i   = task.no;
         
@@ -42,7 +42,7 @@ void NIBR::sf2sh(NIBR::Image<float>* out, NIBR::Image<float>* inp, std::vector<s
     NIBR::MT::MTRUN(inp->imgDims[0],findNonZeroVoxels);
 
     // Apply spherical harmonics expansion
-    auto shExpansion = [&](NIBR::MT::TASK task)->void {
+    auto shExpansion = [&](const NIBR::MT::TASK& task)->void {
         
         std::vector<int64_t> sub = nnzVoxelSubs[task.no];
         
@@ -73,7 +73,7 @@ void NIBR::sh2sf(NIBR::Image<float>* out, NIBR::Image<float>* inp, std::vector<s
 
     // We will find and only process those voxels which have non-zero values
     std::vector<std::vector<int64_t>> nnzVoxelSubs;
-    auto findNonZeroVoxels = [&](NIBR::MT::TASK task)->void {
+    auto findNonZeroVoxels = [&](const NIBR::MT::TASK& task)->void {
         
         int64_t i   = task.no;
         
@@ -97,7 +97,7 @@ void NIBR::sh2sf(NIBR::Image<float>* out, NIBR::Image<float>* inp, std::vector<s
     float scale = 4.0 * PI / float(coords.size());
 
     // Apply spherical harmonics synthesis
-    auto shSynthesis = [&](NIBR::MT::TASK task)->void {
+    auto shSynthesis = [&](const NIBR::MT::TASK& task)->void {
         
         std::vector<int64_t> sub = nnzVoxelSubs[task.no];
         
@@ -131,7 +131,7 @@ void NIBR::sh2sf(NIBR::Image<float>* out, NIBR::Image<float>* inp, std::vector<s
 
     // We will find and only process those voxels which have non-zero values
     std::vector<std::vector<int64_t>> nnzVoxelSubs;
-    auto findNonZeroVoxels = [&](NIBR::MT::TASK task)->void {
+    auto findNonZeroVoxels = [&](const NIBR::MT::TASK& task)->void {
         
         int64_t i   = task.no;
         
@@ -155,7 +155,7 @@ void NIBR::sh2sf(NIBR::Image<float>* out, NIBR::Image<float>* inp, std::vector<s
     float scale = 4.0 * PI / float(coords.size());
 
     // Apply spherical harmonics synthesis
-    auto shSynthesis = [&](NIBR::MT::TASK task)->void {
+    auto shSynthesis = [&](const NIBR::MT::TASK& task)->void {
         
         std::vector<int64_t> sub = nnzVoxelSubs[task.no];
         
@@ -207,7 +207,7 @@ void NIBR::reorientSH(NIBR::Image<float>* img, OrderOfDirections ood)
 
     // We will find and only process those voxels which have non-zero values
     std::vector<std::vector<int64_t>> nnzVoxelSubs;
-    auto findNonZeroVoxels = [&](NIBR::MT::TASK task)->void {
+    auto findNonZeroVoxels = [&](const NIBR::MT::TASK& task)->void {
         
         int64_t i   = task.no;
         
@@ -231,7 +231,7 @@ void NIBR::reorientSH(NIBR::Image<float>* img, OrderOfDirections ood)
     float scale = (4.0 * PI) / float(coords.size());
 
     // Apply spherical harmonics synthesis and then expansion
-    auto reorient = [&](NIBR::MT::TASK task)->void {
+    auto reorient = [&](const NIBR::MT::TASK& task)->void {
         
         std::vector<int64_t> sub = nnzVoxelSubs[task.no];
 
@@ -300,7 +300,7 @@ void NIBR::rotateSH(NIBR::Image<float>* img, float R[][4])
 
     // We will find and only process those voxels which have non-zero values
     std::vector<std::vector<int64_t>> nnzVoxelSubs;
-    auto findNonZeroVoxels = [&](NIBR::MT::TASK task)->void {
+    auto findNonZeroVoxels = [&](const NIBR::MT::TASK& task)->void {
         
         int64_t i   = task.no;
         
@@ -324,7 +324,7 @@ void NIBR::rotateSH(NIBR::Image<float>* img, float R[][4])
     float scale = (4.0 * PI) / float(inp_coords.size());
 
     // Apply spherical harmonics synthesis and then expansion
-    auto reorient = [&](NIBR::MT::TASK task)->void {
+    auto reorient = [&](const NIBR::MT::TASK& task)->void {
         
         std::vector<int64_t> sub = nnzVoxelSubs[task.no];
 

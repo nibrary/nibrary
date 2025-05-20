@@ -53,7 +53,7 @@ namespace NIBR
         lineIntegral += G->eval(squared_dist(voxCenter, p)) * rem;
 
         {
-            std::lock_guard<std::mutex> lock(tim->gridMutex[ind]);
+            std::lock_guard<std::mutex> lock( (tim->useMutexGrid) ? tim->mutexGrid[ind] : tim->mutexMap[ind]);
 
             if (tim->grid[ind]==NULL) { // Allocate memory here
                 std::unordered_map<int,float>* streamlineIdsAndGaussionWeightedLength = new std::unordered_map<int,float>();
@@ -98,7 +98,7 @@ namespace NIBR
             batchData.resize(batchSize);
             std::atomic_int counter(0);
 
-            auto run = [&](NIBR::MT::TASK task)->void{
+            auto run = [&](const NIBR::MT::TASK& task)->void{
 
                 int64_t ind = inds->at(starting+task.no);
 
@@ -178,7 +178,7 @@ namespace NIBR
         
         indexing->resize(numberOfIndices);
 
-        auto indexStreamlines = [&](NIBR::MT::TASK task)->void{
+        auto indexStreamlines = [&](const NIBR::MT::TASK& task)->void{
             const int64_t& ind = inds->at(task.no);
 
             if (tim->grid[ind] != NULL) {

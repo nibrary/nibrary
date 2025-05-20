@@ -599,7 +599,7 @@ std::vector<std::vector<std::vector<float>>> NIBR::TractogramReader::read() {
         inp[t].copyFrom(*this);
 	}
 
-	auto mtReader = [&](NIBR::MT::TASK task)->void{
+	auto mtReader = [&](const NIBR::MT::TASK& task)->void{
 
 		float** streamline = inp[task.threadId].readStreamline(task.no);
 

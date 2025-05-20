@@ -49,7 +49,7 @@ std::tuple<std::vector<size_t>,std::vector<float>,std::vector<float>> NIBR::path
 
     bool filteringFinished = false;
 
-    auto applyPathwayRule = [&](NIBR::MT::TASK task) -> bool {
+    auto applyPathwayRule = [&](const NIBR::MT::TASK& task) -> bool {
 
         std::vector<Point> streamline = tractogram[task.threadId].readStreamlinePoints(task.no);
 

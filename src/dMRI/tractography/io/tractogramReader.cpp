@@ -70,7 +70,6 @@ void NIBR::TractogramReader::copyFrom(const TractogramReader& obj) {
 	numberOfStreamlines 		= obj.numberOfStreamlines;
 	len 						= obj.len;
 	streamlinePos 				= obj.streamlinePos;
-	streamlinesInMemoryAsFloat 	= obj.streamlinesInMemoryAsFloat;
 
 	n_scalars_trk 		= obj.n_scalars_trk;
 	n_properties_trk 	= obj.n_properties_trk;
@@ -82,6 +81,10 @@ void NIBR::TractogramReader::copyFrom(const TractogramReader& obj) {
 	}
 
 	file = fopen(fileName.c_str(), "rb");
+
+	streamlinesInMemoryAsFloat 	= obj.streamlinesInMemoryAsFloat;
+	usePreload 					= obj.usePreload;
+	finishedLoading 			= obj.finishedLoading;
 }
 
 void NIBR::TractogramReader::destroyCopy() {

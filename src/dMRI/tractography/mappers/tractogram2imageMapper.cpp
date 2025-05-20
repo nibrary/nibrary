@@ -238,6 +238,30 @@ void NIBR::Tractogram2ImageMapper<T>::run(
 }
 
 template<typename T>
+void NIBR::Tractogram2ImageMapper<T>::run(
+        std::function<void(Tractogram2ImageMapper<T>* tim, int* _gridPos, NIBR::Segment& _seg)> processor_f,
+        std::function<void(Tractogram2ImageMapper<T>* tim)> outputCompiler_f,
+        int beginInd,
+        int endInd
+        ) {
+
+    // Process the tractogram and fill
+    NIBR::MT::MTRUN(endInd-beginInd+1, NIBR::MT::MAXNUMBEROFTHREADS(), "Tractogram to image mapping", [&](NIBR::MT::TASK task)->void {
+
+            std::vector<float**> kernel;
+            kernel.resize(std::get<1>(smoothing)+1);
+            kernel[0] = tractogram[task.threadId].readStreamline(task.no+beginInd);
+
+            processStreamline(kernel,task.no+beginInd,task.threadId, processor_f, !tractogram->isPreloaded());
+
+        });
+
+    // Compile output
+    outputCompiler_f(this);
+    
+}
+
+template<typename T>
 void NIBR::Tractogram2ImageMapper<T>::runAndDeleteStreamlines(
         std::function<void(Tractogram2ImageMapper<T>* tim, int* _gridPos, NIBR::Segment& _seg)> processor_f,
         std::function<void(Tractogram2ImageMapper<T>* tim)> outputCompiler_f

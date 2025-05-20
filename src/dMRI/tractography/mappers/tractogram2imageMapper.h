@@ -25,9 +25,18 @@ namespace NIBR
         Tractogram2ImageMapper(NIBR::TractogramReader* _tractogram, NIBR::Image<T>* _img);
         ~Tractogram2ImageMapper();
         
+        // Run for the whole tractogram
         void run (
             std::function<void(Tractogram2ImageMapper<T>* tim, int* _gridPos, NIBR::Segment& _seg)> processor_f,
             std::function<void(Tractogram2ImageMapper<T>* tim)> outputCompiler_f
+        );
+
+        // Run for streamlines between beginInd and endInd (both inclusive)
+        void run (
+            std::function<void(Tractogram2ImageMapper<T>* tim, int* _gridPos, NIBR::Segment& _seg)> processor_f,
+            std::function<void(Tractogram2ImageMapper<T>* tim)> outputCompiler_f,
+            int beginInd,
+            int endInd
         );
 
         void setMapOnce(bool val) {mapOnce=val;}

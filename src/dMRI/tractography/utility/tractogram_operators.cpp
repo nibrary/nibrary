@@ -86,9 +86,11 @@ std::vector<float> NIBR::getTractogramBBox(NIBR::TractogramReader* _tractogram) 
     bb[4] = firstStreamline[0][2];
     bb[5] = firstStreamline[0][2];
 
-    for (uint32_t i=0; i<tractogram[0].len[0]; i++)
-        delete[] firstStreamline[i];
-    delete[] firstStreamline;
+    if (_tractogram->isPreloaded() == false) {
+        for (uint32_t i=0; i<tractogram[0].len[0]; i++)
+            delete[] firstStreamline[i];
+        delete[] firstStreamline;
+    }
 
     // Iterate throught the whole tractogram
     auto findBB = [&](const NIBR::MT::TASK& task)->void{
@@ -109,9 +111,11 @@ std::vector<float> NIBR::getTractogramBBox(NIBR::TractogramReader* _tractogram) 
             localBB[5] = std::max(localBB[5], streamline[i][2]);  // Update z max
         }
 
-        for (uint32_t i=0; i<tractogram[task.threadId].len[task.no]; i++)
-            delete[] streamline[i];
-        delete[] streamline;
+        if (_tractogram->isPreloaded() == false) {
+            for (uint32_t i=0; i<tractogram[task.threadId].len[task.no]; i++)
+                delete[] streamline[i];
+            delete[] streamline;
+        }
 
         // Safely merge the local bounding box into the global bounding box
         {

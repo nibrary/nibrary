@@ -163,9 +163,11 @@ namespace NIBR
 
         }
 
-        for (int l=0; l<len; l++)
-            delete[] streamline[l];
-        delete[] streamline;
+        if (tractogram[threadNo].isPreloaded() == false) {
+            for (int l=0; l<len; l++)
+                delete[] streamline[l];
+            delete[] streamline;
+        }
         
         // disp(MSG_DEBUG,"vIdx size: %d", vIdx.size());
 

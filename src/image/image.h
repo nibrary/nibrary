@@ -315,7 +315,9 @@ namespace NIBR
 
         createFromTemplate(img,true);
 
-        NIBR::MT::MTRUN(img.numel, NIBR::MT::MAXNUMBEROFTHREADS(),[&](const NIBR::MT::TASK& task)->void {data[task.no] = img.data[task.no];});        
+        for (int n = 0; n < numel; n++) {
+            data[n] = img.data[n];
+        }
 
         return *this;
     }
@@ -352,7 +354,7 @@ namespace NIBR
 
         createFromTemplate(img,true);
 
-        NIBR::MT::MTRUN(img.numel, NIBR::MT::MAXNUMBEROFTHREADS(),[&](const NIBR::MT::TASK& task)->void {data[task.no] = img.data[task.no];});
+        memcpy(data,img.data,numel*sizeof(T));
 
         return *this;
     }

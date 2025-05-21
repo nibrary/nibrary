@@ -10,17 +10,17 @@ namespace NIBR
 {
 
     template<typename T>
-    inline void allocateGrid_4streamlineIdAndGaussionWeightedLength(Tractogram2ImageMapper<T>* tim) {
+    inline void allocateGrid_4streamlineIdAndGaussionWeightedLength_disk(Tractogram2ImageMapper<T>* tim) {
         tim->template allocateGrid<std::unordered_map<int,float>>();
     }
 
     template<typename T>
-    inline void deallocateGrid_4streamlineIdAndGaussionWeightedLength(Tractogram2ImageMapper<T>* tim) {
+    inline void deallocateGrid_4streamlineIdAndGaussionWeightedLength_disk(Tractogram2ImageMapper<T>* tim) {
         tim->template deallocateGrid<std::unordered_map<int,float>>();
     }
 
     template<typename T>
-    inline void processor_4streamlineIdAndGaussionWeightedLength(Tractogram2ImageMapper<T>* tim, int* gridPos, NIBR::Segment& seg) {
+    inline void processor_4streamlineIdAndGaussionWeightedLength_disk(Tractogram2ImageMapper<T>* tim, int* gridPos, NIBR::Segment& seg) {
 
         int64_t ind = tim->img->sub2ind(gridPos[0],gridPos[1],gridPos[2]);
         
@@ -29,6 +29,7 @@ namespace NIBR
         static float stepSize = [&]() { return tim->img->pixDims[0] * 0.05; }();
 
         auto G =  (Gaussian3D_evaluator_4squaredDist*)(std::get<0>(*(std::tuple<void*,std::vector<int64_t>*,std::string*,int*>*)(tim->data)));
+
         tim->img->to_xyz(gridPos, &voxCenter[0]);
 
         int fullSteps = static_cast<int>(seg.length / stepSize);
@@ -61,16 +62,13 @@ namespace NIBR
             }
 
             (*((std::unordered_map<int,float>*)(tim->grid[ind])))[seg.streamlineNo] += lineIntegral;
-
         }
 
 
     }
 
-
-
     template<typename T>
-    inline void indexStreamlineIdAndGaussionWeightedLength(Tractogram2ImageMapper<T>* tim) {
+    inline void indexStreamlineIdAndGaussionWeightedLength_disk(Tractogram2ImageMapper<T>* tim) {
 
         // auto data       =  std::get<0>(*(std::tuple<void*,std::vector<int64_t>*,std::string*,int*>*)(tim->data)); // Not used this particular function
         auto inds       =  std::get<1>(*(std::tuple<void*,std::vector<int64_t>*,std::string*,int*>*)(tim->data));

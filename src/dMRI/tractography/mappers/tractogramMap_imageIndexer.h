@@ -3,7 +3,6 @@
 #include "base/nibr.h"
 #include "dMRI/tractography/mappers/tractogram2imageMapper.h"
 #include "dMRI/tractography/mappers/gridder_4mask.h"
-#include "unordered_dense/unordered_dense.h"
 
 namespace NIBR
 {
@@ -162,29 +161,35 @@ namespace NIBR
     bool index2image(
         TractogramReader& tractogram, 
         Image<T>& img, 
-        bool*** masker,
+        bool***& mask,
+        std::vector<int64_t>& inds,
         std::function<void(Tractogram2ImageMapper<T>* tim, int* _gridPos, NIBR::Segment& _seg)> processor, 
         std::function<void(Tractogram2ImageMapper<T>* tim)> indexer,
         std::function<void(Tractogram2ImageMapper<T>* tim)> allocater,
         std::function<void(Tractogram2ImageMapper<T>* tim)> deallocater,
         void* G,
-        ankerl::unordered_dense::map<int,ankerl::unordered_dense::map<int,float>>* contributions)
+        std::unordered_map<int,std::unordered_map<int,float>>* contributions)
     {
+        // Preallocate contributions to enable future access for multiple threads
+        contributions->clear();
+        for (const auto& n : inds) {
+            (*contributions)[n] = std::unordered_map<int,float>();
+        }
         
-        // gridData: <function* G, std::unordered_map<int,std::vector<std::pair<int,float>>>* contributions>
-        std::tuple<void*,ankerl::unordered_dense::map<int,ankerl::unordered_dense::map<int,float>>*> gridData;
+        // gridData: <function* G, std::std::unordered_map<int,std::vector<std::pair<int,float>>>* contributions>
+        std::tuple<void*,std::unordered_map<int,std::unordered_map<int,float>>*> gridData;
         std::get<0>(gridData) = G;
         std::get<1>(gridData) = contributions;
 
         Tractogram2ImageMapper<T> gridder(&tractogram,&img);
         gridder.optimizeForSmallMask(true);
+        gridder.setMask(mask);
         gridder.setData((void*)(&gridData));
-        gridder.setMask(masker);
         allocater(&gridder);
 
         gridder.run(processor,indexer);
         
-        deallocater(&gridder);    
+        deallocater(&gridder);
         
         return true;
     }
@@ -222,5 +227,4 @@ namespace NIBR
     */
 
 }
-
 

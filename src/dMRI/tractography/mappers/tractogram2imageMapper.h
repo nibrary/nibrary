@@ -43,7 +43,6 @@ namespace NIBR
         bool setMask(NIBR::Image<int>* maskImg);
         bool setMask(NIBR::Image<int>* maskImg, int selectedLabel);
         void setMask(bool*** _mask);
-        void setMaskVector(bool*** _mask);
         void anisotropicSmoothing(std::tuple<float,int> _smoothing) {smoothing = _smoothing;}
         void setWeights(std::string _weightFile, WEIGHTTYPE _weightType);
         void setWeights(std::vector<float> _weights, WEIGHTTYPE _weightType);
@@ -57,7 +56,6 @@ namespace NIBR
         bool                                    useMutexGrid;
         std::mutex*                             mutexGrid;     // Keeps track of with voxels are available to be processed in the grid
         std::unordered_map<uint32_t,std::mutex> mutexMap;
-        std::mutex                              contribMutex;                       
 
         template<class GRIDTYPE>
         void allocateGrid();
@@ -150,4 +148,3 @@ void NIBR::Tractogram2ImageMapper<T>::deallocateGrid()
     grid.clear();
     grid.shrink_to_fit();
 }
-

@@ -177,14 +177,14 @@ void NIBR::Tractogram2ImageMapper<T>::setMask(bool*** _mask) {
             for (int j = 0; j < img->imgDims[1]; j++) {
                 for (int k = 0; k < img->imgDims[2]; k++) {
                     if (mask[i][j][k]) {
-                        if (!useMutexGrid) {
-                            mutexMap.try_emplace(static_cast<uint32_t>(img->sub2ind(i, j, k)));
-                        }
+                        mutexMap.try_emplace(static_cast<uint32_t>(img->sub2ind(i, j, k)));
                     }
                 }
             }
         }
     }
+
+    // NIBR::disp(MSG_DETAIL,"mutexMap size: %d", mutexMap.size());
 
 }
 
@@ -229,17 +229,17 @@ void NIBR::Tractogram2ImageMapper<T>::run(
         std::function<void(Tractogram2ImageMapper<T>* tim)> outputCompiler_f
         )
 {
-    // NIBR::disp(MSG_DETAIL,"Starting complete run");
+    NIBR::disp(MSG_DETAIL,"Starting complete run");
 
     if (useMutexGrid) {
         mutexGrid = new std::mutex[img->voxCnt];
     }
 
-    if (tractogram->isPreloaded() == false) {
-        // NIBR::disp(MSG_DETAIL,"Calling runAndDeleteStreamlines");
+    if (tractogram[0].isPreloaded() == false) {
+        NIBR::disp(MSG_DETAIL,"Calling runAndDeleteStreamlines");
         return runAndDeleteStreamlines(processor_f,outputCompiler_f);
     } else {
-        // NIBR::disp(MSG_DETAIL,"Calling runAndKeepStreamlines");
+        NIBR::disp(MSG_DETAIL,"Calling runAndKeepStreamlines");
         return runAndKeepStreamlines(processor_f,outputCompiler_f);
     }
     
@@ -356,6 +356,7 @@ void NIBR::Tractogram2ImageMapper<T>::runAndKeepStreamlines(
         std::vector<float**> kernel;
         kernel.resize(std::get<1>(smoothing)+1);
         kernel[0] = tractogram[task.threadId].readStreamline(task.no);
+        // NIBR::disp(MSG_DETAIL,"Processing streamline %d", task.no);
         processStreamline(kernel,task.no,task.threadId, processor_f, false);
     };
 
@@ -363,6 +364,7 @@ void NIBR::Tractogram2ImageMapper<T>::runAndKeepStreamlines(
     NIBR::MT::MTRUN(tractogram[0].numberOfStreamlines, NIBR::MT::MAXNUMBEROFTHREADS(), "Tractogram to image mapping", fetchAndProcess);
 
     // Compile output
+    // NIBR::disp(MSG_DETAIL,"Compiling output all");
     outputCompiler_f(this);
 
 }

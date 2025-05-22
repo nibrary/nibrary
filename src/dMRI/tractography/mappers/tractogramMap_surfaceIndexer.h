@@ -16,10 +16,11 @@ namespace NIBR
 
     // Output size is of length numberOfStreamlines. Each output element contains corresponding vertex_ids and streamline distances on the mesh
     std::vector<std::unordered_map<int,float>> readSurfaceIndexing(TractogramReader& tractogram, std::string& indexFilePrefix);
+    
+    std::vector<std::vector<std::pair<int, float>>> readSurfaceIndexingVector(TractogramReader& tractogram, const std::string& indexFilePrefix);
 
     // Output has pairs of vertex_ids and cumulative streamline distance
     std::unordered_map<int,float> continuousSurfaceMap(const std::vector<int>& streamlineIndices, const std::string& indexFilePrefix);
     std::unordered_map<int,float> continuousSurfaceMap(const std::vector<int>& streamlineIndices, const std::string& indexFilePrefix, const std::vector<std::streampos>& positions);
 
 }
-

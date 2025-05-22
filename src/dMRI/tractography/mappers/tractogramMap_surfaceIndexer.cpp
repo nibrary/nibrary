@@ -355,6 +355,7 @@ std::unordered_map<int,std::unordered_map<int, float>> NIBR::readSurfaceIndexing
     return surfIdx;
 }
 
+
 std::vector<std::unordered_map<int,float>> NIBR::readSurfaceIndexing(TractogramReader& tractogram, std::string& indexFilePrefix)
 {
 
@@ -404,5 +405,106 @@ std::vector<std::unordered_map<int,float>> NIBR::readSurfaceIndexing(TractogramR
 
     return surfIdx;
 
+}
+
+
+
+std::vector<std::vector<std::pair<int, float>>> NIBR::readSurfaceIndexingVector(TractogramReader& tractogram, const std::string& indexFilePrefix)
+{
+    // Initialize the output
+    std::vector<std::vector<std::pair<int, float>>> surfIdx(tractogram.numberOfStreamlines);
+
+    // Return empty vector if there are no streamlines
+    if (tractogram.numberOfStreamlines == 0)
+        return surfIdx;
+    
+
+    // Read the entire surface indexing pos file into memory
+    std::ifstream surfPosFile(indexFilePrefix + "_pos.bin", std::ios::binary | std::ios::in);
+    if (!surfPosFile) {
+        disp(MSG_ERROR,"Can't read surface indexing _pos file");
+        return surfIdx;
+    }
+
+    std::vector<std::streampos> positions;
+    positions.reserve(tractogram.numberOfStreamlines + 1); // +1 for the end position of the last streamline
+
+    std::streampos tmp;
+    while (surfPosFile.read(reinterpret_cast<char*>(&tmp), sizeof(std::streampos))) {
+        positions.push_back(tmp);
+    }
+    surfPosFile.close();
+
+    // Ensure positions vector has the expected size.
+    if (tractogram.numberOfStreamlines > 0 && positions.size() != tractogram.numberOfStreamlines + 1) {
+        disp(MSG_ERROR,"Error reading surface indexing _pos file. Unexpected file size.");
+        return surfIdx;
+    }
+
+    
+    std::vector<std::ifstream> idxFileStreams;
+    idxFileStreams.resize(MT::MAXNUMBEROFTHREADS());
+
+    for (int n = 0; n < MT::MAXNUMBEROFTHREADS(); n++) {
+        idxFileStreams[n].open(indexFilePrefix + "_idx.bin", std::ios::binary | std::ios::in);
+        if (!idxFileStreams[n]) {
+            disp(MSG_ERROR,"Can't open surface indexing _idx file");
+            for(int k=0; k<n; ++k) if(idxFileStreams[k].is_open()) idxFileStreams[k].close();
+            return surfIdx;
+        }
+    }
+
+    auto runReader = [&](const NIBR::MT::TASK& task) {
+
+        const size_t& streamlineIndex = task.no;
+
+        std::vector<std::pair<int, float>> currentStreamlineData;
+        std::streampos begPosition = positions[streamlineIndex];
+        std::streampos endPosition = positions[streamlineIndex + 1];
+        
+        std::ifstream& currentIdxFile = idxFileStreams[task.threadId];
+        currentIdxFile.clear();
+        currentIdxFile.seekg(begPosition);
+
+        if (begPosition < endPosition) {
+
+            std::streamoff       data_size_bytes  = endPosition - begPosition;
+            const std::streamoff single_pair_size = static_cast<std::streamoff>(sizeof(int) + sizeof(float));
+            
+            if (data_size_bytes > 0 && single_pair_size > 0) {
+                size_t num_pairs = static_cast<size_t>(data_size_bytes / single_pair_size);
+                currentStreamlineData.reserve(num_pairs);
+            }
+
+            while (currentIdxFile.tellg() < endPosition && currentIdxFile.good()) {
+                int vertexId;
+                float distance;
+                currentIdxFile.read(reinterpret_cast<char*>(&vertexId), sizeof(vertexId));
+                currentIdxFile.read(reinterpret_cast<char*>(&distance), sizeof(distance));
+                currentStreamlineData.push_back({vertexId, distance});
+            }
+
+        }
+
+        // Sort the collected data by vertexId (the first element of the pair)
+        std::sort(currentStreamlineData.begin(), currentStreamlineData.end(),
+                  [](const std::pair<int, float>& a, const std::pair<int, float>& b) {
+                      return a.first < b.first;
+                  });
+
+        // Move the sorted data into the main result vector
+        // This is thread-safe because each task writes to a unique surfIdx[streamlineIndex]
+        surfIdx[streamlineIndex] = std::move(currentStreamlineData);
+    };
+
+    MT::MTRUN(tractogram.numberOfStreamlines, "Reading surface indexing", runReader);
+
+    for (int n = 0; n < MT::MAXNUMBEROFTHREADS(); n++) {
+        if (idxFileStreams[n].is_open()) {
+            idxFileStreams[n].close();
+        }
+    }
+
+    return surfIdx;
 }
 

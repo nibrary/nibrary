@@ -727,7 +727,7 @@ bool NIBR::TractogramReader::readToMemory() {
 
 	float s = 100.0f / float(numberOfStreamlines);
 
-	for (auto n = 0; n < numberOfStreamlines; n++) {
+	for (size_t n = 0; n < numberOfStreamlines; n++) {
 		streamlinesInMemoryAsFloat->at(n) = readStreamline(n);
 		if ((n>0) && (NIBR::VERBOSE()>=VERBOSE_INFO)) std::cout << "\033[A\r\033[K" << std::flush;
 		NIBR::disp(MSG_INFO,"Preloading streamlines: %.2f%%", (n+1)*s);

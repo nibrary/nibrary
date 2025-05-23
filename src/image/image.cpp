@@ -125,14 +125,16 @@ void Image<T>::create(int ndims, const int64_t _imgDims[], const float _pixDims[
 
     numberOfDimensions = ndims;
 
-    for (int i=0; i<7; i++) {
-        imgDims[i] = 1;
-        pixDims[i] = 1;
-    }
+    if (numberOfDimensions > 0) {
+        for (int i=0; i<7; i++) {
+            imgDims[i] = 1;
+            pixDims[i] = 1;
+        }
 
-    for (int i=0; i<ndims; i++) {
-        imgDims[i] = _imgDims[i];
-        pixDims[i] = _pixDims[i];
+        for (int i=0; i<ndims; i++) {
+            imgDims[i] = _imgDims[i];
+            pixDims[i] = _pixDims[i];
+        }
     }
 
     if (_ijk2xyz != NULL) {

@@ -34,7 +34,8 @@ std::vector<std::unordered_map<int,float>> NIBR::index2surface(TractogramReader&
     if (sigma<=0) {
         float aveFaceArea   = surf.area/float(surf.nf);
         float aveEdgeLength = std::sqrt((4.0f * aveFaceArea) / std::sqrt(3.0f));
-        sigma = 2.0f*aveEdgeLength;
+        sigma = aveEdgeLength;
+        disp(MSG_INFO,"Using default sigma (aveEdgeLength) = %.2f", sigma);
     }
 
     float maxVertexMappingDistance = 3.0f*sigma;  // we will not consider any vertex beyond 3*sigma
@@ -109,8 +110,9 @@ void NIBR::index2surface(TractogramReader& tractogram, Surface& surf, float sigm
     if (sigma<=0) {
         float aveFaceArea   = surf.area/float(surf.nf);
         float aveEdgeLength = std::sqrt((4.0f * aveFaceArea) / std::sqrt(3.0f));
-        sigma = 2.0f*aveEdgeLength;
-    }
+        sigma = aveEdgeLength;
+        disp(MSG_INFO,"Using default sigma (aveEdgeLength) = %.2f", sigma);
+    }    
 
     float maxVertexMappingDistance = 3.0f*sigma;  // we will not consider any vertex beyond 3*sigma
     float variance                 = sigma*sigma;

@@ -314,8 +314,11 @@ namespace NIBR
         setInterpolationMethod(interpMethod);
 
         createFromTemplate(img,true);
+        if (numel != img.numel) {
+            disp(MSG_FATAL,"Image copy error");
+        }
 
-        for (int n = 0; n < numel; n++) {
+        for (int64_t n = 0; n < numel; n++) {
             data[n] = img.data[n];
         }
 
@@ -353,6 +356,9 @@ namespace NIBR
         setInterpolationMethod(interpMethod);
 
         createFromTemplate(img,true);
+        if (numel != img.numel) {
+            disp(MSG_FATAL,"Image copy error");
+        }
 
         memcpy(data,img.data,numel*sizeof(T));
 

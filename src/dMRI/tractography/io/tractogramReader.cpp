@@ -7,31 +7,32 @@
 using namespace NIBR;
 			
 NIBR::TractogramReader::TractogramReader() {
-	fileName 					= "";
-	fileDescription 			= "";
-	file 						= NULL;
-	threadId 					= 0;
-	usePreload 					= false;
-	streamlinesInMemoryAsFloat 	= NULL;
+	fileName 			= "";
+	fileDescription 	= "";
+	file 				= NULL;
+	usePreload 			= false;
+	streamlineBuffer 	= NULL;
+	fileBuffer 			= NULL;
+
 }
 
 NIBR::TractogramReader::TractogramReader(std::string _fileName) {
-	fileName 					= "";
-	fileDescription 			= "";
-	file 						= NULL;
-	threadId 					= 0;
-	usePreload 					= false;
-	streamlinesInMemoryAsFloat 	= NULL;
+	fileName 			= "";
+	fileDescription 	= "";
+	file 				= NULL;
+	usePreload 			= false;
+	streamlineBuffer 	= NULL;
+	fileBuffer 			= NULL;
 	initReader(_fileName);
 }
 
 NIBR::TractogramReader::TractogramReader(std::string _fileName, bool _usePreload) {
-	fileName 					= "";
-	fileDescription			 	= "";
-	file 						= NULL;
-	threadId 					= 0;
-	usePreload 					= _usePreload;
-	streamlinesInMemoryAsFloat 	= NULL;
+	fileName 			= "";
+	fileDescription		= "";
+	file 				= NULL;
+	usePreload 			= _usePreload;
+	streamlineBuffer 	= NULL;
+	fileBuffer 			= NULL;
 	initReader(_fileName,usePreload);
 }
 
@@ -41,14 +42,19 @@ NIBR::TractogramReader::TractogramReader(const TractogramReader& obj) {
 
 NIBR::TractogramReader::~TractogramReader() {
 
-	if (finishedLoading && streamlinesInMemoryAsFloat != NULL) {
+	if (finishedLoading && streamlineBuffer != NULL) {
 		for (std::size_t n = 0; n < numberOfStreamlines; n++) {
-			for (std::size_t l = 0; l < len[n]; l++) {
-				delete[] streamlinesInMemoryAsFloat->at(n)[l];
+			if (fileBuffer == NULL) {
+				for (std::size_t l = 0; l < len[n]; l++) {
+					delete[] streamlineBuffer->at(n)[l];
+				}
 			}
-			delete[] streamlinesInMemoryAsFloat->at(n);
+			delete[] streamlineBuffer->at(n);
 		}
 	}
+
+	if (fileBuffer != NULL) delete[] fileBuffer;
+	fileBuffer = NULL;
 
 	fileName.erase();
 	fileDescription.erase();
@@ -62,11 +68,11 @@ NIBR::TractogramReader::~TractogramReader() {
 	len 						= NULL;
 	streamlinePos 				= NULL;
 
-	if (streamlinesInMemoryAsFloat != NULL) {
-		streamlinesInMemoryAsFloat->clear();
-		delete streamlinesInMemoryAsFloat;
+	if (streamlineBuffer != NULL) {
+		streamlineBuffer->clear();
+		delete streamlineBuffer;
 	}
-	streamlinesInMemoryAsFloat 	= NULL;
+	streamlineBuffer 	= NULL;
 
 }
 
@@ -92,21 +98,23 @@ void NIBR::TractogramReader::copyFrom(const TractogramReader& obj) {
 
 	file = fopen(fileName.c_str(), "rb");
 
-	streamlinesInMemoryAsFloat 	= obj.streamlinesInMemoryAsFloat;
-	usePreload 					= obj.usePreload;
-	finishedLoading 			= obj.finishedLoading;
+	streamlineBuffer 	= obj.streamlineBuffer;
+	usePreload 			= obj.usePreload;
+	finishedLoading 	= obj.finishedLoading;
+	fileBuffer 			= obj.fileBuffer;
 }
 
 void NIBR::TractogramReader::destroyCopy() {
 	fileName.erase();
 	fileDescription.erase();
 	if (file != NULL) fclose(file);
-	file 		  				= NULL;
-	len 		  				= NULL;
-	streamlinePos 				= NULL;
-	streamlinesInMemoryAsFloat 	= NULL;
-	usePreload 					= false;
-	finishedLoading 			= false;
+	file 		  		= NULL;
+	len 		  		= NULL;
+	streamlinePos 		= NULL;
+	streamlineBuffer 	= NULL;
+	usePreload 			= false;
+	finishedLoading 	= false;
+	fileBuffer			= NULL;
 }
 
 bool NIBR::TractogramReader::initReader(std::string _fileName,bool _usePreload) {
@@ -115,7 +123,7 @@ bool NIBR::TractogramReader::initReader(std::string _fileName,bool _usePreload) 
 
 	if (usePreload) {
 
-		streamlinesInMemoryAsFloat = new std::vector<float**>();
+		streamlineBuffer = new std::vector<float**>();
 
 		if (!initReader(_fileName)) 
 			return false;
@@ -398,32 +406,10 @@ bool NIBR::TractogramReader::initReader(std::string _fileName) {
 	return true;
 }
 
-float** NIBR::TractogramReader::copyStreamlineFromMemory(std::size_t n) {
-
-	if (finishedLoading) {
-
-		float** points;
-		points = new float* [len[n]];
-
-		for (uint32_t i = 0; i < len[n]; i++) {
-			points[i] = new float[3];
-			for (int j = 0; j < 3; j++) {
-				points[i][j] = streamlinesInMemoryAsFloat->at(n)[i][j];
-			}
-		}
-
-		return points;
-
-	} else {
-		return NULL;
-	}
-
-}
-
 float** NIBR::TractogramReader::readStreamline(std::size_t n) {
 
 	if (finishedLoading) {
-		return streamlinesInMemoryAsFloat->at(n);
+		return streamlineBuffer->at(n);
 	}
 
 	float** points;
@@ -489,226 +475,53 @@ float** NIBR::TractogramReader::readStreamline(std::size_t n) {
 
 }
 
-void NIBR::TractogramReader::readPoint(std::size_t n, uint32_t l, float* point) {
-
-	if (fileFormat == TCK) {
-		fseek(file, streamlinePos[n] + sizeof(float) * 3 * l, SEEK_SET);
-		float tmp;
-		for (int j = 0; j < 3; j++) {
-			std::fread(&tmp, sizeof(float), 1, file);
-			point[j] = tmp;
-		}
+void NIBR::TractogramReader::deleteStreamline(float** streamline, std::size_t n) {
+	if (finishedLoading == false) {
+		for (uint32_t i=0; i<len[n]; i++)
+			delete[] streamline[i];
+		delete[] streamline;
 	}
-
-	if (fileFormat == TRK) {
-		fseek(file, streamlinePos[n] + sizeof(float) * (3+n_scalars_trk) * l, SEEK_SET);
-		float tmp;
-		for (int j = 0; j < 3; j++) {
-			std::fread(&tmp, sizeof(float), 1, file);
-			point[j]=tmp - 0.5f;
-		}
-		applyTransform(point,ijk2xyz);
-	}
-
-	if (fileFormat == VTK_BINARY) {
-		fseek(file, streamlinePos[n] + sizeof(float) * 3 * l, SEEK_SET);
-		float tmp;
-		for (int j = 0; j < 3; j++) {
-			std::fread(&tmp, sizeof(float), 1, file);
-			swapByteOrder(tmp);
-			point[j] = tmp;
-		}
-	}
-
-	// For ASCII files, reading points is not efficient
-	if (fileFormat == VTK_ASCII) {
-		fseek(file, streamlinePos[n], SEEK_SET);
-		for (uint32_t i = 0; i < (l - 1); i++)
-			std::fscanf(file, "%*f %*f %*f ");
-		std::fscanf(file, "%f %f %f ", &point[0], &point[1], &point[2]);
-	}
-
 }
-
-
-std::vector<Point> NIBR::TractogramReader::readStreamlinePoints(std::size_t n) {
-
-	std::vector<Point> points;
-	points.reserve(len[n]);
-
-	fseek(file, streamlinePos[n], SEEK_SET);
-
-	if (fileFormat == TCK) {
-		for (uint32_t i = 0; i < len[n]; i++) {
-			Point p;
-			std::fread(&p.x, sizeof(float), 1, file);
-			std::fread(&p.y, sizeof(float), 1, file);
-			std::fread(&p.z, sizeof(float), 1, file);
-			points.push_back(p);
-		}
-	}
-
-
-	if (fileFormat == TRK) {
-		for (uint32_t i = 0; i < len[n]; i++) {
-			Point p;
-			std::fread(&p.x, sizeof(float), 1, file);
-			std::fread(&p.y, sizeof(float), 1, file);
-			std::fread(&p.z, sizeof(float), 1, file);
-			p.x -= 0.5f;
-			p.y -= 0.5f;
-			p.z -= 0.5f;
-			applyTransform(p,ijk2xyz);
-			points.push_back(p);
-			fseek(file, sizeof(float)*n_scalars_trk, SEEK_CUR);			
-		}
-	}
-
-	if (fileFormat == VTK_BINARY) {
-		for (uint32_t i = 0; i < len[n]; i++) {
-			Point p;
-			std::fread(&p.x, sizeof(float), 1, file); swapByteOrder(p.x);
-			std::fread(&p.y, sizeof(float), 1, file); swapByteOrder(p.y);
-			std::fread(&p.z, sizeof(float), 1, file); swapByteOrder(p.z);
-			points.push_back(p);
-		}
-	}
-
-	if (fileFormat == VTK_ASCII) {
-
-		for (uint32_t i = 0; i < len[n]; i++) {
-			Point p;
-			std::fscanf(file, "%f %f %f ", &p.x, &p.y, &p.z);
-			points.push_back(p);
-		}
-
-	}
-
-	return points;
-
-}
-
-
-
-
-
-
 
 std::vector<std::vector<float>> NIBR::TractogramReader::readStreamlineVector(std::size_t n) {
 
-	std::vector<std::vector<float>> points;
-	points.reserve(len[n]);
+	std::vector<std::vector<float>> out;
+	out.reserve(len[n]);
 
-	fseek(file, streamlinePos[n], SEEK_SET);
+	float** tmp = readStreamline(n);
 
-	if (fileFormat == TCK) {
-		for (uint32_t i = 0; i < len[n]; i++) {
-			std::vector<float> p(3);
-			std::fread(&p[0], sizeof(float), 1, file);
-			std::fread(&p[1], sizeof(float), 1, file);
-			std::fread(&p[2], sizeof(float), 1, file);
-			points.push_back(p);
-		}
+	for (uint32_t i = 0; i < len[n]; i++) {
+		out.push_back({tmp[i][0],tmp[i][1],tmp[i][2]});
 	}
 
-
-	if (fileFormat == TRK) {
-		for (uint32_t i = 0; i < len[n]; i++) {
-
-			float x,y,z;
-
-			std::fread(&x, sizeof(float), 1, file);
-			std::fread(&y, sizeof(float), 1, file);
-			std::fread(&z, sizeof(float), 1, file);
-			x -= 0.5f;
-			y -= 0.5f;
-			z -= 0.5f;
-
-			std::vector<float> p(3);
-			p[0] = x*ijk2xyz[0][0] + y*ijk2xyz[0][1] + z*ijk2xyz[0][2] + ijk2xyz[0][3];
-			p[1] = x*ijk2xyz[1][0] + y*ijk2xyz[1][1] + z*ijk2xyz[1][2] + ijk2xyz[1][3];
-			p[2] = x*ijk2xyz[2][0] + y*ijk2xyz[2][1] + z*ijk2xyz[2][2] + ijk2xyz[2][3];
-
-			points.push_back(p);
-			fseek(file, sizeof(float)*n_scalars_trk, SEEK_CUR);			
+	if (!finishedLoading) {
+		for (std::size_t l = 0; l < len[n]; l++) {
+			delete[] tmp[l];
 		}
+		delete[] tmp;
 	}
 
-	if (fileFormat == VTK_BINARY) {
-		for (uint32_t i = 0; i < len[n]; i++) {
-			std::vector<float> p(3);
-			std::fread(&p[0], sizeof(float), 1, file); swapByteOrder(p[0]);
-			std::fread(&p[1], sizeof(float), 1, file); swapByteOrder(p[1]);
-			std::fread(&p[2], sizeof(float), 1, file); swapByteOrder(p[2]);
-			points.push_back(p);
-		}
-	}
-
-	if (fileFormat == VTK_ASCII) {
-
-		for (uint32_t i = 0; i < len[n]; i++) {
-			std::vector<float> p(3);
-			std::fscanf(file, "%f %f %f ", &p[0], &p[1], &p[2]);
-			points.push_back(p);
-		}
-
-	}
-
-	return points;
+	return out;
 
 }
 
+std::vector<Point> NIBR::TractogramReader::readStreamlinePoints(std::size_t n) {
 
+	std::vector<Point> out;
+	out.reserve(len[n]);
 
-std::vector<std::vector<std::vector<float>>> NIBR::TractogramReader::read() {
+	float** tmp = readStreamline(n);
 
-	std::vector<std::vector<std::vector<float>>> out;
-
-	if (numberOfStreamlines==0) 
-		return out;
-
-	out.resize(numberOfStreamlines);
-
-	for (std::size_t n=0; n<numberOfStreamlines; n++) {
-		out[n].resize(len[n]);
-		for (int l=0; l<int(len[n]); l++)
-			out[n][l].resize(3);
+	for (uint32_t i = 0; i < len[n]; i++) {
+		out.push_back({tmp[i][0],tmp[i][1],tmp[i][2]});
 	}
 
-	int bakMaxThreads = NIBR::MT::MAXNUMBEROFTHREADS();
-	if (int(numberOfStreamlines)<NIBR::MT::MAXNUMBEROFTHREADS())
-		NIBR::MT::MAXNUMBEROFTHREADS() = numberOfStreamlines;
-
-	NIBR::TractogramReader* inp = new NIBR::TractogramReader[NIBR::MT::MAXNUMBEROFTHREADS()]();
-    for (int t = 0; t < NIBR::MT::MAXNUMBEROFTHREADS(); t++) {
-        inp[t].copyFrom(*this);
-	}
-
-	auto mtReader = [&](const NIBR::MT::TASK& task)->void{
-
-		float** streamline = inp[task.threadId].readStreamline(task.no);
-
-		for (uint32_t l=0; l<len[task.no]; l++) {
-			out[task.no][l][0] = streamline[l][0];
-			out[task.no][l][1] = streamline[l][1];
-			out[task.no][l][2] = streamline[l][2];
-			delete[] streamline[l];
+	if (!finishedLoading) {
+		for (std::size_t l = 0; l < len[n]; l++) {
+			delete[] tmp[l];
 		}
-		delete[] streamline;
-
-    };
-
-	if (VERBOSE()>VERBOSE_INFO)
-		NIBR::MT::MTRUN(numberOfStreamlines, "Reading streamlines", mtReader);
-	else
-		NIBR::MT::MTRUN(numberOfStreamlines, mtReader);
-	
-	for (int t = 0; t < NIBR::MT::MAXNUMBEROFTHREADS(); t++)
-        inp[t].destroyCopy();
-
-	delete[] inp;
-
-	NIBR::MT::MAXNUMBEROFTHREADS() = bakMaxThreads;
+		delete[] tmp;
+	}
 
 	return out;
 
@@ -716,7 +529,7 @@ std::vector<std::vector<std::vector<float>>> NIBR::TractogramReader::read() {
 
 bool NIBR::TractogramReader::readToMemory() {
 
-	streamlinesInMemoryAsFloat->resize(numberOfStreamlines);
+	streamlineBuffer->resize(numberOfStreamlines);
 
 	finishedLoading = false;
 
@@ -725,21 +538,60 @@ bool NIBR::TractogramReader::readToMemory() {
 		return true;
 	}
 
-	float s = 100.0f / float(numberOfStreamlines);
+	if (fileFormat == VTK_BINARY) {
 
-	for (size_t n = 0; n < numberOfStreamlines; n++) {
-		streamlinesInMemoryAsFloat->at(n) = readStreamline(n);
-		if ((n>0) && (NIBR::VERBOSE()>=VERBOSE_INFO)) std::cout << "\033[A\r\033[K" << std::flush;
-		NIBR::disp(MSG_INFO,"Preloading streamlines: %.2f%%", (n+1)*s);
+		fileBuffer = new float[numberOfPoints * 3];
+
+		fseek(file, streamlinePos[0], SEEK_SET);
+
+		size_t floatsRead = std::fread(fileBuffer, sizeof(float), numberOfPoints * 3, file);
+
+		if (floatsRead != (numberOfPoints * 3)) {
+            NIBR::disp(MSG_ERROR, "Failed to read the entire tractogram file into memory. Expected %ld, got %zu floats.", (numberOfPoints * 3), floatsRead);
+			delete[] fileBuffer;
+            finishedLoading = false;
+            return false;
+        }
+
+		for (size_t i = 0; i < (numberOfPoints * 3); ++i) {
+			swapByteOrder(fileBuffer[i]);
+		}
+
+		float s = 100.0f / float(numberOfStreamlines);
+		float* currentPtr = fileBuffer;
+
+		for (size_t n = 0; n < numberOfStreamlines; n++) {
+			streamlineBuffer->at(n) = new float*[len[n]];
+			for (uint32_t l = 0; l < len[n]; l++) {
+				streamlineBuffer->at(n)[l] = currentPtr;
+				currentPtr += 3;
+			}
+			if ((n>0) && (NIBR::VERBOSE()>=VERBOSE_INFO)) std::cout << "\033[A\r\033[K" << std::flush;
+			NIBR::disp(MSG_INFO,"Preloading streamlines: %.2f%%", (n+1)*s);
+		}
+		if (NIBR::VERBOSE()>=VERBOSE_INFO) std::cout << "\033[A\r\033[K" << std::flush;
+		NIBR::disp(MSG_INFO,"Preloading streamlines: 100%%");
+		
+	} else {
+
+		float s = 100.0f / float(numberOfStreamlines);
+
+		for (size_t n = 0; n < numberOfStreamlines; n++) {
+			streamlineBuffer->at(n) = readStreamline(n);
+			if ((n>0) && (NIBR::VERBOSE()>=VERBOSE_INFO)) std::cout << "\033[A\r\033[K" << std::flush;
+			NIBR::disp(MSG_INFO,"Preloading streamlines: %.2f%%", (n+1)*s);
+		}
+		if (NIBR::VERBOSE()>=VERBOSE_INFO) std::cout << "\033[A\r\033[K" << std::flush;
+		NIBR::disp(MSG_INFO,"Preloading streamlines: 100%%");
+
 	}
-	if (NIBR::VERBOSE()>=VERBOSE_INFO) std::cout << "\033[A\r\033[K" << std::flush;
-    NIBR::disp(MSG_INFO,"Preloading streamlines: 100%%");
 
 	finishedLoading = true;
 	
 	return true;
 
 }
+
 
 void NIBR::TractogramReader::printInfo() {
 

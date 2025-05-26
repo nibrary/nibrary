@@ -47,7 +47,6 @@ namespace NIBR
         void setWeights(std::string _weightFile, WEIGHTTYPE _weightType);
         void setWeights(std::vector<float> _weights, WEIGHTTYPE _weightType);
         void setData(void* _data) {data = _data;}
-        void setBatchSize(std::size_t _batchSize) {batchSize = _batchSize;}
         void optimizeForSmallMask(bool val) {useMutexGrid = !val;}
 
         bool***                                 mask;
@@ -83,8 +82,7 @@ namespace NIBR
             std::vector<float**>& _kernel, 
             int _streamlineId, 
             uint16_t _threadNo, 
-            std::function<void(Tractogram2ImageMapper<T>* tim, int* _gridPos, NIBR::Segment& _seg)> f, 
-            bool deleteStreamline 
+            std::function<void(Tractogram2ImageMapper<T>* tim, int* _gridPos, NIBR::Segment& _seg)> f
         );
         
         NIBR::TractogramReader* tractogram;
@@ -95,8 +93,6 @@ namespace NIBR
         std::vector<float>      weights;
         FILE**                  weightFile;
         WEIGHTTYPE              weightType;
-
-        std::size_t             batchSize;
 
         int*                    cumLen;
         

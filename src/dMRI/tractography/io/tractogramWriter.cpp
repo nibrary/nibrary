@@ -143,9 +143,8 @@ bool NIBR::writeTractogram_VTK_binary(std::string out_fname,NIBR::TractogramRead
                 pointsBuffer.push_back(streamline[p][0]);
                 pointsBuffer.push_back(streamline[p][1]);
                 pointsBuffer.push_back(streamline[p][2]);
-                delete[] streamline[p];
             }
-            delete[] streamline;
+            tractogram->deleteStreamline(streamline,idx[idxStream]);
         }
 
         // Swap byte order for all floats in the buffer
@@ -314,9 +313,8 @@ bool NIBR::writeTractogram_VTK_ascii(std::string fname,NIBR::TractogramReader* t
         for (uint32_t p=0; p<tractogram->len[i]; p++) {
             sprintf(buffer, "%f %f %f\n", streamline[p][0], streamline[p][1], streamline[p][2]);
             fwrite(buffer, sizeof(char), strlen(buffer), out);
-            delete[] streamline[p];
         }
-        delete[] streamline;
+        tractogram->deleteStreamline(streamline,i);
     }
 
     // Write lines
@@ -383,9 +381,8 @@ bool NIBR::writeTractogram_VTK_ascii(std::string fname,NIBR::TractogramReader* t
         for (int p=0; p<len[i]; p++) {
             sprintf(buffer, "%f %f %f\n", streamline[p][0], streamline[p][1], streamline[p][2]);
             fwrite(buffer, sizeof(char), strlen(buffer), out);
-            delete[] streamline[p];
         }
-        delete[] streamline;
+        tractogram->deleteStreamline(streamline,idx[i]);
     }
 
     // Write lines
@@ -527,9 +524,8 @@ bool NIBR::writeTractogram_TRK(std::string fname,NIBR::TractogramReader* tractog
             tmp[1] += 0.5f;
             tmp[2] += 0.5f;
             fwrite(tmp, sizeof(float), 3, out);
-            delete[] streamline[p];
         }
-        delete[] streamline;
+        tractogram->deleteStreamline(streamline,i);
     }
 
     fclose (out);
@@ -582,9 +578,8 @@ bool NIBR::writeTractogram_TRK(std::string fname,NIBR::TractogramReader* tractog
             tmp[1] += 0.5f;
             tmp[2] += 0.5f;
             fwrite(tmp, sizeof(float), 3, out);
-            delete[] streamline[p];
         }
-        delete[] streamline;
+        tractogram->deleteStreamline(streamline,idx[i]);
     }
 
     fclose (out);
@@ -682,9 +677,8 @@ bool NIBR::writeTractogram_TCK(std::string fname,NIBR::TractogramReader* tractog
         float** streamline = tractogram->readStreamline(i);
         for (std::size_t p=0; p<tractogram->len[i]; p++) {
             fwrite(streamline[p], sizeof(float), 3, out);
-            delete[] streamline[p];
         }
-        delete[] streamline;
+        tractogram->deleteStreamline(streamline,i);
         fwrite(NANarr, sizeof(float), 3, out);
     }
     fwrite(INFarr, sizeof(float), 3, out);
@@ -720,9 +714,8 @@ bool NIBR::writeTractogram_TCK(std::string fname,NIBR::TractogramReader* tractog
         float** streamline = tractogram->readStreamline(idx[i]);
         for (std::size_t p=0; p<tractogram->len[idx[i]]; p++) {
             fwrite(streamline[p], sizeof(float), 3, out);
-            delete[] streamline[p];
         }
-        delete[] streamline;
+        tractogram->deleteStreamline(streamline,idx[i]);
         fwrite(NANarr, sizeof(float), 3, out);
     }
     fwrite(INFarr, sizeof(float), 3, out);

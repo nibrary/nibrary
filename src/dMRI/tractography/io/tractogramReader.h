@@ -60,102 +60,99 @@ namespace NIBR
 
     class TractogramReader {
         
-    public:
+        public:
+            
+            TractogramReader();
+            TractogramReader(std::string _fileName);
+            TractogramReader(std::string _fileName, bool _usePreload);
+
+            ~TractogramReader();
+            TractogramReader(const TractogramReader& obj);
+            void copyFrom(const TractogramReader& obj);
+            void destroyCopy();
+            void printInfo();
+            bool isPreloaded() {return usePreload;}
+            
+            bool     initReader(std::string _fileName);
+            bool     initReader(std::string _fileName, bool _usePreload);
+
+            template<typename T>
+            void     setReferenceImage(Image<T>* ref);
+            
+            float**                         readStreamline(std::size_t n);          // Core function to read streamlines
+            void                            deleteStreamline(float**, std::size_t);
+            
+            std::vector<std::vector<float>> readStreamlineVector(std::size_t n);
+            std::vector<Point>              readStreamlinePoints(std::size_t n);
+
+            FILE                   *file;
+            std::string             fileName;
+            std::string             fileDescription;
+            TRACTOGRAMFILEFORMAT    fileFormat;
+            
+            std::size_t             numberOfPoints;
+            std::size_t             numberOfStreamlines;
+            uint32_t*               len;
+
+            // Nifti assumes voxel center to be 0,0,0.
+            // TRK assumes 0,0,0 to be one of the corners. But which corner? 
+            // That depends on the image orientation, which makes it difficult to compute.
+            // The ijk2xyz and xyz2ijk belong to the reference image.
+            // TODO: For now, we will assume that the reference image was in LAS orientation. This needs to be properly computed in the future.
+            // For example using the approach in Nipy: https://github.com/nipy/nibabel/blob/d23a8336582d07d683d3af73cf097c3be2de9af8/nibabel/orientations.py#L356
+            //
+            // With LAS assumption: 
+            // - when reading a trk file, we will subtract 0.5 from all values
+            // - when writing a trk file, we will add 0.5 to all values
+
+            short                   imgDims[3];
+            float                   pixDims[3];
+            char                    voxOrdr[4];         // We assume this to be LAS for now
+            float                   ijk2xyz[4][4];
+            float                   xyz2ijk[4][4];
+            
+            long*                   streamlinePos;      // file positions for first points of streamlines
         
-        TractogramReader();
-        TractogramReader(std::string _fileName);
-        TractogramReader(std::string _fileName, bool _usePreload);
+        private:
 
-        ~TractogramReader();
-        TractogramReader(const TractogramReader& obj);
-        void copyFrom(const TractogramReader& obj);
-        void destroyCopy();
-        void printInfo();
-        bool isPreloaded() {return usePreload;}
-        
-        bool     initReader(std::string _fileName);
-        bool     initReader(std::string _fileName, bool _usePreload);
+            bool                    readToMemory();
 
-        void     setThreadId (uint32_t _threadId) {threadId=_threadId;}
-        uint32_t getThreadId () {return threadId;}
+            // TRK specific
+            short                   n_scalars_trk;      // TRK file format extension
+            short                   n_properties_trk;   // TRK file format extension
 
-        template<typename T>
-        void     setReferenceImage(Image<T>* ref) 
-        {
-            for(int i=0;i<3;++i) {
-                for(int j=0;j<4;++j) {
-                    ijk2xyz[i][j] = ref->ijk2xyz[i][j];
-                    xyz2ijk[i][j] = ref->xyz2ijk[i][j];
-                }
-            }
-
-            for(int j=0;j<3;++j) {
-                ijk2xyz[3][j] = 0;
-                xyz2ijk[3][j] = 0;
-                imgDims[j]    = ref->imgDims[j];
-                pixDims[j]    = ref->pixDims[j];
-            }
-
-            ijk2xyz[3][3] = 1;
-            xyz2ijk[3][3] = 1;
-
-            std::strcpy(voxOrdr,"LAS");             // TODO: Compute this properly and not assume LAS.
-
-        }
-        
-        std::vector<std::vector<std::vector<float>>>    read(); // Reads all the streamlines
-        void                                            readPoint(std::size_t n, uint32_t l, float* p);
-        float**                                         readStreamline(std::size_t n);
-        std::vector<Point>                              readStreamlinePoints(std::size_t n);
-        std::vector<std::vector<float>>                 readStreamlineVector(std::size_t n);
-
-        float**                                         copyStreamlineFromMemory(std::size_t n);
-
-        FILE                   *file;
-        std::string             fileName;
-        std::string             fileDescription;
-        TRACTOGRAMFILEFORMAT    fileFormat;
-        
-        std::size_t             numberOfPoints;
-        std::size_t             numberOfStreamlines;
-        uint32_t*               len;
-
-        // Nifti assumes voxel center to be 0,0,0.
-        // TRK assumes 0,0,0 to be one of the corners. But which corner? 
-        // That depends on the image orientation, which makes it difficult to compute.
-        // The ijk2xyz and xyz2ijk belong to the reference image.
-        // TODO: For now, we will assume that the reference image was in LAS orientation. This needs to be properly computed in the future.
-        // For example using the approach in Nipy: https://github.com/nipy/nibabel/blob/d23a8336582d07d683d3af73cf097c3be2de9af8/nibabel/orientations.py#L356
-        //
-        // With LAS assumption: 
-        // - when reading a trk file, we will subtract 0.5 from all values
-        // - when writing a trk file, we will add 0.5 to all values
-
-        short                   imgDims[3];
-        float                   pixDims[3];
-        char                    voxOrdr[4];         // We assume this to be LAS for now
-        float                   ijk2xyz[4][4];
-        float                   xyz2ijk[4][4];
-        
-        long*                   streamlinePos;      // file positions for first points of streamlines
-        std::vector<float**>*   streamlinesInMemoryAsFloat;
-    
-    private:
-
-        bool                    readToMemory();
-
-        uint32_t                threadId;
-
-        // TRK specific
-        short                   n_scalars_trk;      // TRK file format extension
-        short                   n_properties_trk;   // TRK file format extension
-
-        // loading the whole tractogram to memory
-        bool                    usePreload      = false;    // if we load the whole thing in memory
-        bool                    finishedLoading = false;    //this is set to true after reading the whole thing in memmory
+            // loading the whole tractogram to memory
+            float*                  fileBuffer       = NULL;
+            std::vector<float**>*   streamlineBuffer = NULL;
+            bool                    usePreload       = false;    // if we load the whole thing in memory
+            bool                    finishedLoading  = false;    //this is set to true after reading the whole thing in memmory
             
 
     };
+
+    template<typename T>
+    void TractogramReader::setReferenceImage(Image<T>* ref) 
+    {
+        for(int i=0;i<3;++i) {
+            for(int j=0;j<4;++j) {
+                ijk2xyz[i][j] = ref->ijk2xyz[i][j];
+                xyz2ijk[i][j] = ref->xyz2ijk[i][j];
+            }
+        }
+
+        for(int j=0;j<3;++j) {
+            ijk2xyz[3][j] = 0;
+            xyz2ijk[3][j] = 0;
+            imgDims[j]    = ref->imgDims[j];
+            pixDims[j]    = ref->pixDims[j];
+        }
+
+        ijk2xyz[3][3] = 1;
+        xyz2ijk[3][3] = 1;
+
+        std::strcpy(voxOrdr,"LAS");             // TODO: Compute this properly and not assume LAS.
+
+    }
 
 }
 

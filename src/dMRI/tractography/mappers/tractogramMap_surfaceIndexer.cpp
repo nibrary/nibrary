@@ -11,7 +11,9 @@ std::vector<std::unordered_map<int,float>> NIBR::index2surface(TractogramReader&
     std::vector<std::unordered_map<int,float>> index;
     index.resize(tractogram.numberOfStreamlines);
 
-    surf.readMesh();
+    if (surf.nv == 0) {
+        surf.readMesh();
+    }
     surf.getNeighboringVertices();
     
     std::vector<std::unordered_map<int,float[3]>> s2f; // s2f stores the list of face indices and crossing point for each streamline

@@ -42,9 +42,10 @@ std::vector<std::vector<std::vector<float>>> NIBR::applyTransform(NIBR::Tractogr
             p[1] = streamline[l][0]*M[1][0] + streamline[l][1]*M[1][1] + streamline[l][2]*M[1][2] + M[1][3];
             p[2] = streamline[l][0]*M[2][0] + streamline[l][1]*M[2][1] + streamline[l][2]*M[2][2] + M[2][3];
             out[task.no].push_back(p);
-            delete[] streamline[l];
         }
-        delete[] streamline;
+        
+        tractogram[task.threadId].deleteStreamline(streamline,task.no);
+
 
     };
 
@@ -86,11 +87,7 @@ std::vector<float> NIBR::getTractogramBBox(NIBR::TractogramReader* _tractogram) 
     bb[4] = firstStreamline[0][2];
     bb[5] = firstStreamline[0][2];
 
-    if (_tractogram->isPreloaded() == false) {
-        for (uint32_t i=0; i<tractogram[0].len[0]; i++)
-            delete[] firstStreamline[i];
-        delete[] firstStreamline;
-    }
+    tractogram[0].deleteStreamline(firstStreamline,0);
 
     // Iterate throught the whole tractogram
     auto findBB = [&](const NIBR::MT::TASK& task)->void{
@@ -111,11 +108,7 @@ std::vector<float> NIBR::getTractogramBBox(NIBR::TractogramReader* _tractogram) 
             localBB[5] = std::max(localBB[5], streamline[i][2]);  // Update z max
         }
 
-        if (_tractogram->isPreloaded() == false) {
-            for (uint32_t i=0; i<tractogram[task.threadId].len[task.no]; i++)
-                delete[] streamline[i];
-            delete[] streamline;
-        }
+        tractogram[task.threadId].deleteStreamline(streamline,task.no);
 
         // Safely merge the local bounding box into the global bounding box
         {
@@ -157,7 +150,12 @@ std::tuple<std::vector<size_t>,std::vector<size_t>> NIBR::tractogramDiff(NIBR::T
         return std::make_tuple(diffStreamlineIdx,sameStreamlineIdx);
     }
 
-    std::vector<std::vector<std::vector<float>>> ref = ref_tractogram->read();
+    std::vector<std::vector<std::vector<float>>> ref;    
+	ref.reserve(ref_tractogram->numberOfStreamlines);
+
+	for (size_t i = 0; i < ref_tractogram->numberOfStreamlines; i++) {
+        ref.emplace_back(ref_tractogram->readStreamlineVector(i));
+	}
 
     int bakMaxThreads = NIBR::MT::MAXNUMBEROFTHREADS();
 	if (int(inp_tractogram->numberOfStreamlines)<NIBR::MT::MAXNUMBEROFTHREADS())
@@ -201,9 +199,7 @@ std::tuple<std::vector<size_t>,std::vector<size_t>> NIBR::tractogramDiff(NIBR::T
         }
 
         if (isRead) {
-            for (l=0; l<len; l++)
-                delete[] streamline[l];
-            delete[] streamline;
+            inp[task.threadId].deleteStreamline(streamline,task.no);
         }
 
         if (isSame) {
@@ -237,8 +233,20 @@ std::tuple<std::vector<size_t>,std::vector<size_t>> NIBR::tractogramDiff(NIBR::T
 std::vector<std::vector<std::vector<float>>> NIBR::tractogramMerge(NIBR::TractogramReader* inp1, NIBR::TractogramReader* inp2, bool checkDuplicates)
 {
 
-    std::vector<std::vector<std::vector<float>>> trk1 = inp1->read();
-    std::vector<std::vector<std::vector<float>>> trk2 = inp2->read();
+    std::vector<std::vector<std::vector<float>>> trk1;    
+	trk1.reserve(inp1->numberOfStreamlines);
+
+	for (size_t i = 0; i < inp1->numberOfStreamlines; i++) {
+        trk1.emplace_back(inp1->readStreamlineVector(i));
+	}
+
+    std::vector<std::vector<std::vector<float>>> trk2;    
+	trk2.reserve(inp2->numberOfStreamlines);
+
+	for (size_t i = 0; i < inp2->numberOfStreamlines; i++) {
+        trk2.emplace_back(inp2->readStreamlineVector(i));
+	}
+
 
     if (!checkDuplicates) {
         trk1.reserve(trk1.size() + trk2.size());

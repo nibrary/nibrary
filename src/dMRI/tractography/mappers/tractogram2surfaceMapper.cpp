@@ -137,11 +137,7 @@ void NIBR::tractogram2surfaceMapper(NIBR::TractogramReader* _tractogram, NIBR::S
 
         }
         
-        
-        for (uint32_t i=0; i<tractogram[threadNo].len[streamlineId]; i++)
-            delete[] streamline[i];
-        delete[] streamline;
-        
+        tractogram[threadNo].deleteStreamline(streamline,streamlineId);
 
     };
     NIBR::MT::MTRUN(tractogram[0].numberOfStreamlines, NIBR::MT::MAXNUMBEROFTHREADS(), "Tractogram to surface mapping", doMapping);

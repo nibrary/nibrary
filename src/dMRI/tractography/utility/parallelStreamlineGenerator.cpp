@@ -9,7 +9,6 @@ void NIBR::getParallelStreamlines(std::vector<std::vector<std::vector<float>>>& 
     NIBR::TractogramReader* tractogram = new NIBR::TractogramReader[NIBR::MT::MAXNUMBEROFTHREADS()]();
     for (int t = 0; t < NIBR::MT::MAXNUMBEROFTHREADS(); t++) {
         tractogram[t].copyFrom(*_tractogram);
-        tractogram[t].setThreadId(t);
     }
     
     int N   = tractogram[0].numberOfStreamlines;
@@ -107,9 +106,9 @@ void NIBR::getParallelStreamlines(std::vector<std::vector<std::vector<float>>>& 
             for (int i=0; i<3; i++)
                 out[task.no*par+p][len-1][i] = streamline[len-1][i] + N[i]*scale_N[p] + + B[i]*scale_B[p];
 
-        for (auto l=0; l<len; l++)
-            delete[] streamline[l];
-        delete[] streamline;
+        tractogram[task.threadId].deleteStreamline(streamline,task.no);
+
+        
 
     };
 
@@ -125,7 +124,6 @@ void NIBR::getParallelStreamlines(std::vector<std::vector<std::vector<float>>>& 
     NIBR::TractogramReader* tractogram = new NIBR::TractogramReader[NIBR::MT::MAXNUMBEROFTHREADS()]();
     for (int t = 0; t < NIBR::MT::MAXNUMBEROFTHREADS(); t++) {
         tractogram[t].copyFrom(*_tractogram);
-        tractogram[t].setThreadId(t);
     }
     
     int N   = tractogram[0].numberOfStreamlines;
@@ -218,9 +216,7 @@ void NIBR::getParallelStreamlines(std::vector<std::vector<std::vector<float>>>& 
             for (int i=0; i<3; i++)
                 out[task.no*par+p][len-1][i] = streamline[len-1][i] + N[i]*scale_N[p] + + B[i]*scale_B[p];
 
-        for (auto l=0; l<len; l++)
-            delete[] streamline[l];
-        delete[] streamline;
+        tractogram[task.threadId].deleteStreamline(streamline,task.no);
 
     };
 

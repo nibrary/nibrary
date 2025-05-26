@@ -112,6 +112,8 @@ void NIBR::SCimageIndexer::run() {
 
 bool NIBR::SCimageIndexer::processStreamline(int streamlineId, uint16_t threadNo) {
 
+    auto streamline = tractogram[threadNo].readStreamlineVector(streamlineId);
+
     // If streamline is empty
     if (tractogram[threadNo].len[streamlineId]<2) 
         return true;
@@ -355,8 +357,15 @@ bool NIBR::SCimageIndexer::processStreamline(int streamlineId, uint16_t threadNo
     endLength   = 0.0;
     stop        = false;
 
+    auto readPoint = [&](int l, float* p) {
+        p[0] = streamline[l][0];
+        p[1] = streamline[l][1];
+        p[2] = streamline[l][2];
+    };
+
     // Beginning of first segment and its corner in image space
-    tractogram[threadNo].readPoint(streamlineId,0,pi);
+    // tractogram[threadNo].readPoint(streamlineId,0,pi);
+    readPoint(0,pi);
     img->to_ijk(pi, p0);
     A[0] = std::round(p0[0]);
     A[1] = std::round(p0[1]);
@@ -370,8 +379,10 @@ bool NIBR::SCimageIndexer::processStreamline(int streamlineId, uint16_t threadNo
         for (uint32_t i=0; i<tractogram[threadNo].len[streamlineId]-1; i++) {
 
             // End of segment and its corner in image space
-            tractogram[threadNo].readPoint(streamlineId,i,  pi);
-            tractogram[threadNo].readPoint(streamlineId,i+1,pip);
+            // tractogram[threadNo].readPoint(streamlineId,i,  pi);
+            // tractogram[threadNo].readPoint(streamlineId,i+1,pip);
+            readPoint(i,pi);
+            readPoint(i+1,pip);
             img->to_ijk(pip, p1);
             for (int m=0;m<3;m++) {
                 seg.p[m]   = pi[m];
@@ -412,7 +423,8 @@ bool NIBR::SCimageIndexer::processStreamline(int streamlineId, uint16_t threadNo
     stop        = false;
 
     // Beginning of first segment and its corner in image space
-    tractogram[threadNo].readPoint(streamlineId,tractogram[threadNo].len[streamlineId]-1, pi);
+    // tractogram[threadNo].readPoint(streamlineId,tractogram[threadNo].len[streamlineId]-1, pi);
+    readPoint(streamline.size()-1,pi);
     img->to_ijk(pi, p0);
     A[0] = std::round(p0[0]);
     A[1] = std::round(p0[1]);
@@ -428,8 +440,10 @@ bool NIBR::SCimageIndexer::processStreamline(int streamlineId, uint16_t threadNo
         for (uint32_t i=tractogram[threadNo].len[streamlineId]-1; i>0; i--) {
 
             // End of segment and its corner in image space
-            tractogram[threadNo].readPoint(streamlineId,i,  pi);
-            tractogram[threadNo].readPoint(streamlineId,i-1,pim);
+            // tractogram[threadNo].readPoint(streamlineId,i,  pi);
+            // tractogram[threadNo].readPoint(streamlineId,i-1,pim);
+            readPoint(i,pi);
+            readPoint(i-1,pim);
             img->to_ijk(pim, p1);
             for (int m=0;m<3;m++) {
                 seg.p[m]   = pi[m];

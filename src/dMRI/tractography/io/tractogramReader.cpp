@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <cstring>
 #include <iterator>
+#include "expat/expat.h"
 
 using namespace NIBR;
 			
@@ -151,6 +152,52 @@ bool NIBR::TractogramReader::initReader(std::string _fileName) {
 	std::string extension = getFileExtension(fileName);
 
 	disp(MSG_DEBUG,"File extension: %s", extension.c_str());
+
+
+	if (extension == "vtp") {
+        
+        fileFormat      = VTP;
+        fileDescription = SGNTR();
+
+        if (!parseVTPHeaderWithExpat()) { // <-- CALL EXPAT VERSION
+            fclose(file); file = NULL; return false;
+        }
+
+        // --- Check endianness and set swap flag ---
+        vtp_needs_swap_ = (is_system_little_endian() != vtp_is_little_endian_);
+        disp(MSG_DEBUG, "VTP Byte Order: %s, Needs Swap: %s", 
+            vtp_is_little_endian_ ? "LittleEndian" : "BigEndian", 
+            vtp_needs_swap_ ? "Yes" : "No");
+        // ----------------------------------------
+
+        disp(MSG_DEBUG, "VTP Parsed: Points=%zu, Lines=%zu, P_off=%ld, C_off=%ld, O_off=%ld", 
+             numberOfPoints, numberOfStreamlines, points_xml_offset_, connectivity_xml_offset_, offsets_xml_offset_);
+
+        // Read Offsets and Connectivity into memory
+        if (!readVTPAppendedData(offsets_xml_offset_, vtp_offsets_)) {
+            disp(MSG_FATAL, "Failed to read VTP offsets data.");
+            fclose(file); file = NULL; return false;
+        }
+        if (!readVTPAppendedData(connectivity_xml_offset_, vtp_connectivity_)) {
+            disp(MSG_FATAL, "Failed to read VTP connectivity data.");
+            fclose(file); file = NULL; return false;
+        }
+        
+        // ... (Calculate 'len' array as before) ...
+        len = new uint32_t[numberOfStreamlines];
+        len[0] = vtp_offsets_[0];
+        for (size_t i = 1; i < numberOfStreamlines; ++i) {
+            len[i] = vtp_offsets_[i] - vtp_offsets_[i - 1];
+        }
+
+        // Calculate the absolute start position for reading points
+        uint64_t points_size_bytes = 0;
+        fseek(file, appended_data_start_pos_ + points_xml_offset_, SEEK_SET);
+        fread(&points_size_bytes, sizeof(uint64_t), 1, file);
+        if (vtp_needs_swap_) swapByteOrder(points_size_bytes); // Swap size too!
+        vtp_points_file_offset_ = ftell(file);
+
+    }
 
 	if (extension == "tck") {
 
@@ -417,6 +464,24 @@ float** NIBR::TractogramReader::readStreamline(std::size_t n) {
 
 	fseek(file, streamlinePos[n], SEEK_SET);
 
+	if (fileFormat == VTP) {
+
+        int64_t start_conn_idx = (n == 0) ? 0 : vtp_offsets_[n-1];
+
+        for (uint32_t i = 0; i < len[n]; i++) {
+            points[i] = new float[3];
+            int64_t point_idx = vtp_connectivity_[start_conn_idx + i];
+            if (!readVTPPoints(point_idx, points[i])) {
+                // Handle error - clean up and return nullptr
+                disp(MSG_ERROR, "Failed to read VTP point %lld for streamline %zu", (long long)point_idx, n);
+                for(uint32_t j=0; j<=i; ++j) delete[] points[j];
+                delete[] points;
+                return nullptr;
+            }
+        }
+
+    }
+
 	if (fileFormat == TCK) {
 		float tmp;
 		for (uint32_t i = 0; i < len[n]; i++) {
@@ -428,7 +493,6 @@ float** NIBR::TractogramReader::readStreamline(std::size_t n) {
 			}
 		}
 	}
-
 
 	if (fileFormat == TRK) {
 		float tmp, p_tmp[3];
@@ -675,4 +739,176 @@ void NIBR::TractogramReader::printInfo() {
 	return;
 
 
+}
+
+// VTP reader functions
+
+// Structure to hold state and results during Expat parsing
+struct VTPExpatUserData {
+    NIBR::TractogramReader* reader; 
+    std::string current_DataArray_Name;
+    bool        parsing_ok;
+    bool        found_appended_tag;
+    XML_Parser  parser; // <-- Holds the parser instance
+};
+
+// Helper to process attributes - NOW TAKES VTPExpatUserData*
+static void process_attributes(VTPExpatUserData* data, const XML_Char *name, const XML_Char **atts) {
+    
+    NIBR::TractogramReader* reader = data->reader; // Get reader from data
+    XML_Parser parser = data->parser;             // Get parser from data
+
+    long long* num_points_ptr   = reinterpret_cast<long long*>(&reader->numberOfPoints);
+    long long* num_lines_ptr    = reinterpret_cast<long long*>(&reader->numberOfStreamlines);
+    long* points_off_ptr   = &reader->points_xml_offset_;
+    long* conn_off_ptr     = &reader->connectivity_xml_offset_;
+    long* offs_off_ptr     = &reader->offsets_xml_offset_;
+    bool* is_little_ptr    = &reader->vtp_is_little_endian_;
+    std::string* current_name_ptr = &data->current_DataArray_Name;
+
+    if (strcmp(name, "VTKFile") == 0) {
+        for (int i = 0; atts[i]; i += 2) {
+            if (strcmp(atts[i], "byte_order") == 0) {
+                *is_little_ptr = (strcmp(atts[i+1], "BigEndian") != 0);
+            }
+        }
+    } else if (strcmp(name, "Piece") == 0) {
+        for (int i = 0; atts[i]; i += 2) {
+            if (strcmp(atts[i], "NumberOfPoints") == 0) *num_points_ptr = std::stoll(atts[i+1]);
+            if (strcmp(atts[i], "NumberOfLines") == 0)  *num_lines_ptr  = std::stoll(atts[i+1]);
+        }
+    } else if (strcmp(name, "DataArray") == 0) {
+        std::string format = "";
+        long offset = -1;
+        std::string arr_name = "";
+
+        for (int i = 0; atts[i]; i += 2) {
+            if (strcmp(atts[i], "Name") == 0)   arr_name = atts[i+1];
+            if (strcmp(atts[i], "format") == 0) format = atts[i+1];
+            if (strcmp(atts[i], "offset") == 0) offset = std::stoll(atts[i+1]);
+        }
+
+        if (format != "appended") {
+            NIBR::disp(MSG_FATAL, "VTP Reader currently only supports format=\"appended\". Found %s.", format.c_str());
+            data->parsing_ok = false;
+            XML_StopParser(parser, XML_FALSE); // <-- USE LOCAL PARSER
+            return;
+        }
+
+        *current_name_ptr = arr_name;
+
+        if (arr_name == "Points")       *points_off_ptr = offset;
+        if (arr_name == "connectivity") *conn_off_ptr   = offset;
+        if (arr_name == "offsets")      *offs_off_ptr   = offset;
+        
+    } else if (strcmp(name, "AppendedData") == 0) {
+        data->found_appended_tag = true;
+        XML_StopParser(parser, XML_TRUE); // <-- USE LOCAL PARSER
+    }
+}
+
+// Expat Start Element Handler - NOW PASSES 'data' TO HELPER
+static void XMLCALL startElementHandler(void *userData, const XML_Char *name, const XML_Char **atts) {
+    VTPExpatUserData* data = reinterpret_cast<VTPExpatUserData*>(userData);
+    
+    if (!data->parsing_ok || data->found_appended_tag) return;
+
+    data->reader->vtp_current_tag_ = name;
+    process_attributes(data, name, atts); // <-- Pass 'data'
+}
+
+// Expat End Element Handler
+static void XMLCALL endElementHandler(void *userData, const XML_Char *name) {
+    VTPExpatUserData* data = reinterpret_cast<VTPExpatUserData*>(userData);
+    data->reader->vtp_current_tag_ = "";
+}
+
+// Expat Character Data Handler
+static void XMLCALL characterDataHandler(void *userData, const XML_Char *s, int len) {
+    // No action needed
+}
+
+// Basic VTP XML header parser.
+bool NIBR::TractogramReader::parseVTPHeaderWithExpat() {
+
+    XML_Parser parser = XML_ParserCreate(NULL);
+    if (!parser) {
+        disp(MSG_FATAL, "Couldn't allocate memory for Expat parser.");
+        return false;
+    }
+
+    VTPExpatUserData userData;
+    userData.reader = this;
+    userData.parsing_ok = true;
+    userData.found_appended_tag = false;
+    userData.parser = parser; // <-- Store parser in userData
+
+    XML_SetUserData(parser, &userData);
+    XML_SetElementHandler(parser, startElementHandler, endElementHandler);
+    XML_SetCharacterDataHandler(parser, characterDataHandler);
+
+    fseek(file, 0, SEEK_SET);
+
+    const int buffer_size = 4096;
+    char buffer[buffer_size];
+    bool done = false;
+
+    disp(MSG_DEBUG, "Starting Expat VTP header parsing...");
+
+    do {
+        int bytes_read = fread(buffer, 1, buffer_size, file);
+        done = bytes_read < buffer_size;
+
+        if (XML_Parse(parser, buffer, bytes_read, done) == XML_STATUS_ERROR) {
+            if (XML_GetErrorCode(parser) != XML_ERROR_ABORTED) {
+                disp(MSG_FATAL, "Expat XML parse error: %s at line %lu",
+                    XML_ErrorString(XML_GetErrorCode(parser)),
+                    XML_GetCurrentLineNumber(parser));
+                userData.parsing_ok = false;
+            }
+            break; 
+        }
+
+    } while (!done && userData.parsing_ok && !userData.found_appended_tag);
+
+    long expat_index   = XML_GetCurrentByteIndex(parser);
+
+    XML_ParserFree(parser); // Free the parser
+
+    if (!userData.parsing_ok) return false;
+    if (!userData.found_appended_tag) {
+        disp(MSG_FATAL, "VTP parsing finished without finding <AppendedData> tag.");
+        return false;
+    }
+
+    // Find the '_' marker starting from where Expat stopped.
+    fseek(file, expat_index, SEEK_SET);
+    char c;
+    while ((c = fgetc(file)) != EOF) {
+        if (c == '_') {
+            appended_data_start_pos_ = ftell(file);
+            disp(MSG_DEBUG, "Found AppendedData marker '_' at position %ld", appended_data_start_pos_);
+            return true;
+        }
+    }
+
+    disp(MSG_FATAL, "Could not find '_' marker after <AppendedData> tag.");
+    return false;
+}
+
+
+bool NIBR::TractogramReader::readVTPPoints(int64_t index, float* point) {
+    if (vtp_points_file_offset_ <= 0) return false; // Use member var
+    
+    long pos = vtp_points_file_offset_ + (index * 3 * sizeof(float)); // Use member var
+    fseek(file, pos, SEEK_SET);
+    
+    if (fread(point, sizeof(float), 3, file) != 3) return false;
+
+    if (vtp_needs_swap_) { // Use member var
+        swapByteOrder(point[0]);
+        swapByteOrder(point[1]);
+        swapByteOrder(point[2]);
+    }
+    return true;
 }

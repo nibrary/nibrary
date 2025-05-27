@@ -7,33 +7,41 @@
 #include "tractogramField.h"
 
 namespace NIBR
-{
+{    
 
-    class VTKBinaryWriter {
+    class IBatchWriter {
     public:
-        VTKBinaryWriter(std::string _filename);
-        ~VTKBinaryWriter();
+        virtual ~IBatchWriter() = default;
+        virtual bool open() = 0;
+        virtual bool writeBatch(const std::vector<std::vector<std::vector<float>>>& batch) = 0;
+        virtual bool close() = 0;
+        virtual const std::string& getFilename() const = 0;
+    };
+
+    class TractogramWriter {
+    public:
+        TractogramWriter(std::string _filename);
+        ~TractogramWriter();
+
+        TractogramWriter(const TractogramWriter&) = delete;
+        TractogramWriter& operator=(const TractogramWriter&) = delete;
 
         bool open();
         bool writeBatch(const std::vector<std::vector<std::vector<float>>>& batch);
         bool close();
+        bool isOpen() const  { return is_open_ && !is_closed_; }
+        bool isValid() const { return pImpl_ != nullptr; }
+
 
     private:
-        FILE* file = nullptr;
-        std::string         filename;
-        std::vector<int>    lengths;              // Store lengths of all streamlines
-        size_t              totalPointCount = 0;
-        size_t              totalStreamlineCount = 0;
-        long                posPointsHeader = 0;  // Position to write POINTS count
-        long                posLinesHeader = 0;   // Position to write LINES count
-
-        void writeHeaderPlaceholders();
-        void writeFinalHeaders();
-        void writeLinesData();
+        std::string filename_;
+        std::unique_ptr<IBatchWriter> pImpl_;
+        bool is_open_   = false;
+        bool is_closed_ = false;
     };
 
-    
-    // Other writer functions
+    bool writeStreamlineBatch       (std::string out_fname,std::vector<std::vector<std::vector<float>>>& tractogram,bool isLast = false);
+
     bool writeTractogram            (std::string out_fname,NIBR::TractogramReader* tractogram);
     bool writeTractogram            (std::string out_fname,std::vector<std::vector<std::vector<float>>>& tractogram);
     template<typename T>

@@ -18,6 +18,9 @@ namespace NIBR
         std::atomic<std::size_t>                    finishedTaskCountToStop;
         uint16_t                                    finishedThreadId;
         std::vector<std::unique_ptr<RandomDoer>>    rndm;
+        bool                                        dispRange_ext;
+        std::size_t                                 dispRange_start;
+        std::size_t                                 dispRange_total;
     }
 }
 
@@ -26,11 +29,24 @@ using namespace NIBR::MT;
 
 std::mutex&                                 NIBR::MT::PROC_MX()                     {return NIBR::MT::prox_mx;}
 int&                                        NIBR::MT::MAXNUMBEROFTHREADS()          {return NIBR::MT::maxNumberOfThreads;}
-void                                        NIBR::MT::SETMAXNUMBEROFTHREADS(int n)  {NIBR::MT::maxNumberOfThreads = n; disableTerminalOutput(); GEO::Process::enable_multithreading(n>1); GEO::Process::set_max_threads(n); enableTerminalOutput();}
 std::atomic<std::size_t>&                   NIBR::MT::FINISHEDTASKCOUNT()           {return NIBR::MT::finishedTaskCount;}
 std::atomic<std::size_t>&                   NIBR::MT::FINISHEDTASKCOUNTTOSTOP()     {return NIBR::MT::finishedTaskCountToStop;}
 uint16_t&                                   NIBR::MT::FINISHEDTHREADID()            {return NIBR::MT::finishedThreadId;}
 std::vector<std::unique_ptr<RandomDoer>>&   NIBR::MT::RNDM()                        {return NIBR::MT::rndm;}
+void                                        NIBR::MT::SET_DISP_RANGE(std::size_t start, std::size_t total) {NIBR::MT::dispRange_start = start; NIBR::MT::dispRange_total = total; NIBR::MT::dispRange_ext = true;}
+
+
+void NIBR::MT::SETMAXNUMBEROFTHREADS(int n)  {
+
+    NIBR::MT::maxNumberOfThreads = ((n > 0) && (n <= NIBR::MT::maxNumberOfThreads)) ? n : NIBR::MT::maxNumberOfThreads;
+
+    // Enabling geogram multithreading
+    disableTerminalOutput();
+    GEO::Process::enable_multithreading(NIBR::MT::maxNumberOfThreads > 1);
+    GEO::Process::set_max_threads(NIBR::MT::maxNumberOfThreads); 
+    enableTerminalOutput();
+
+}
 
 void NIBR::MT::MTINIT() 
 {
@@ -72,12 +88,14 @@ void NIBR::MT::MTINIT()
         NIBR::MT::rndm.clear();
         for (int i=0; i<NIBR::MT::maxNumberOfThreads; i++)
             NIBR::MT::rndm.push_back(std::make_unique<RandomDoer>());
+
     });
 }
 
 
 void NIBR::MT::MTRUN(std::size_t range, int numberOfThreads, std::function<void(const TASK&, Barrier&)> f) 
 {
+
     if (range == 0) return;
     
     if (numberOfThreads == 0) numberOfThreads = NIBR::MT::maxNumberOfThreads;
@@ -127,6 +145,7 @@ void NIBR::MT::MTRUN(std::size_t range, int numberOfThreads, std::function<void(
 
 void NIBR::MT::MTRUN(std::size_t range, int numberOfThreads, std::function<bool(const TASK&, Barrier&)> f, std::size_t stopLim) 
 {
+
     if (range == 0) return;
     
     if (numberOfThreads == 0) numberOfThreads = NIBR::MT::maxNumberOfThreads;
@@ -176,6 +195,7 @@ void NIBR::MT::MTRUN(std::size_t range, int numberOfThreads, std::function<bool(
 
 void NIBR::MT::MTRUN(std::size_t range, int numberOfThreads, std::string message, std::function<void(const TASK&, Barrier&)> f)
 {
+
     std::thread coreThread([&]() {
         MTRUN(range, numberOfThreads, f);
     });
@@ -183,26 +203,37 @@ void NIBR::MT::MTRUN(std::size_t range, int numberOfThreads, std::string message
     // Hide message below VERBOSE_INFO
     if (NIBR::VERBOSE()>=VERBOSE_INFO) {
 
+        std::size_t totCount = (dispRange_ext) ? dispRange_total : range;
+        std::size_t begCount = (dispRange_ext) ? dispRange_start : 0.0f;
+
+        float progressScaler = 100.0f / float(totCount);
+
         std::string preamble = "\033[1;32mNIBRARY::INFO: \033[0;32m";
 
         // Display initial message and progress
-        std::cout << preamble << message << ": 0%" << "\033[0m" << '\r' << std::flush;
-
-        float progressScaler = 100.0f/float(range);
+        if (begCount > 0) {
+            std::cout << "\r\033[K" << std::flush; // Clear the current line
+        }
+        std::cout << preamble << message << ": " << std::fixed << std::setprecision(2) << float(begCount) * progressScaler << "%" << "\033[0m" << std::flush;
 
         finishedTaskCount = 0;
         while (range>finishedTaskCount)
         {
-            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            float curCount = finishedTaskCount + begCount;
             std::cout << "\r\033[K" << std::flush; // Clear the current line
-            std::cout << preamble << message << ": " << std::fixed << std::setprecision(2) << float(finishedTaskCount)*progressScaler << "%" << "\033[0m" << std::flush;
+            std::cout << preamble << message << ": " << std::fixed << std::setprecision(2) << curCount * progressScaler << "%" << "\033[0m" << std::flush;
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
         }
 
-        std::cout << "\r\033[K" << preamble << message << ": 100%" << std::endl;
+        if ((begCount + range) == totCount) {
+            std::cout << "\r\033[K" << preamble << message << ": 100%" << std::endl;
+        }
 
     }
 
     coreThread.join();
+
+    dispRange_ext = false;
     
     return;
 

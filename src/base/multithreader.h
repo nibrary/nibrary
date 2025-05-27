@@ -38,7 +38,9 @@ namespace NIBR
         std::atomic<std::size_t>&                        FINISHEDTASKCOUNT();
         std::atomic<std::size_t>&                        FINISHEDTASKCOUNTTOSTOP();
         uint16_t&                                        FINISHEDTHREADID();
+        void                                             SET_DISP_RANGE(std::size_t start, std::size_t total);
         std::vector<std::unique_ptr<NIBR::RandomDoer>>&  RNDM();
+        
 
         // C++17 compatible) Barrier class (This already exists in C++20)
         // Allows a fixed number of threads to wait until all threads reach the barrier.

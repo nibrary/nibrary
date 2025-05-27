@@ -13,7 +13,7 @@ namespace NIBR
 
     float getStreamlineLength_hermite(float** inp, int len, int div);                   // Uses Hermite interpolation and does numerical integration with div number of divisions
     float getStreamlineLength_hermite(std::vector<std::vector<float>>& inp, int div);   // Uses Hermite interpolation and does numerical integration with div number of divisions
-    std::vector<float> getStreamlineLength_hermiteWithSpeed(std::vector<std::vector<float>>& inp, int div);
+    std::vector<float> getStreamlineLength_hermiteWithSpeed(const std::vector<std::vector<float>>& inp, int div);
 
     float getHausdorffDistance(std::vector<std::vector<float>>& trk1, std::vector<std::vector<float>>& trk2);
     float getMDFDistance(std::vector<std::vector<float>>& trk1, std::vector<std::vector<float>>& trk2);

@@ -592,6 +592,36 @@ bool NIBR::TractogramReader::readToMemory() {
 
 }
 
+bool NIBR::TractogramReader::readNextBatch(size_t batchSize, std::vector<std::vector<std::vector<float>>>& batch_out) {
+
+    if (usePreload) {
+        disp(MSG_WARN, "readNextBatch called with preloading enabled. Consider disabling preload for memory efficiency.");
+    }
+
+    if (file == NULL && !usePreload) {
+        disp(MSG_ERROR, "Reader not initialized or file closed.");
+        return false;
+    }
+
+    if (currentStreamlineIdx >= numberOfStreamlines) {
+        return false;
+    }
+
+    batch_out.clear();
+    batch_out.reserve(batchSize);
+
+    size_t streamlinesRead = 0;
+    while (streamlinesRead < batchSize && currentStreamlineIdx < numberOfStreamlines) {
+        
+        batch_out.push_back(readStreamlineVector(currentStreamlineIdx));
+        
+        currentStreamlineIdx++;
+        streamlinesRead++;
+    }
+
+    return (streamlinesRead > 0);
+}
+
 
 void NIBR::TractogramReader::printInfo() {
 

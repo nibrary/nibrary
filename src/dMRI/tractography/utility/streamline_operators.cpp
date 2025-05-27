@@ -127,7 +127,7 @@ float NIBR::getStreamlineLength_hermite(std::vector<std::vector<float>>& inp, in
     return length;
 }
 
-std::vector<float> NIBR::getStreamlineLength_hermiteWithSpeed(std::vector<std::vector<float>>& inp, int div)
+std::vector<float> NIBR::getStreamlineLength_hermiteWithSpeed(const std::vector<std::vector<float>>& inp, int div)
 {
 
     int len = int(inp.size());

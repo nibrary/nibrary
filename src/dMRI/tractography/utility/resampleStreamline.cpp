@@ -8,7 +8,7 @@ using namespace NIBR;
 #define RESIDUALTHRES 0.05  // When resampling is with step size, there will generally be a left over piece. If this piece is very short, we append it add the last segment. Otherwise, we split into two even parts and append on both ends. This value determines what is short. 0.05 means, "short" is 5% of step size.
 
 // This is declared only in this scope to be used for NIBR resampling functions
-std::vector<std::vector<float>> runStreamlineResampler(std::vector<std::vector<float>>& streamline, std::vector<float>& lenVec, int N, float step, float residual)
+std::vector<std::vector<float>> runStreamlineResampler(const std::vector<std::vector<float>>& streamline, std::vector<float>& lenVec, int N, float step, float residual)
 {
 
     if (N<2)
@@ -89,7 +89,7 @@ std::vector<std::vector<float>> runStreamlineResampler(std::vector<std::vector<f
 }
 
 
-std::vector<std::vector<float>> NIBR::resampleStreamline_withStepSize(std::vector<std::vector<float>>& streamline, float step)
+std::vector<std::vector<float>> NIBR::resampleStreamline_withStepSize(const std::vector<std::vector<float>>& streamline, float step)
 {
 
     if (step<=0)
@@ -108,7 +108,7 @@ std::vector<std::vector<float>> NIBR::resampleStreamline_withStepSize(std::vecto
 }
 
 
-std::vector<std::vector<float>> NIBR::resampleStreamline_withStepCount(std::vector<std::vector<float>>& streamline, int N)
+std::vector<std::vector<float>> NIBR::resampleStreamline_withStepCount(const std::vector<std::vector<float>>& streamline, int N)
 {
 
     if (N<2)
@@ -122,92 +122,59 @@ std::vector<std::vector<float>> NIBR::resampleStreamline_withStepCount(std::vect
 }
 
 
-std::vector<std::vector<float>> NIBR::resampleStreamline_withStepSize(NIBR::TractogramReader* tractogram, int index, float step)
+std::vector<std::vector<std::vector<float>>> NIBR::resampleTractogram_withStepSize(const std::vector<std::vector<std::vector<float>>>& batch_in, float step)
 {
-    auto streamline = tractogram->readStreamlineVector(index);
-    return NIBR::resampleStreamline_withStepSize(streamline, step);
-}
-
-
-std::vector<std::vector<float>> NIBR::resampleStreamline_withStepCount(NIBR::TractogramReader* tractogram, int index, int N)
-{
-    auto streamline = tractogram->readStreamlineVector(index);
-    return NIBR::resampleStreamline_withStepCount(streamline, N);
-}
-
-
-
-std::vector<std::vector<std::vector<float>>> NIBR::resampleTractogram_withStepSize(NIBR::TractogramReader* _tractogram, float step)
-{
-
-    std::vector<std::vector<std::vector<float>>> out;
-
-    if (_tractogram->numberOfStreamlines==0)
-        return out;
-
-    out.resize(_tractogram->numberOfStreamlines);
-
-    int numberOfThreads = (_tractogram->numberOfStreamlines<size_t(MT::MAXNUMBEROFTHREADS())) ? _tractogram->numberOfStreamlines : MT::MAXNUMBEROFTHREADS();
-
-    NIBR::TractogramReader *tractogram = new NIBR::TractogramReader[numberOfThreads]();
-
-    for (int t = 0; t < numberOfThreads; t++)
-        tractogram[t].copyFrom(*_tractogram);
+    std::vector<std::vector<std::vector<float>>> batch_out(batch_in.size());
 
     auto resample = [&](const NIBR::MT::TASK& task)->void {
-        out[task.no] = NIBR::resampleStreamline_withStepSize(&tractogram[task.threadId], task.no, step);
+        batch_out[task.no] = NIBR::resampleStreamline_withStepSize(batch_in[task.no], step);
     };
-
+    
     if (VERBOSE()>=VERBOSE_INFO) {
-		NIBR::MT::MTRUN(_tractogram->numberOfStreamlines, "Resampling streamlines", resample);
+		NIBR::MT::MTRUN(batch_in.size(), "Resampling streamlines", resample);
     } else {
-		NIBR::MT::MTRUN(_tractogram->numberOfStreamlines, resample);
+		NIBR::MT::MTRUN(batch_in.size(), resample);
     }
 
-
-    for (int t = 0; t < numberOfThreads; t++) 
-        tractogram[t].destroyCopy();
-    delete[] tractogram;
-
-    return out;
-
+    return batch_out;
 }
 
 
 
-
-std::vector<std::vector<std::vector<float>>> NIBR::resampleTractogram_withStepCount(NIBR::TractogramReader* _tractogram, int N)
+std::vector<std::vector<std::vector<float>>> NIBR::resampleTractogram_withStepCount(const std::vector<std::vector<std::vector<float>>>& batch_in, int N)
 {
-
-    std::vector<std::vector<std::vector<float>>> out;
-
-    if (_tractogram->numberOfStreamlines==0)
-        return out;
-
-    out.resize(_tractogram->numberOfStreamlines);
-
-    int numberOfThreads = (_tractogram->numberOfStreamlines<size_t(MT::MAXNUMBEROFTHREADS())) ? _tractogram->numberOfStreamlines : MT::MAXNUMBEROFTHREADS();
-
-    NIBR::TractogramReader *tractogram = new NIBR::TractogramReader[numberOfThreads]();
-
-    for (int t = 0; t < numberOfThreads; t++)
-        tractogram[t].copyFrom(*_tractogram);
+    std::vector<std::vector<std::vector<float>>> batch_out(batch_in.size());
 
     auto resample = [&](const NIBR::MT::TASK& task)->void {
-        out[task.no] = NIBR::resampleStreamline_withStepCount(&tractogram[task.threadId], task.no, N);
+        batch_out[task.no] = NIBR::resampleStreamline_withStepCount(batch_in[task.no], N);
     };
-
+    
     if (VERBOSE()>=VERBOSE_INFO) {
-		NIBR::MT::MTRUN(_tractogram->numberOfStreamlines, "Resampling streamlines", resample);
+		NIBR::MT::MTRUN(batch_in.size(), "Resampling streamlines", resample);
     } else {
-		NIBR::MT::MTRUN(_tractogram->numberOfStreamlines, resample);
+		NIBR::MT::MTRUN(batch_in.size(), resample);
     }
 
+    return batch_out;
+}
 
-    for (int t = 0; t < numberOfThreads; t++) 
-        tractogram[t].destroyCopy();
-    delete[] tractogram;
+std::vector<std::vector<std::vector<float>>> NIBR::resampleBatch(const std::vector<std::vector<std::vector<float>>>& batch_in,float stepSize, int stepCount, bool useSizeOpt) 
+{
+    std::vector<std::vector<std::vector<float>>> batch_out(batch_in.size());
 
-    return out;
+    auto resample = [&](const NIBR::MT::TASK& task)->void {
+        if (useSizeOpt) {
+            batch_out[task.no] = NIBR::resampleStreamline_withStepSize(batch_in[task.no], stepSize);
+        } else {
+            batch_out[task.no] = NIBR::resampleStreamline_withStepCount(batch_in[task.no], stepCount);
+        }
+    };
+    
+    if (VERBOSE()>=VERBOSE_INFO) {
+		NIBR::MT::MTRUN(batch_in.size(), "Resampling streamlines", resample);
+    } else {
+		NIBR::MT::MTRUN(batch_in.size(), resample);
+    }
 
+    return batch_out;
 }

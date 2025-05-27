@@ -79,8 +79,11 @@ namespace NIBR
             template<typename T>
             void     setReferenceImage(Image<T>* ref);
             
-            float**                         readStreamline(std::size_t n);          // Core function to read streamlines
-            void                            deleteStreamline(float**, std::size_t);
+            float**  readStreamline(std::size_t n);          // Core function to read streamlines
+            void     deleteStreamline(float**, std::size_t);
+
+            bool     readNextBatch(size_t batchSize, std::vector<std::vector<std::vector<float>>>& batch_out);
+            void     resetBatchReader() {currentStreamlineIdx = 0;}
             
             std::vector<std::vector<float>> readStreamlineVector(std::size_t n);
             std::vector<Point>              readStreamlinePoints(std::size_t n);
@@ -126,6 +129,9 @@ namespace NIBR
             std::vector<float**>*   streamlineBuffer = NULL;
             bool                    usePreload       = false;    // if we load the whole thing in memory
             bool                    finishedLoading  = false;    //this is set to true after reading the whole thing in memmory
+
+            // batch reading
+            size_t                  currentStreamlineIdx = 0; // Tracks the next streamline to read
             
 
     };

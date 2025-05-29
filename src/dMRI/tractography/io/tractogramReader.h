@@ -12,6 +12,7 @@
 #include "math/core.h"
 #include "image/image.h"
 
+#define STREAMLINE_BATCH_SIZE 100000
 
 namespace NIBR
 {
@@ -56,8 +57,7 @@ namespace NIBR
         VTK_ASCII,
         VTK_BINARY,
         TCK,
-        TRK,
-        VTP
+        TRK
     } TRACTOGRAMFILEFORMAT;
 
     class TractogramReader {
@@ -84,7 +84,7 @@ namespace NIBR
             float**  readStreamline(std::size_t n);          // Core function to read streamlines
             void     deleteStreamline(float**, std::size_t);
 
-            bool     readNextBatch(size_t batchSize, std::vector<std::vector<std::vector<float>>>& batch_out);
+            bool     readNextBatch(std::size_t batchSize, std::vector<std::vector<std::vector<float>>>& batch_out);
             void     resetBatchReader() {currentStreamlineIdx = 0;}
             
             std::vector<std::vector<float>> readStreamlineVector(std::size_t n);
@@ -119,12 +119,9 @@ namespace NIBR
             long*                   streamlinePos;      // file positions for first points of streamlines
 
 
-            // --- VTP Specific ---
-            long                    points_xml_offset_       = -1;
-            long                    connectivity_xml_offset_ = -1;
-            long                    offsets_xml_offset_      = -1;
-            bool                    vtp_is_little_endian_    = true;
-            std::string             vtp_current_tag_; 
+            // Batch reader overrides
+            bool                                         readNextBatch(std::vector<std::vector<std::vector<float>>>& batch_out);
+            std::vector<std::vector<std::vector<float>>> readNextBatch(std::size_t batchSize = STREAMLINE_BATCH_SIZE);
         
         private:
 
@@ -141,23 +138,7 @@ namespace NIBR
             bool                    finishedLoading  = false;    //this is set to true after reading the whole thing in memmory
 
             // batch reading
-            size_t                  currentStreamlineIdx = 0; // Tracks the next streamline to read
-
-            // --- VTP Specific ---
-            bool                    parseVTPHeaderWithExpat(); // <-- New name
-            template<typename T>
-            bool                    readVTPAppendedData(long offset, std::vector<T>& data);
-            bool                    readVTPPoints(int64_t index, float* point);
-
-            long                    appended_data_start_pos_ = 0;
-            
-            bool                    vtp_needs_swap_          = false;
-            long                    vtp_points_file_offset_  = 0;
-            std::vector<int64_t>    vtp_offsets_;
-            std::vector<int64_t>    vtp_connectivity_;
-            
-            
-                      
+            std::size_t             currentStreamlineIdx = 0; // Tracks the next streamline to read         
 
     };
 
@@ -185,29 +166,5 @@ namespace NIBR
 
     }
 
-    template<typename T>
-    bool NIBR::TractogramReader::readVTPAppendedData(long offset, std::vector<T>& data) {
-        if (appended_data_start_pos_ == 0 || offset < 0) return false; // Use member var
-
-        fseek(file, appended_data_start_pos_ + offset, SEEK_SET); // Use member var
-
-        uint64_t data_size_bytes = 0;
-        if (fread(&data_size_bytes, sizeof(uint64_t), 1, file) != 1) return false;
-        if (vtp_needs_swap_) swapByteOrder(data_size_bytes); // Use member var
-
-        size_t num_elements = data_size_bytes / sizeof(T);
-        data.resize(num_elements);
-
-        if (fread(data.data(), sizeof(T), num_elements, file) != num_elements) return false;
-
-        if (vtp_needs_swap_) { // Use member var
-            for (T& val : data) {
-                swapByteOrder(val); 
-            }
-        }
-        return true;
-    }
-
 }
-
 

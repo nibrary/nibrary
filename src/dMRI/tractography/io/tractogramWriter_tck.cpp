@@ -7,7 +7,7 @@
 
 #include "base/verbose.h"
 #include "base/dataTypeHandler.h"
-#include "tractogramWriter_tckWriter.h"
+#include "tractogramWriter_tck.h"
 
 using namespace NIBR;
 

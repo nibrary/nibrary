@@ -40,8 +40,6 @@ namespace NIBR
         bool is_closed_ = false;
     };
 
-    bool writeStreamlineBatch       (std::string out_fname,std::vector<std::vector<std::vector<float>>>& tractogram,bool isLast = false);
-
     bool writeTractogram            (std::string out_fname,NIBR::TractogramReader* tractogram);
     bool writeTractogram            (std::string out_fname,std::vector<std::vector<std::vector<float>>>& tractogram);
     template<typename T>

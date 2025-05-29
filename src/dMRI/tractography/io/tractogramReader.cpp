@@ -3,7 +3,6 @@
 #include <cstdint>
 #include <cstring>
 #include <iterator>
-#include "expat/expat.h"
 
 using namespace NIBR;
 			
@@ -14,7 +13,8 @@ NIBR::TractogramReader::TractogramReader() {
 	usePreload 			= false;
 	streamlineBuffer 	= NULL;
 	fileBuffer 			= NULL;
-
+	len                 = NULL;
+	streamlinePos       = NULL;
 }
 
 NIBR::TractogramReader::TractogramReader(std::string _fileName) {
@@ -24,6 +24,8 @@ NIBR::TractogramReader::TractogramReader(std::string _fileName) {
 	usePreload 			= false;
 	streamlineBuffer 	= NULL;
 	fileBuffer 			= NULL;
+	len                 = NULL;
+	streamlinePos       = NULL;
 	initReader(_fileName);
 }
 
@@ -34,6 +36,8 @@ NIBR::TractogramReader::TractogramReader(std::string _fileName, bool _usePreload
 	usePreload 			= _usePreload;
 	streamlineBuffer 	= NULL;
 	fileBuffer 			= NULL;
+	len                 = NULL;
+	streamlinePos       = NULL;
 	initReader(_fileName,usePreload);
 }
 
@@ -152,52 +156,6 @@ bool NIBR::TractogramReader::initReader(std::string _fileName) {
 	std::string extension = getFileExtension(fileName);
 
 	disp(MSG_DEBUG,"File extension: %s", extension.c_str());
-
-
-	if (extension == "vtp") {
-        
-        fileFormat      = VTP;
-        fileDescription = SGNTR();
-
-        if (!parseVTPHeaderWithExpat()) { // <-- CALL EXPAT VERSION
-            fclose(file); file = NULL; return false;
-        }
-
-        // --- Check endianness and set swap flag ---
-        vtp_needs_swap_ = (is_system_little_endian() != vtp_is_little_endian_);
-        disp(MSG_DEBUG, "VTP Byte Order: %s, Needs Swap: %s", 
-            vtp_is_little_endian_ ? "LittleEndian" : "BigEndian", 
-            vtp_needs_swap_ ? "Yes" : "No");
-        // ----------------------------------------
-
-        disp(MSG_DEBUG, "VTP Parsed: Points=%zu, Lines=%zu, P_off=%ld, C_off=%ld, O_off=%ld", 
-             numberOfPoints, numberOfStreamlines, points_xml_offset_, connectivity_xml_offset_, offsets_xml_offset_);
-
-        // Read Offsets and Connectivity into memory
-        if (!readVTPAppendedData(offsets_xml_offset_, vtp_offsets_)) {
-            disp(MSG_FATAL, "Failed to read VTP offsets data.");
-            fclose(file); file = NULL; return false;
-        }
-        if (!readVTPAppendedData(connectivity_xml_offset_, vtp_connectivity_)) {
-            disp(MSG_FATAL, "Failed to read VTP connectivity data.");
-            fclose(file); file = NULL; return false;
-        }
-        
-        // ... (Calculate 'len' array as before) ...
-        len = new uint32_t[numberOfStreamlines];
-        len[0] = vtp_offsets_[0];
-        for (size_t i = 1; i < numberOfStreamlines; ++i) {
-            len[i] = vtp_offsets_[i] - vtp_offsets_[i - 1];
-        }
-
-        // Calculate the absolute start position for reading points
-        uint64_t points_size_bytes = 0;
-        fseek(file, appended_data_start_pos_ + points_xml_offset_, SEEK_SET);
-        fread(&points_size_bytes, sizeof(uint64_t), 1, file);
-        if (vtp_needs_swap_) swapByteOrder(points_size_bytes); // Swap size too!
-        vtp_points_file_offset_ = ftell(file);
-
-    }
 
 	if (extension == "tck") {
 
@@ -347,22 +305,20 @@ bool NIBR::TractogramReader::initReader(std::string _fileName) {
 	if (extension == "vtk") {
 
 		std::string vtkFormat;
-
-		fgets(dummy, strLength, file);                        // vtk version
 		
-		if (std::string(dummy).find("3")==std::string::npos) {
-			disp(MSG_WARN,"Vtk version is not supported: %s", dummy);
-		}
+		int majorVersion = 0, minorVersion = 0;
+		std::fscanf(file, "# vtk DataFile Version %d.%d\n", &majorVersion, &minorVersion);
+		disp(MSG_DEBUG,"Vtk version is: %d.%d", majorVersion,minorVersion);
 
-		disp(MSG_DEBUG,"Vtk version is: %s", dummy);
+		bool version5 = (majorVersion >= 5);
 
 		fgets(dummy, strLength, file);                        // file description
 		fileDescription = std::string(dummy);
 		fileDescription = fileDescription.substr(0, fileDescription.size() - 1);
-		std::fscanf(file, "%s ", dummy);                     // ascii or binary
+		std::fscanf(file, "%s ", dummy);                      // ascii or binary
 		vtkFormat = std::string(dummy);
 		fgets(dummy, strLength, file);                        // always DATASET POLYDATA, we skip to check this for now
-		std::fscanf(file, "%*s %zu %*s ", &numberOfPoints);  // number of points and datatype, we assume datatype is float and skip checking this
+		std::fscanf(file, "%*s %zu %*s ", &numberOfPoints);   // number of points and datatype, we assume datatype is float and skip checking this
 		long posData = ftell(file);
 
 		disp(MSG_DEBUG,"numberOfPoints: %d", numberOfPoints);
@@ -371,82 +327,177 @@ bool NIBR::TractogramReader::initReader(std::string _fileName) {
 		else if ((vtkFormat == "binary") || (vtkFormat == "BINARY")) fileFormat = VTK_BINARY;
 		else return false;
 
+		// Skip points
+		if (fileFormat == VTK_BINARY) {
+			std::fseek(file, sizeof(float) * numberOfPoints * 3, SEEK_CUR);
+			int tmp = std::fgetc(file); if (tmp != '\n') std::ungetc(tmp, file); // Make sure to go end of the line
+		}
+
+		if (fileFormat == VTK_ASCII) {
+			for (std::size_t i = 0; i < numberOfPoints; i++)
+				std::fscanf(file, "%*f %*f %*f ");
+		}
+
+		bool needsByteSwap = is_little_endian();
+		if (needsByteSwap) disp(MSG_DEBUG, "Swapping bytes");
+			
 		if (numberOfPoints > 0) {
 
-			// Skip points
-			if (fileFormat == VTK_BINARY) {
-				std::fseek(file, sizeof(float) * numberOfPoints * 3, SEEK_CUR);
-				int tmp = std::fgetc(file); if (tmp != '\n') std::ungetc(tmp, file); // Make sure to go end of the line
-			}
+			if (version5) {
 
-			if (fileFormat == VTK_ASCII) {
-				for (std::size_t i = 0; i < numberOfPoints; i++)
-					std::fscanf(file, "%*f %*f %*f ");
-			}
+                disp(MSG_DEBUG,"Parsing v%d.%d", majorVersion, minorVersion);
 
-			// Get number of streamlines, lengths and streamlinePos
-			auto checkLine = (std::fscanf(file, "LINES %zu %*d ", &numberOfStreamlines) == 1);
+                // --- Seek to LINES and parse its header ---
+                while (fgets(dummy, strLength, file)) {
+                    if (strncmp(dummy, "LINES", 5) == 0) break;
+                    if (feof(file)) { disp(MSG_ERROR, "EOF reached before finding LINES."); return false; }
+                }
+                if (sscanf(dummy, "LINES %zu %zu", &numberOfStreamlines, &numberOfPoints) != 2) {
+                    disp(MSG_ERROR, "Failed to parse LINES header: %s", dummy);
+                    return false;
+                }
 
-			if ((numberOfStreamlines < 1) || !checkLine) {
+                numberOfStreamlines -= 1;
 
-				disp(MSG_DEBUG,"No lines in file");
+				std::size_t numberOfOffsets = numberOfStreamlines + 1;
 
-				numberOfStreamlines = 0;
-				len 				= NULL;
-				streamlinePos 		= NULL;
+                disp(MSG_DEBUG,"Streamlines: %zu, Connectivity: %zu, Offsets: %zu", numberOfStreamlines, numberOfPoints, numberOfOffsets);
 
-			} else {
+                // --- Handle OFFSETS ---
+                bool offsets_is_64bit = false;
+                while (fgets(dummy, strLength, file)) {
+                    if (strncmp(dummy, "OFFSETS", 7) == 0) break;
+                    if (feof(file)) { disp(MSG_ERROR, "EOF reached before finding OFFSETS."); return false; }
+                }
+                if (strstr(dummy, "vtktypeint64")) {
+                    offsets_is_64bit = true;
+                    disp(MSG_DEBUG, "Offsets are 64-bit.");
+                } else if (strstr(dummy, "vtktypeint32")) {
+                    offsets_is_64bit = false;
+                    disp(MSG_DEBUG, "Offsets are 32-bit.");
+                } else {
+                    disp(MSG_ERROR, "Could not determine OFFSETS data type in V5 file: %s", dummy);
+                    return false;
+                }
 
-				disp(MSG_DEBUG,"numberOfStreamlines: %d", numberOfStreamlines);
+                std::vector<int64_t> offsets(numberOfOffsets); // Use int64_t to safely hold both
 
-				len 			 = new uint32_t[numberOfStreamlines];
-				streamlinePos 	 = new long[numberOfStreamlines];
+                if (fileFormat == VTK_BINARY) {
+                    if (offsets_is_64bit) {
+                        if (std::fread(offsets.data(), sizeof(int64_t), numberOfOffsets, file) != numberOfOffsets) {
+                            disp(MSG_ERROR, "Failed to read binary 64-bit offsets."); return false;
+                        }
+                        if (needsByteSwap) {
+                            for (std::size_t i = 0; i < numberOfOffsets; ++i) {
+								swapByteOrder(offsets[i]);
+								disp(MSG_DEBUG, "Read offset %d, %d",i,offsets[i]);
+							}
+                        }
+                    } else {
+                        std::vector<int32_t> tmp_offsets(numberOfOffsets);
+                        if (std::fread(tmp_offsets.data(), sizeof(int32_t), numberOfOffsets, file) != numberOfOffsets) {
+                             disp(MSG_ERROR, "Failed to read binary 32-bit offsets."); return false;
+                        }
+                        if (needsByteSwap) {
+                            for (std::size_t i = 0; i < numberOfOffsets; ++i) {
+								swapByteOrder(tmp_offsets[i]);
+								disp(MSG_DEBUG, "Read offset %d, %d",i,tmp_offsets[i]);
+							}
+                        }
+                        std::copy(tmp_offsets.begin(), tmp_offsets.end(), offsets.begin());
+                    }
+                    // Consume potential newline after binary read
+                    int tmp_char = std::fgetc(file); if (tmp_char != '\n' && tmp_char != EOF) std::ungetc(tmp_char, file);
+
+                } else { // VTK_ASCII
+                    for (std::size_t i = 0; i < numberOfOffsets; ++i) {
+                        // Use long long for sscanf, compatible with int64_t
+                        if (std::fscanf(file, "%lld", (long long*)&offsets[i]) != 1) {
+                             disp(MSG_ERROR, "Failed to read ASCII offset %zu.", i); return false;
+                        }
+                    }
+                }
+                disp(MSG_DEBUG,"Read %zu offsets.", numberOfOffsets);
+
+                // Assign len and streamlinePos
+                len 			 = new uint32_t[numberOfStreamlines];
+                streamlinePos 	 = new long[numberOfStreamlines];
+
+				len[0] 			 = offsets[1] - offsets[0];
 				streamlinePos[0] = posData;
 
-				if (fileFormat == VTK_BINARY) {
+                for (std::size_t i = 1; i < numberOfStreamlines; ++i) {
+					streamlinePos[i] = streamlinePos[i - 1] + long(sizeof(float) * len[i - 1] * 3);
+                    len[i] 			 = offsets[i+1] - offsets[i];
+                }
 
-					int tmp;
-					std::fread(&tmp, sizeof(int), 1, file);
-					swapByteOrder(tmp);
-					std::fseek(file, tmp * sizeof(int), SEEK_CUR);
-					len[0] = tmp;
+            } else {
 
-					for (std::size_t i = 1; i < numberOfStreamlines; i++) {
-						streamlinePos[i] = streamlinePos[i - 1] + long(sizeof(float) * len[i - 1] * 3);
+				// Get number of streamlines, lengths and streamlinePos
+				auto checkLine = (std::fscanf(file, "LINES %zu %*d ", &numberOfStreamlines) == 1);
+
+				if ((numberOfStreamlines < 1) || !checkLine) {
+
+					disp(MSG_DEBUG,"No lines in file");
+
+					numberOfStreamlines = 0;
+					len 				= NULL;
+					streamlinePos 		= NULL;
+
+				} else {
+
+					disp(MSG_DEBUG,"numberOfStreamlines: %d", numberOfStreamlines);
+
+					len 			 = new uint32_t[numberOfStreamlines];
+					streamlinePos 	 = new long[numberOfStreamlines];
+					streamlinePos[0] = posData;
+
+					if (fileFormat == VTK_BINARY) {
+
+						int tmp;
 						std::fread(&tmp, sizeof(int), 1, file);
-						swapByteOrder(tmp);
+						if(needsByteSwap) swapByteOrder(tmp);
 						std::fseek(file, tmp * sizeof(int), SEEK_CUR);
-						len[i] = tmp;
-					}
-				}
+						len[0] = tmp;
 
-				if (fileFormat == VTK_ASCII) {
-					for (std::size_t i = 0; i < numberOfStreamlines; i++) {
-						std::fscanf(file, "%u ", &len[i]);
-						for (uint32_t j = 0; j < (len[i] - 1); j++)
+						for (std::size_t i = 1; i < numberOfStreamlines; i++) {
+							streamlinePos[i] = streamlinePos[i - 1] + long(sizeof(float) * len[i - 1] * 3);
+							std::fread(&tmp, sizeof(int), 1, file);
+							if(needsByteSwap) swapByteOrder(tmp);
+							std::fseek(file, tmp * sizeof(int), SEEK_CUR);
+							len[i] = tmp;
+						}
+					}
+
+					if (fileFormat == VTK_ASCII) {
+						for (std::size_t i = 0; i < numberOfStreamlines; i++) {
+							std::fscanf(file, "%u ", &len[i]);
+							for (uint32_t j = 0; j < (len[i] - 1); j++)
+								std::fscanf(file, "%*d ");
 							std::fscanf(file, "%*d ");
-						std::fscanf(file, "%*d ");
-						// disp(MSG_DEBUG,"len: %d", len[i]);
+							// disp(MSG_DEBUG,"len: %d", len[i]);
+						}
+
+						fseek(file, posData, SEEK_SET);
+
+						for (std::size_t i = 0; i < (numberOfStreamlines - 1); i++) {
+							for (std::size_t j = 0; j < len[i]; j++)
+								std::fscanf(file, "%*f %*f %*f ");
+							streamlinePos[i + 1] = ftell(file);
+
+						}
 					}
 
-					fseek(file, posData, SEEK_SET);
-
-					for (std::size_t i = 0; i < (numberOfStreamlines - 1); i++) {
-						for (std::size_t j = 0; j < len[i]; j++)
-							std::fscanf(file, "%*f %*f %*f ");
-						streamlinePos[i + 1] = ftell(file);
-
-					}
 				}
 
 			}
 
-		}
-		else {
+		} else {
 			numberOfStreamlines = 0;
 			len 				= NULL;
 			streamlinePos 		= NULL;
 		}
+
 
 	}
 
@@ -462,25 +513,9 @@ float** NIBR::TractogramReader::readStreamline(std::size_t n) {
 	float** points;
 	points = new float* [len[n]];
 
+	bool needsByteSwap = is_little_endian();
+
 	fseek(file, streamlinePos[n], SEEK_SET);
-
-	if (fileFormat == VTP) {
-
-        int64_t start_conn_idx = (n == 0) ? 0 : vtp_offsets_[n-1];
-
-        for (uint32_t i = 0; i < len[n]; i++) {
-            points[i] = new float[3];
-            int64_t point_idx = vtp_connectivity_[start_conn_idx + i];
-            if (!readVTPPoints(point_idx, points[i])) {
-                // Handle error - clean up and return nullptr
-                disp(MSG_ERROR, "Failed to read VTP point %lld for streamline %zu", (long long)point_idx, n);
-                for(uint32_t j=0; j<=i; ++j) delete[] points[j];
-                delete[] points;
-                return nullptr;
-            }
-        }
-
-    }
 
 	if (fileFormat == TCK) {
 		float tmp;
@@ -520,7 +555,7 @@ float** NIBR::TractogramReader::readStreamline(std::size_t n) {
 
 			for (int j = 0; j < 3; j++) {
 				std::fread(&tmp, sizeof(float), 1, file);
-				swapByteOrder(tmp);
+				if(needsByteSwap) swapByteOrder(tmp);
 				points[i][j] = tmp;
 			}
 		}
@@ -608,7 +643,7 @@ bool NIBR::TractogramReader::readToMemory() {
 
 		fseek(file, streamlinePos[0], SEEK_SET);
 
-		size_t floatsRead = std::fread(fileBuffer, sizeof(float), numberOfPoints * 3, file);
+		std::size_t floatsRead = std::fread(fileBuffer, sizeof(float), numberOfPoints * 3, file);
 
 		if (floatsRead != (numberOfPoints * 3)) {
             NIBR::disp(MSG_ERROR, "Failed to read the entire tractogram file into memory. Expected %ld, got %zu floats.", (numberOfPoints * 3), floatsRead);
@@ -617,14 +652,14 @@ bool NIBR::TractogramReader::readToMemory() {
             return false;
         }
 
-		for (size_t i = 0; i < (numberOfPoints * 3); ++i) {
+		for (std::size_t i = 0; i < (numberOfPoints * 3); ++i) {
 			swapByteOrder(fileBuffer[i]);
 		}
 
 		float s = 100.0f / float(numberOfStreamlines);
 		float* currentPtr = fileBuffer;
 
-		for (size_t n = 0; n < numberOfStreamlines; n++) {
+		for (std::size_t n = 0; n < numberOfStreamlines; n++) {
 			streamlineBuffer->at(n) = new float*[len[n]];
 			for (uint32_t l = 0; l < len[n]; l++) {
 				streamlineBuffer->at(n)[l] = currentPtr;
@@ -640,7 +675,7 @@ bool NIBR::TractogramReader::readToMemory() {
 
 		float s = 100.0f / float(numberOfStreamlines);
 
-		for (size_t n = 0; n < numberOfStreamlines; n++) {
+		for (std::size_t n = 0; n < numberOfStreamlines; n++) {
 			streamlineBuffer->at(n) = readStreamline(n);
 			if ((n>0) && (NIBR::VERBOSE()>=VERBOSE_INFO)) std::cout << "\033[A\r\033[K" << std::flush;
 			NIBR::disp(MSG_INFO,"Preloading streamlines: %.2f%%", (n+1)*s);
@@ -656,7 +691,7 @@ bool NIBR::TractogramReader::readToMemory() {
 
 }
 
-bool NIBR::TractogramReader::readNextBatch(size_t batchSize, std::vector<std::vector<std::vector<float>>>& batch_out) {
+bool NIBR::TractogramReader::readNextBatch(std::size_t batchSize, std::vector<std::vector<std::vector<float>>>& batch_out) {
 
     if (usePreload) {
         disp(MSG_WARN, "readNextBatch called with preloading enabled. Consider disabling preload for memory efficiency.");
@@ -674,7 +709,7 @@ bool NIBR::TractogramReader::readNextBatch(size_t batchSize, std::vector<std::ve
     batch_out.clear();
     batch_out.reserve(batchSize);
 
-    size_t streamlinesRead = 0;
+    std::size_t streamlinesRead = 0;
     while (streamlinesRead < batchSize && currentStreamlineIdx < numberOfStreamlines) {
         
         batch_out.push_back(readStreamlineVector(currentStreamlineIdx));
@@ -684,6 +719,22 @@ bool NIBR::TractogramReader::readNextBatch(size_t batchSize, std::vector<std::ve
     }
 
     return (streamlinesRead > 0);
+}
+
+bool NIBR::TractogramReader::readNextBatch(std::vector<std::vector<std::vector<float>>>& batch_out)
+{
+	return readNextBatch(STREAMLINE_BATCH_SIZE,batch_out);
+}
+
+std::vector<std::vector<std::vector<float>>> NIBR::TractogramReader::readNextBatch(std::size_t batchSize)
+{
+	std::vector<std::vector<std::vector<float>>> out;
+	if (readNextBatch(batchSize,out)) {
+		return out;
+	} else {
+		disp(MSG_ERROR, "Batch reading failed.");
+		return out;
+	}
 }
 
 
@@ -725,190 +776,21 @@ void NIBR::TractogramReader::printInfo() {
 
 	}
 
-	std::vector<NIBR::TractogramField> fields = findTractogramFields(*this);
-
-	std::cout << "Field count: " << fields.size() << std::endl << std::flush;
-
-	int i = 1;
-	for (auto f : fields) {
-		std::cout << "   " << i++ << ". " << f.name.c_str() << ": " << ((f.owner == POINT_OWNER) ? "Point" : "Streamline") << " field with dim " << f.dimension << std::endl << std::flush;
+	
+	if (fileFormat==NIBR::VTK_BINARY) {
+		std::vector<NIBR::TractogramField> fields = findTractogramFields(*this);
+		std::cout << "Field count: " << fields.size() << std::endl << std::flush;
+		int i = 1;
+		for (auto f : fields) {
+			std::cout << "   " << i++ << ". " << f.name.c_str() << ": " << ((f.owner == POINT_OWNER) ? "Point" : "Streamline") << " field with dim " << f.dimension << std::endl << std::flush;
+		}
 	}
+
+	
 
 	std::cout << "\033[0m";
 
 	return;
 
 
-}
-
-// VTP reader functions
-
-// Structure to hold state and results during Expat parsing
-struct VTPExpatUserData {
-    NIBR::TractogramReader* reader; 
-    std::string current_DataArray_Name;
-    bool        parsing_ok;
-    bool        found_appended_tag;
-    XML_Parser  parser; // <-- Holds the parser instance
-};
-
-// Helper to process attributes - NOW TAKES VTPExpatUserData*
-static void process_attributes(VTPExpatUserData* data, const XML_Char *name, const XML_Char **atts) {
-    
-    NIBR::TractogramReader* reader = data->reader; // Get reader from data
-    XML_Parser parser = data->parser;             // Get parser from data
-
-    long long* num_points_ptr   = reinterpret_cast<long long*>(&reader->numberOfPoints);
-    long long* num_lines_ptr    = reinterpret_cast<long long*>(&reader->numberOfStreamlines);
-    long* points_off_ptr   = &reader->points_xml_offset_;
-    long* conn_off_ptr     = &reader->connectivity_xml_offset_;
-    long* offs_off_ptr     = &reader->offsets_xml_offset_;
-    bool* is_little_ptr    = &reader->vtp_is_little_endian_;
-    std::string* current_name_ptr = &data->current_DataArray_Name;
-
-    if (strcmp(name, "VTKFile") == 0) {
-        for (int i = 0; atts[i]; i += 2) {
-            if (strcmp(atts[i], "byte_order") == 0) {
-                *is_little_ptr = (strcmp(atts[i+1], "BigEndian") != 0);
-            }
-        }
-    } else if (strcmp(name, "Piece") == 0) {
-        for (int i = 0; atts[i]; i += 2) {
-            if (strcmp(atts[i], "NumberOfPoints") == 0) *num_points_ptr = std::stoll(atts[i+1]);
-            if (strcmp(atts[i], "NumberOfLines") == 0)  *num_lines_ptr  = std::stoll(atts[i+1]);
-        }
-    } else if (strcmp(name, "DataArray") == 0) {
-        std::string format = "";
-        long offset = -1;
-        std::string arr_name = "";
-
-        for (int i = 0; atts[i]; i += 2) {
-            if (strcmp(atts[i], "Name") == 0)   arr_name = atts[i+1];
-            if (strcmp(atts[i], "format") == 0) format = atts[i+1];
-            if (strcmp(atts[i], "offset") == 0) offset = std::stoll(atts[i+1]);
-        }
-
-        if (format != "appended") {
-            NIBR::disp(MSG_FATAL, "VTP Reader currently only supports format=\"appended\". Found %s.", format.c_str());
-            data->parsing_ok = false;
-            XML_StopParser(parser, XML_FALSE); // <-- USE LOCAL PARSER
-            return;
-        }
-
-        *current_name_ptr = arr_name;
-
-        if (arr_name == "Points")       *points_off_ptr = offset;
-        if (arr_name == "connectivity") *conn_off_ptr   = offset;
-        if (arr_name == "offsets")      *offs_off_ptr   = offset;
-        
-    } else if (strcmp(name, "AppendedData") == 0) {
-        data->found_appended_tag = true;
-        XML_StopParser(parser, XML_TRUE); // <-- USE LOCAL PARSER
-    }
-}
-
-// Expat Start Element Handler - NOW PASSES 'data' TO HELPER
-static void XMLCALL startElementHandler(void *userData, const XML_Char *name, const XML_Char **atts) {
-    VTPExpatUserData* data = reinterpret_cast<VTPExpatUserData*>(userData);
-    
-    if (!data->parsing_ok || data->found_appended_tag) return;
-
-    data->reader->vtp_current_tag_ = name;
-    process_attributes(data, name, atts); // <-- Pass 'data'
-}
-
-// Expat End Element Handler
-static void XMLCALL endElementHandler(void *userData, const XML_Char *name) {
-    VTPExpatUserData* data = reinterpret_cast<VTPExpatUserData*>(userData);
-    data->reader->vtp_current_tag_ = "";
-}
-
-// Expat Character Data Handler
-static void XMLCALL characterDataHandler(void *userData, const XML_Char *s, int len) {
-    // No action needed
-}
-
-// Basic VTP XML header parser.
-bool NIBR::TractogramReader::parseVTPHeaderWithExpat() {
-
-    XML_Parser parser = XML_ParserCreate(NULL);
-    if (!parser) {
-        disp(MSG_FATAL, "Couldn't allocate memory for Expat parser.");
-        return false;
-    }
-
-    VTPExpatUserData userData;
-    userData.reader = this;
-    userData.parsing_ok = true;
-    userData.found_appended_tag = false;
-    userData.parser = parser; // <-- Store parser in userData
-
-    XML_SetUserData(parser, &userData);
-    XML_SetElementHandler(parser, startElementHandler, endElementHandler);
-    XML_SetCharacterDataHandler(parser, characterDataHandler);
-
-    fseek(file, 0, SEEK_SET);
-
-    const int buffer_size = 4096;
-    char buffer[buffer_size];
-    bool done = false;
-
-    disp(MSG_DEBUG, "Starting Expat VTP header parsing...");
-
-    do {
-        int bytes_read = fread(buffer, 1, buffer_size, file);
-        done = bytes_read < buffer_size;
-
-        if (XML_Parse(parser, buffer, bytes_read, done) == XML_STATUS_ERROR) {
-            if (XML_GetErrorCode(parser) != XML_ERROR_ABORTED) {
-                disp(MSG_FATAL, "Expat XML parse error: %s at line %lu",
-                    XML_ErrorString(XML_GetErrorCode(parser)),
-                    XML_GetCurrentLineNumber(parser));
-                userData.parsing_ok = false;
-            }
-            break; 
-        }
-
-    } while (!done && userData.parsing_ok && !userData.found_appended_tag);
-
-    long expat_index   = XML_GetCurrentByteIndex(parser);
-
-    XML_ParserFree(parser); // Free the parser
-
-    if (!userData.parsing_ok) return false;
-    if (!userData.found_appended_tag) {
-        disp(MSG_FATAL, "VTP parsing finished without finding <AppendedData> tag.");
-        return false;
-    }
-
-    // Find the '_' marker starting from where Expat stopped.
-    fseek(file, expat_index, SEEK_SET);
-    char c;
-    while ((c = fgetc(file)) != EOF) {
-        if (c == '_') {
-            appended_data_start_pos_ = ftell(file);
-            disp(MSG_DEBUG, "Found AppendedData marker '_' at position %ld", appended_data_start_pos_);
-            return true;
-        }
-    }
-
-    disp(MSG_FATAL, "Could not find '_' marker after <AppendedData> tag.");
-    return false;
-}
-
-
-bool NIBR::TractogramReader::readVTPPoints(int64_t index, float* point) {
-    if (vtp_points_file_offset_ <= 0) return false; // Use member var
-    
-    long pos = vtp_points_file_offset_ + (index * 3 * sizeof(float)); // Use member var
-    fseek(file, pos, SEEK_SET);
-    
-    if (fread(point, sizeof(float), 3, file) != 3) return false;
-
-    if (vtp_needs_swap_) { // Use member var
-        swapByteOrder(point[0]);
-        swapByteOrder(point[1]);
-        swapByteOrder(point[2]);
-    }
-    return true;
 }

@@ -156,6 +156,43 @@ namespace NIBR
         return NIBR::index2image(tractogram,img,mask,processor,indexer,allocater,deallocater,data,filePrefix,splitCount);
 
     }
+
+    template<typename T>
+    bool index2image(
+        TractogramReader& tractogram, 
+        Image<T>& img, 
+        bool***& mask,
+        std::vector<int64_t>& inds,
+        std::function<void(Tractogram2ImageMapper<T>* tim, int* _gridPos, NIBR::Segment& _seg)> processor, 
+        std::function<void(Tractogram2ImageMapper<T>* tim)> indexer,
+        std::function<void(Tractogram2ImageMapper<T>* tim)> allocater,
+        std::function<void(Tractogram2ImageMapper<T>* tim)> deallocater,
+        void* G,
+        std::unordered_map<int,std::unordered_map<int,float>>* contributions)
+    {
+        // Preallocate contributions to enable future access for multiple threads
+        contributions->clear();
+        for (const auto& n : inds) {
+            (*contributions)[n] = std::unordered_map<int,float>();
+        }
+        
+        // gridData: <function* G, std::std::unordered_map<int,std::vector<std::pair<int,float>>>* contributions>
+        std::tuple<void*,std::unordered_map<int,std::unordered_map<int,float>>*> gridData;
+        std::get<0>(gridData) = G;
+        std::get<1>(gridData) = contributions;
+
+        Tractogram2ImageMapper<T> gridder(&tractogram,&img);
+        gridder.optimizeForSmallMask(true);
+        gridder.setMask(mask);
+        gridder.setData((void*)(&gridData));
+        allocater(&gridder);
+
+        gridder.run(processor,indexer);
+        
+        deallocater(&gridder);
+        
+        return true;
+    }
     
 
     /*
@@ -190,5 +227,4 @@ namespace NIBR
     */
 
 }
-
 

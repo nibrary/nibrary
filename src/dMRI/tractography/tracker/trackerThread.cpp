@@ -76,7 +76,7 @@ bool hitTimeLimit(Walker* walker)
 }
 
 
-bool TrackingThread::track()
+bool TrackingThread::track(TractogramWriter* writer)
 {
 
 	// track starts with reseting the object, i.e., everything is cleared.
@@ -147,7 +147,7 @@ bool TrackingThread::track()
 
 				if (TRACKER::pw.checkSeed(walker,side_B)!=DISCARD) {
 					// This will set to discard if seed point is inside a discard_if_inside region
-					TRACKER::pw.checkEndsInside(&walker->streamline->at(walker->seedInd).x,walker);
+					TRACKER::pw.checkEndsInside(walker->streamline->at(walker->seedInd).data(),walker);
 				} else {
 					disp(MSG_DEBUG, "checkSeed failed, discarding trial: %d", trialNo);
 				}
@@ -376,20 +376,25 @@ bool TrackingThread::track()
 
 	if (walker->action == KEEP) {
 
-		std::vector<std::vector<float>> outTrk;
-		for (auto p : streamline) {
-			outTrk.push_back({p.x,p.y,p.z});
-		}
-
 		{
-			std::lock_guard<std::mutex> lock(NIBR::MT::PROC_MX());
+			std::lock_guard<std::mutex> lock(TRACKER::trackKeeper);
 
-			TRACKER::countIsReached = (TRACKER::tractogram.size()==std::size_t(TRACKER::seed.getCount()));
+			TRACKER::countIsReached = (TRACKER::currentCount==std::size_t(TRACKER::seed.getCount()));
 
 			if (!TRACKER::countIsReached) {
 
-				TRACKER::tractogram.push_back(outTrk);
-				if (TRACKER::saveSeedIndex) TRACKER::seedIndex.push_back(walker->seedInd);
+				if (writer != NULL) {
+					writer->writeStreamline(streamline);
+				} else {
+					TRACKER::tractogram.push_back(streamline);
+				}
+
+				TRACKER::currentCount++;
+
+				if (TRACKER::saveSeedIndex) {
+					TRACKER::seedIndex.push_back(walker->seedInd);
+					TRACKER::streamlineLength.push_back(streamline.size());
+				}
 
 				TRACKER::lastTime = std::chrono::steady_clock::now();
 			
@@ -402,7 +407,7 @@ bool TrackingThread::track()
 
 			}
 
-			TRACKER::countIsReached = (TRACKER::tractogram.size()==std::size_t(TRACKER::seed.getCount()));
+			TRACKER::countIsReached = (TRACKER::currentCount==std::size_t(TRACKER::seed.getCount()));
 
 		}
 

@@ -95,8 +95,7 @@ bool NIBR::FOD_Image::read() {
         }
 
         for (auto p : std::get<1>(sphere)) {
-            std::vector<float> tmp = {p.x,p.y,p.z};
-            sphereCoords.push_back(tmp);
+            sphereCoords.push_back(p);
         }
 
         if (int64_t(sphereCoords.size())!=this->valCnt) {
@@ -137,7 +136,7 @@ bool NIBR::FOD_Image::read() {
     float* ddata = new float[nnt*voxCnt];
     int    shNum = getNumberOfSHCoeffs(shOrder);
 
-    auto loadingTask = [&](NIBR::MT::TASK task)->void {
+    auto loadingTask = [&](const NIBR::MT::TASK& task)->void {
         
         std::vector<int64_t> sub = nnzVoxelSubs[task.no];
         float *FOD               = new float[shNum];

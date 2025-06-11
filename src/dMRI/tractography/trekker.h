@@ -13,8 +13,8 @@ public:
     Trekker(std::string    a);
     ~Trekker();
 
-    void        run();      // Runs the tracker and populates TRACKER::tractogram
-    void        reset();    // Clears TRACKER::tractogram. run() will generate a new TRACKER::tractogram with the same settings.
+    void        run(void* writer = NULL);   // Runs the tracker and populates TRACKER::tractogram
+    void        reset();                    // Clears TRACKER::tractogram. run() will generate a new TRACKER::tractogram with the same settings.
 
     // General options
     void        numberOfThreads(int n);

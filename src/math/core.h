@@ -6,14 +6,18 @@
 #undef max
 #endif
 
+#include <stdio.h>
 #include <stdlib.h>
 #include <limits.h>
 #include <iostream>
 #include <iomanip>
 #include <string>
+#include <array>
 #include <vector>
 #include <complex>
+#include <cstdint>
 #include <cmath>
+#include <cstring>
 #include <cfloat>
 #include <functional>
 #include <algorithm>
@@ -46,16 +50,12 @@ namespace NIBR
     #define EPS3       0.001
     #define EPS2       0.01
 
-    struct Point{
-        float x;
-        float y;
-        float z;
-    };
+    using Point3D = std::array<float,3>;
 
     struct LineSegment {
         int    id{INT_MIN};
-        float* beg{NULL};
-        float* end{NULL};
+        float* beg{nullptr};
+        float* end{nullptr};
         float  len{0};
         float  dir[3]{0,0,0};
     };
@@ -152,33 +152,11 @@ namespace NIBR
         return std::sqrt( (p1[0]-p2[0])*(p1[0]-p2[0]) + (p1[1]-p2[1])*(p1[1]-p2[1]) + (p1[2]-p2[2])*(p1[2]-p2[2]) );
     }
 
-    inline double dist(const Point* p1,const Point* p2)
-    {
-        return std::sqrt( (p1->x-p2->x)*(p1->x-p2->x) + (p1->y-p2->y)*(p1->y-p2->y) + (p1->z-p2->z)*(p1->z-p2->z) );
-    }
-
-    inline double dist(const Point& p1,const Point& p2)
-    {
-        return std::sqrt( (p1.x-p2.x)*(p1.x-p2.x) + (p1.y-p2.y)*(p1.y-p2.y) + (p1.z-p2.z)*(p1.z-p2.z) );
-    }
-
     template<typename T1,typename T2> inline constexpr
     double squared_dist(const T1& p1,const T2& p2)
     {
         return (p1[0]-p2[0])*(p1[0]-p2[0]) + (p1[1]-p2[1])*(p1[1]-p2[1]) + (p1[2]-p2[2])*(p1[2]-p2[2]);
     }
-
-    inline double squared_dist(const Point* p1,const Point* p2)
-    {
-        return (p1->x-p2->x)*(p1->x-p2->x) + (p1->y-p2->y)*(p1->y-p2->y) + (p1->z-p2->z)*(p1->z-p2->z);
-    }
-
-    inline double squared_dist(const Point& p1,const Point& p2)
-    {
-        return (p1.x-p2.x)*(p1.x-p2.x) + (p1.y-p2.y)*(p1.y-p2.y) + (p1.z-p2.z)*(p1.z-p2.z);
-    }
-
-
 
     template<typename TOUT,typename T1,typename T2> inline constexpr
     void vec3sub(TOUT& out, const T1& v1,const T2& v2)
@@ -221,23 +199,11 @@ namespace NIBR
     }
 
     template<typename TOUT> inline constexpr
-    void point2vec3(TOUT& out, const Point& p, const Point& ref)
+    void point2vec3(TOUT& out, const Point3D& p, const Point3D& ref)
     {
-        out[0] = p.x - ref.x;
-        out[1] = p.y - ref.y;
-        out[2] = p.z - ref.z;
-    }
-
-
-    template<typename T> inline constexpr
-    void applyTransform(Point& p, const T& M)
-    {
-        float x = p.x*M[0][0] + p.y*M[0][1] + p.z*M[0][2] + M[0][3];
-        float y = p.x*M[1][0] + p.y*M[1][1] + p.z*M[1][2] + M[1][3];
-        float z = p.x*M[2][0] + p.y*M[2][1] + p.z*M[2][2] + M[2][3];
-        p.x = x;
-        p.y = y;
-        p.z = z;
+        out[0] = p[0] - ref[0];
+        out[1] = p[1] - ref[1];
+        out[2] = p[2] - ref[2];
     }
 
     template<typename T1,typename T2> inline constexpr
@@ -274,6 +240,17 @@ namespace NIBR
         vout[2] = vinp[0]*M[2][0] + vinp[1]*M[2][1] + vinp[2]*M[2][2] + M[2][3];
     }
 
+    // Checks if a 4x4 affine matrix is essentially zero (uninitialized).
+    inline bool isAffineZero(const float affine[4][4]) {
+        float sum = 0.0f;
+        for (int i = 0; i < 4; ++i) {
+            for (int j = 0; j < 4; ++j) {
+                sum += std::abs(affine[i][j]);
+            }
+        }
+        // If the sum of absolute values is very small, treat as zero.
+        return sum < 1e-6; 
+    }
 
     template<typename T>
     T rad2deg(const T& rad) {

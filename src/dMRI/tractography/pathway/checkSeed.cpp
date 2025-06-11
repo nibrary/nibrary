@@ -9,8 +9,8 @@ using namespace NIBR;
 NIBR::WalkerAction NIBR::Pathway::checkSeed(NIBR::Walker *w, NIBR::Tracking_Side side)
 {
 	// Prepare segment
-	w->segment.beg    = &(w->streamline->at(w->seedInd).x);
-    w->segment.end    = &(w->streamline->at(w->seedInd).x);
+	w->segment.beg    = w->streamline->at(w->seedInd).data();
+    w->segment.end    = w->streamline->at(w->seedInd).data();
 	w->segment.len    = 0.0;
 	w->segment.dir[0] = 1.0;
 	w->segment.dir[1] = 0.0;
@@ -23,7 +23,7 @@ NIBR::WalkerAction NIBR::Pathway::checkSeed(NIBR::Walker *w, NIBR::Tracking_Side
 
 		disp(MSG_DEBUG,"checkSeed for prule: %d, side: %d",n,prules[n].side);
 
-		bool inside = isPointInsideRule(&(w->streamline->at(w->seedInd).x),n);
+		bool inside = isPointInsideRule(w->streamline->at(w->seedInd).data(),n);
 
 		if (!inside && ((prules[n].type) == seed) ) {
 			w->action = DISCARD;
@@ -32,7 +32,7 @@ NIBR::WalkerAction NIBR::Pathway::checkSeed(NIBR::Walker *w, NIBR::Tracking_Side
 			return DISCARD;
 		}
 
-		if (hasSeed() && (n == seedRuleNo) && isPointAtEdgeOfRule(&(w->streamline->at(w->seedInd).x),n,EPS3)) 
+		if (hasSeed() && (n == seedRuleNo) && isPointAtEdgeOfRule(w->streamline->at(w->seedInd).data(),n,EPS3)) 
 		{
 			w->action = DISCARD;
 			w->discardingReason = IMPROPER_SEED;
@@ -168,8 +168,8 @@ NIBR::WalkerAction NIBR::Pathway::checkSeed(NIBR::Walker *w, NIBR::Tracking_Side
 NIBR::WalkerAction NIBR::Pathway::checkSeed(NIBR::Walker *w)
 {
 	// Prepare segment
-	w->segment.beg    = &(w->streamline->at(w->seedInd).x);
-    w->segment.end    = &(w->streamline->at(w->seedInd).x);
+	w->segment.beg    = w->streamline->at(w->seedInd).data();
+    w->segment.end    = w->streamline->at(w->seedInd).data();
 	w->segment.len    = 0.0;
 	w->segment.dir[0] = 1.0;
 	w->segment.dir[1] = 0.0;
@@ -181,7 +181,7 @@ NIBR::WalkerAction NIBR::Pathway::checkSeed(NIBR::Walker *w)
 
 		disp(MSG_DEBUG,"checkSeed for prule: %d, side: %d",n,prules[n].side);
 
-		bool inside = isPointInsideRule(&(w->streamline->at(w->seedInd).x),n);
+		bool inside = isPointInsideRule(w->streamline->at(w->seedInd).data(),n);
 
 		if (!inside && ((prules[n].type) == seed) ) {
 			w->action = DISCARD;
@@ -190,7 +190,7 @@ NIBR::WalkerAction NIBR::Pathway::checkSeed(NIBR::Walker *w)
 			return DISCARD;
 		}
 
-		if (hasSeed() && (n == seedRuleNo) && isPointAtEdgeOfRule(&(w->streamline->at(w->seedInd).x),n,EPS3)) 
+		if (hasSeed() && (n == seedRuleNo) && isPointAtEdgeOfRule(w->streamline->at(w->seedInd).data(),n,EPS3)) 
 		{
 			w->action = DISCARD;
 			w->discardingReason = IMPROPER_SEED;

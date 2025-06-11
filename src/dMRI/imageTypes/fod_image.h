@@ -43,7 +43,7 @@ namespace NIBR
         bool                            isFodAsym()   {return !iseven;}
         bool                            isFodsym()    {return  iseven;}
 
-        std::vector<std::vector<float>> getCoordinates() { return isspheresliced ? sphereCoords : discVolSphCoords;}
+        std::vector<Point3D>            getCoordinates() { return isspheresliced ? sphereCoords : discVolSphCoords;}
 
 
     private:
@@ -56,7 +56,7 @@ namespace NIBR
         
         int                                 discVolSphDim;
         int*                                discVolSphInds;
-        std::vector<std::vector<float>>     discVolSphCoords;
+        std::vector<Point3D>                discVolSphCoords;
         float                               discVolSphRadius;
         float                               discVolSphShift;
         
@@ -65,7 +65,7 @@ namespace NIBR
         
         bool                                isspheresliced;
         std::string                         sphereFileName;
-        std::vector<std::vector<float>>     sphereCoords;
+        std::vector<Point3D>                sphereCoords;
         
         std::function<float(FOD_Image*, float *p, float* tan)> fodAmp;
         

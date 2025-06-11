@@ -314,8 +314,13 @@ namespace NIBR
         setInterpolationMethod(interpMethod);
 
         createFromTemplate(img,true);
+        if (numel != img.numel) {
+            disp(MSG_FATAL,"Image copy error");
+        }
 
-        NIBR::MT::MTRUN(img.numel, NIBR::MT::MAXNUMBEROFTHREADS(),[&](NIBR::MT::TASK task)->void {data[task.no] = img.data[task.no];});        
+        for (int64_t n = 0; n < numel; n++) {
+            data[n] = img.data[n];
+        }
 
         return *this;
     }
@@ -351,8 +356,11 @@ namespace NIBR
         setInterpolationMethod(interpMethod);
 
         createFromTemplate(img,true);
+        if (numel != img.numel) {
+            disp(MSG_FATAL,"Image copy error");
+        }
 
-        NIBR::MT::MTRUN(img.numel, NIBR::MT::MAXNUMBEROFTHREADS(),[&](NIBR::MT::TASK task)->void {data[task.no] = img.data[task.no];});
+        memcpy(data,img.data,numel*sizeof(T));
 
         return *this;
     }
@@ -474,7 +482,7 @@ namespace NIBR
         
         int64_t* newIndices = (int64_t*) malloc(numel*sizeof(int64_t));
         
-        auto run = [&](NIBR::MT::TASK task) {
+        auto run = [&](const NIBR::MT::TASK& task) {
             int64_t sub[7];
             ind2sub(task.no,sub);
             newIndices[task.no] = sub[0]*s2i[0] + sub[1]*s2i[1] + sub[2]*s2i[2] + sub[3]*s2i[3] + sub[4]*s2i[4] + sub[5]*s2i[5] + sub[6]*s2i[6];

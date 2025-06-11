@@ -21,8 +21,9 @@ namespace NIBR
         std::vector<int> inds = getNonZeroIndices(&inp);
 
         std::set<int> marked;
+        std::mutex    modifier;
 
-        auto f = [&](MT::TASK task)->void {
+        auto f = [&](const NIBR::MT::TASK& task)->void {
             
             int64_t i,j,k; 
 
@@ -35,9 +36,8 @@ namespace NIBR
                 int64_t kk = k + n[2];
 
                 if ( inp.isInside(ii,jj,kk) && (inp(ii,jj,kk)==0) ) {
-                    MT::PROC_MX().lock();
+                    std::lock_guard lock(modifier);
                     marked.insert(inds[task.no]);
-                    MT::PROC_MX().unlock();
                     break;
                 }
 
@@ -76,8 +76,9 @@ namespace NIBR
         auto N = get3DNeighbors(conn);
 
         std::vector<int> inds = getNonZeroIndices(&inp);
+        std::mutex       modifier;
 
-        auto f = [&](MT::TASK task)->void {
+        auto f = [&](const NIBR::MT::TASK& task)->void {
             
             int64_t i,j,k; 
 
@@ -90,9 +91,8 @@ namespace NIBR
                 int64_t kk = k + n[2];
 
                 if ( inp.isInside(ii,jj,kk) && (inp(ii,jj,kk)==0) ) {
-                    MT::PROC_MX().lock();
+                    std::lock_guard lock(modifier);
                     *inp.at(ii,jj,kk) = 1;
-                    MT::PROC_MX().unlock();
                 }
 
             }

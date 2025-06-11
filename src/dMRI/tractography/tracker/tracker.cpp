@@ -15,15 +15,18 @@ Pathway         TRACKER::pw;
 Params_PTT      TRACKER::params_ptt;
 
 // Derived parameters
-std::vector<std::vector<std::vector<float>>>        TRACKER::tractogram;
-std::vector<int>                                    TRACKER::seedIndex;
-TractogramField                                     TRACKER::seedIndexField;
-std::chrono::steady_clock::time_point               TRACKER::initTime;
-std::chrono::steady_clock::time_point               TRACKER::lastTime;
-bool                                                TRACKER::runtimeLimitReached;
-bool                                                TRACKER::idletimeLimitReached;
-bool                                                TRACKER::countIsReached;
-int                                                 TRACKER::ready_thread_id;
+Tractogram                              TRACKER::tractogram;
+std::vector<int>                        TRACKER::streamlineLength;
+std::vector<int>                        TRACKER::seedIndex;
+TractogramField                         TRACKER::seedIndexField;
+std::chrono::steady_clock::time_point   TRACKER::initTime;
+std::chrono::steady_clock::time_point   TRACKER::lastTime;
+bool                                    TRACKER::runtimeLimitReached;
+bool                                    TRACKER::idletimeLimitReached;
+std::size_t                             TRACKER::currentCount;
+bool                                    TRACKER::countIsReached;
+int                                     TRACKER::ready_thread_id;
+std::mutex                              TRACKER::trackKeeper;
 
 // Loggers
 std::atomic<size_t> TRACKER::log_success_REACHED_MAXLENGTH_LIMIT;
@@ -42,17 +45,28 @@ std::atomic<size_t> TRACKER::log_failed_BY_THE_ALGORITHM_AT_INITIALIZATION;
 std::atomic<size_t> TRACKER::log_failed_BY_THE_ALGORITHM;
 std::atomic<size_t> TRACKER::log_unexpected_TRACKING_STATUS;
 
-std::vector<std::vector<std::vector<float>>>& TRACKER::getTractogram() {return TRACKER::tractogram;}
+Tractogram& TRACKER::getTractogram() {return TRACKER::tractogram;}
 
 TractogramField& TRACKER::getSeedIndexField() {
 
-    clearField(seedIndexField,tractogram);
+    // Clear existing values if any
+    if (seedIndexField.data != NULL) {
+        int*** toDel = reinterpret_cast<int***>(seedIndexField.data);
+        for (size_t s = 0; s < currentCount; s++) {
+            for (int l = 0; l < streamlineLength[s]; l++) {
+                delete[] toDel[s][l];
+            }
+            delete[] toDel[s];
+        }
+        delete[] toDel;
+    }
 
-    int*** idx = new int**[tractogram.size()];
+    // Prepare seed index field
+    int*** idx = new int**[currentCount];
 
-    for (size_t n = 0; n < tractogram.size(); n++) {
-        idx[n]  = new int*[tractogram[n].size()];
-        for (size_t l = 0; l < tractogram[n].size(); l++) {
+    for (size_t n = 0; n < currentCount; n++) {
+        idx[n]  = new int*[streamlineLength[n]];
+        for (int l = 0; l < streamlineLength[n]; l++) {
             idx[n][l]    = new int[1];
             idx[n][l][0] = (int(l) == seedIndex[n]);
         }
@@ -76,13 +90,25 @@ void TRACKER::reset() {
     
     // Reset seedIndex and seedIndexField
     seedIndex.clear();
-    clearField(seedIndexField,tractogram);    
+    streamlineLength.clear();
+    
+    if (seedIndexField.data != NULL) {
+        int*** toDel = reinterpret_cast<int***>(seedIndexField.data);
+        for (size_t s = 0; s < currentCount; s++) {
+            for (int l = 0; l < streamlineLength[s]; l++) {
+                delete[] toDel[s][l];
+            }
+            delete[] toDel[s];
+        }
+        delete[] toDel;
+    }   
 
     // Reset derived parameters
     tractogram.clear();
     initTime               = std::chrono::steady_clock::now();
     lastTime               = initTime;
     runtimeLimitReached    = false;
+    currentCount           = 0;
     countIsReached         = false;
     ready_thread_id        = 0;
 

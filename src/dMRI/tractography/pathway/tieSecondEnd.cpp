@@ -21,9 +21,9 @@ NIBR::Walker *NIBR::Pathway::tieSecondEnd(NIBR::Walker *w)
     auto actionKeeper  = w->action;
 
     float firstPoint[3];
-    firstPoint[0]  = w->streamline->at(0).x;
-    firstPoint[1]  = w->streamline->at(0).y;
-    firstPoint[2]  = w->streamline->at(0).z;
+    firstPoint[0]  = w->streamline->at(0)[0];
+    firstPoint[1]  = w->streamline->at(0)[1];
+    firstPoint[2]  = w->streamline->at(0)[2];
 	
 
     // If the current side is A, and there is no termination reason set for side B

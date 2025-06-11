@@ -1,7 +1,7 @@
 #pragma once
 
-#include "base/nibr.h"
 #include <filesystem>
+#include "base/nibr.h"
 #include "math/core.h"
 
 
@@ -23,10 +23,14 @@ namespace NIBR
     std::string generateRandomFileNameInTempPath();
     std::string generateRandomFileNameInThisPath(std::string filePath);
 
-    std::tuple<bool,std::vector<Point>> readTripletsFromTextFile(std::string fname);
-    std::tuple<bool,std::vector<std::vector<float>>> readTripletsFromTextFileTo2DVector(std::string fname);
+    std::tuple<bool,std::vector<Point3D>> readTripletsFromTextFile(std::string fname);
 
     std::vector<std::string> getMatchingFiles(const std::string& pattern);
+
+    bool areFilesIdentical(const std::string& fileName1, const std::string& fileName2);
+    
+    void prepSequentialRead(const std::string& filename);
+    void prepRandomRead(const std::string& filename);
 
     template<class T>
     std::tuple<bool, std::vector<T>> readValuesFromFile(std::string fname) {

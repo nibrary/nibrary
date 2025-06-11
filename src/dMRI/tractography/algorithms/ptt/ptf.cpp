@@ -92,9 +92,9 @@ void PTF::print() {
 float PTF::calcLocalDataSupport(float* _p, float* _dir) {
 
     float fodSupport = TRACKER::params_ptt.img_FOD->getFODamp(_p,_dir);
-
-    return fodSupport;
     
+    return fodSupport;
+
 }
 
 float PTF::calcDataSupport() {

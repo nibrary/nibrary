@@ -59,7 +59,7 @@ void TranShi2015::prep()
 
 
     std::vector<float> bvals;
-    std::vector<std::vector<float>> bvecs;
+    std::vector<Point3D> bvecs;
     for(size_t i = 0; i < gradTable.size(); i++) {
         float b = gradTable[i][3];
         if(b == 0) gradTable[i] = {0, 0, 0, 0};
@@ -85,7 +85,7 @@ void TranShi2015::prep()
     }
 
     // Constraint points are selected from a sphere.
-    std::vector<std::vector<float>> vertices;
+    std::vector<Point3D> vertices;
     for (int n = 0; n < 2562; n++) {
         vertices.push_back({DENSESPHEREVERT[n][0],DENSESPHEREVERT[n][1],DENSESPHEREVERT[n][2]});
     }

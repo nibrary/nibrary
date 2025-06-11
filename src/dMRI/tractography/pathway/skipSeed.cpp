@@ -18,8 +18,8 @@ bool NIBR::Pathway::skipSeed(NIBR::Walker *walker, bool reverseDir)
         if (res>0) {
 
             // Last segment is not integer. This needs to be handled separately.
-            walker->segment.beg = &(walker->streamline->at(ind).x);
-            walker->segment.end = &(walker->streamline->at(ind-1).x);
+            walker->segment.beg = walker->streamline->at(ind).data();
+            walker->segment.end = walker->streamline->at(ind-1).data();
             prepSegment(walker);
 
             // Already the last segment is inside the seed region
@@ -72,8 +72,8 @@ bool NIBR::Pathway::skipSeed(NIBR::Walker *walker, bool reverseDir)
         // We can now check the remaining streamline for the seed region
         for (float desInd=ind; desInd>walker->begInd; desInd--) {
 
-            walker->segment.beg = &(walker->streamline->at(desInd).x);
-            walker->segment.end = &(walker->streamline->at(desInd-1).x);
+            walker->segment.beg = walker->streamline->at(desInd).data();
+            walker->segment.end = walker->streamline->at(desInd-1).data();
             prepSegment(walker);
 
             // disp(MSG_DEBUG,"ind: %.2f, beg: %.2f, end: %.2f", desInd, walker->segment.beg[0], walker->segment.end[0]);            
@@ -123,8 +123,8 @@ bool NIBR::Pathway::skipSeed(NIBR::Walker *walker, bool reverseDir)
         if (res>0) {
 
             // Last segment is not integer. This needs to be handled separately.
-            walker->segment.beg = &(walker->streamline->at(ind).x);
-            walker->segment.end = &(walker->streamline->at(ind+1).x);
+            walker->segment.beg = walker->streamline->at(ind).data();
+            walker->segment.end = walker->streamline->at(ind+1).data();
             prepSegment(walker);
 
             // Already the last segment is inside the seed region
@@ -168,8 +168,8 @@ bool NIBR::Pathway::skipSeed(NIBR::Walker *walker, bool reverseDir)
         // We can now check the remaining streamline for the seed region
         for (float ascInd=ind; ascInd<walker->endInd; ascInd--) {
 
-            walker->segment.beg = &(walker->streamline->at(ascInd).x);
-            walker->segment.end = &(walker->streamline->at(ascInd+1).x);
+            walker->segment.beg = walker->streamline->at(ascInd).data();
+            walker->segment.end = walker->streamline->at(ascInd+1).data();
             prepSegment(walker);
             
             auto [isEntering, entryLength] = isSegmentEntering(walker->segment,seedRuleNo);

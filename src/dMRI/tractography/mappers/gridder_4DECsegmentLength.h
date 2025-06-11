@@ -29,7 +29,7 @@ namespace NIBR
         int64_t ind = tim->img->sub2ind(gridPos[0],gridPos[1],gridPos[2]);
 
         {
-            std::lock_guard<std::mutex> lock(tim->gridMutex[ind]);
+            std::lock_guard<std::mutex> lock( (tim->useMutexGrid) ? tim->mutexGrid[ind] : tim->mutexMap[ind]);
 
             if (tim->grid[ind]==NULL) {
                 decLength* dec  = new decLength;
@@ -57,7 +57,7 @@ namespace NIBR
         tim->img->allocData();
 
 
-        auto genOut = [&](NIBR::MT::TASK task)->void{
+        auto genOut = [&](const NIBR::MT::TASK& task)->void{
 
             int64_t ind    = task.no;
             int64_t sub[7] = {0,0,0,0,0,0,0};

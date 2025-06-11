@@ -32,7 +32,6 @@ namespace NIBR
             uint16_t threadId;
         };
 
-        std::mutex&                                      PROC_MX();
         int&                                             MAXNUMBEROFTHREADS();
         void                                             SETMAXNUMBEROFTHREADS(int n);
         std::atomic<std::size_t>&                        FINISHEDTASKCOUNT();
@@ -42,7 +41,7 @@ namespace NIBR
         std::vector<std::unique_ptr<NIBR::RandomDoer>>&  RNDM();
         
 
-        // C++17 compatible) Barrier class (This already exists in C++20)
+        // C++17 compatible barrier class (This already exists in C++20)
         // Allows a fixed number of threads to wait until all threads reach the barrier.
         class Barrier {
             public:

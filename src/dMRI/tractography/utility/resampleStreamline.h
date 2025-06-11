@@ -7,12 +7,12 @@
 namespace NIBR 
 {
 
-    std::vector<std::vector<float>> resampleStreamline_withStepSize (const std::vector<std::vector<float>>& streamline, float step);
-    std::vector<std::vector<float>> resampleStreamline_withStepCount(const std::vector<std::vector<float>>& streamline, int N);
+    Streamline resampleStreamline_withStepSize (const Streamline& streamline, float step);
+    Streamline resampleStreamline_withStepCount(const Streamline& streamline, int N);
 
-    std::vector<std::vector<std::vector<float>>> resampleTractogram_withStepSize(const std::vector<std::vector<std::vector<float>>>& batch_in, float step);
-    std::vector<std::vector<std::vector<float>>> resampleTractogram_withStepCount(const std::vector<std::vector<std::vector<float>>>& batch_in, int N);
+    StreamlineBatch resampleTractogram_withStepSize(const StreamlineBatch& batch_in, float step);
+    StreamlineBatch resampleTractogram_withStepCount(const StreamlineBatch& batch_in, int N);
 
-    std::vector<std::vector<std::vector<float>>> resampleBatch(const std::vector<std::vector<std::vector<float>>>& batch_in,float stepSize,int stepCount,bool useSizeOpt); 
+    StreamlineBatch resampleBatch(const StreamlineBatch& batch_in,float stepSize,int stepCount,bool useSizeOpt); 
 
 }

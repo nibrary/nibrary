@@ -8,16 +8,10 @@ using namespace NIBR;
 template<typename T>
 NIBR::Tractogram2ImageMapper<T>::Tractogram2ImageMapper(NIBR::TractogramReader* _tractogram, NIBR::Image<T>* _img) {
 
-    // Initialize tractogram and make copies for multithreader
-    tractogram = new NIBR::TractogramReader[NIBR::MT::MAXNUMBEROFTHREADS()]();
-    for (int t = 0; t < NIBR::MT::MAXNUMBEROFTHREADS(); t++) {
-        tractogram[t].copyFrom(*_tractogram);
-    }
-
+    tractogram      = _tractogram;
     mask            = NULL;
     weightFile      = NULL;
     weightType      = NO_WEIGHT;
-    cumLen          = NULL;
     mapOnce         = false;
     img             = _img;
     mutexGrid       = NULL;
@@ -44,20 +38,12 @@ NIBR::Tractogram2ImageMapper<T>::Tractogram2ImageMapper::~Tractogram2ImageMapper
         delete[] mask;
     }
 
-    for (int t = 0; t < NIBR::MT::MAXNUMBEROFTHREADS(); t++) {
-        tractogram[t].destroyCopy();
-    }
-    delete[] tractogram;
-
     if (weightFile!=NULL) {
         for (int t = 0; t < NIBR::MT::MAXNUMBEROFTHREADS(); t++) {
             fclose(weightFile[t]);
         }
         delete[] weightFile;
     }
-
-    if (cumLen!=NULL)
-        delete[] cumLen;
 
     if (mutexGrid!=NULL)
         delete[] mutexGrid;
@@ -198,28 +184,16 @@ void NIBR::Tractogram2ImageMapper<T>::setWeights(std::string _weightFile, WEIGHT
         weightFile[t] = fopen(_weightFile.c_str(), "rb+");
     }
 
-    cumLen    = new int[tractogram[0].numberOfStreamlines];
-    cumLen[0] = 0;
-    for (size_t n=1; n<tractogram[0].numberOfStreamlines; n++)
-        cumLen[n] = cumLen[n-1] + tractogram[0].len[n-1];
-
-    // NIBR::disp(MSG_DETAIL,"Read cumLen");
+    tractogram->getNumberOfPoints(); // Precomputed the cumulative lengths for future use
 
 }
 
 template<typename T>
 void NIBR::Tractogram2ImageMapper<T>::setWeights(std::vector<float> _weights, WEIGHTTYPE _weightType) {
-
     weightType = _weightType;
     weights    = _weights;
 
-    cumLen    = new int[tractogram[0].numberOfStreamlines];
-    cumLen[0] = 0;
-    for (size_t n=1; n<tractogram[0].numberOfStreamlines; n++)
-        cumLen[n] = cumLen[n-1] + tractogram[0].len[n-1];
-
-    // NIBR::disp(MSG_DETAIL,"Read cumLen");
-
+    tractogram->getNumberOfPoints(); // Precomputed the cumulative lengths for future use
 }
 
 template<typename T>
@@ -234,16 +208,24 @@ void NIBR::Tractogram2ImageMapper<T>::run(
         mutexGrid = new std::mutex[img->voxCnt];
     }
 
+    tractogram->reset();
+
+    NIBR::disp(MSG_DEBUG,"Calling fetchAndProcess");
+
     auto fetchAndProcess = [&](const NIBR::MT::TASK& task)->void {
-        std::vector<float**> kernel;
-        kernel.resize(std::get<1>(smoothing)+1);
-        kernel[0] = tractogram[task.threadId].readStreamline(task.no);
-        // NIBR::disp(MSG_DETAIL,"Processing streamline %d", task.no);
-        processStreamline(kernel,task.no,task.threadId, processor_f);
+        StreamlineBatch kernel(std::get<1>(smoothing)+1);
+        
+        auto [success,streamline,streamlineId] = tractogram->getNextStreamline();
+
+        NIBR::disp(MSG_DEBUG,"Read %d",streamlineId);
+
+        kernel[0] = std::move(streamline);
+
+        processStreamline(kernel,streamlineId,task.threadId, processor_f);
     };
 
     // Process the tractogram and fill
-    NIBR::MT::MTRUN(tractogram[0].numberOfStreamlines, NIBR::MT::MAXNUMBEROFTHREADS(), "Tractogram to image mapping", fetchAndProcess);
+    NIBR::MT::MTRUN(tractogram->numberOfStreamlines, "Tractogram to image mapping", fetchAndProcess);
 
     // Compile output
     // NIBR::disp(MSG_DETAIL,"Compiling output all");
@@ -259,6 +241,9 @@ void NIBR::Tractogram2ImageMapper<T>::run(
         int endInd
         ) 
 {
+    if (!tractogram->isPreloaded()) {
+        NIBR::disp(MSG_DETAIL,"This function requires preloaded tractograms");
+    }
 
     // NIBR::disp(MSG_DETAIL,"Starting partial run");
 
@@ -266,14 +251,15 @@ void NIBR::Tractogram2ImageMapper<T>::run(
         mutexGrid = new std::mutex[img->voxCnt];
     }
 
-    // Process the tractogram and fill
-    NIBR::MT::MTRUN(endInd-beginInd+1, NIBR::MT::MAXNUMBEROFTHREADS(), "Tractogram part to image mapping", [&](const NIBR::MT::TASK& task)->void {
+    tractogram->reset();
 
-            std::vector<float**> kernel;
-            kernel.resize(std::get<1>(smoothing)+1);
+    // Process the tractogram and fill
+    NIBR::MT::MTRUN(endInd-beginInd+1, "Tractogram part to image mapping", [&](const NIBR::MT::TASK& task)->void {
+
+            StreamlineBatch kernel(std::get<1>(smoothing)+1);
 
             // NIBR::disp(MSG_DETAIL,"Reading streamline %d", int(task.no+beginInd));
-            kernel[0] = tractogram[task.threadId].readStreamline(task.no+beginInd);
+            kernel[0] = tractogram->getStreamline(task.no+beginInd);
 
             // NIBR::disp(MSG_DETAIL,"Processing streamline %d", int(task.no+beginInd));
             processStreamline(kernel,task.no+beginInd,task.threadId, processor_f);
@@ -287,10 +273,14 @@ void NIBR::Tractogram2ImageMapper<T>::run(
 }
 
 template<typename T1>
-bool NIBR::Tractogram2ImageMapper<T1>::processStreamline(std::vector<float**>& kernel, int streamlineId, uint16_t threadNo, std::function<void(Tractogram2ImageMapper<T1>* tim, int* gridPos, NIBR::Segment& seg)> f) {
-    
+bool NIBR::Tractogram2ImageMapper<T1>::processStreamline(StreamlineBatch& kernel, int streamlineId, uint16_t threadNo, std::function<void(Tractogram2ImageMapper<T1>* tim, int* gridPos, NIBR::Segment& seg)> f) {
+
     // If streamline is empty, exit.
-    int len = tractogram[threadNo].len[streamlineId];
+    NIBR::disp(MSG_DEBUG,"Starting processing");
+
+    int len = kernel[0].size();
+
+    NIBR::disp(MSG_DEBUG,"Len: %d",len);
 
     if (len==0) return true;
     
@@ -299,13 +289,6 @@ bool NIBR::Tractogram2ImageMapper<T1>::processStreamline(std::vector<float**>& k
     int32_t A[3], B[3];
     
     if (std::get<0>(smoothing) > 0 ) {
-
-        // Allocate memory for the kernel
-        for (int n=0; n<std::get<1>(smoothing); n++) {
-            kernel[n+1] = new float*[len];
-            for (int l=0; l<len; l++)
-                kernel[n+1][l] = new float[3];
-        }
 
         // Prepare points to track
         std::vector<float> scale_N;
@@ -377,10 +360,7 @@ bool NIBR::Tractogram2ImageMapper<T1>::processStreamline(std::vector<float**>& k
 
     // NIBR::disp(MSG_DETAIL,"Streamline: %d: len: %d", streamlineId, tractogram[threadNo].len[streamlineId]);
 
-    // Iterate over the kernel
-    int streamlineCounter = 0;
-
-    for (float** streamline : kernel) {
+    for (const auto& streamline : kernel) {
     
         NIBR::Segment seg;
         seg.streamlineNo = streamlineId;
@@ -398,6 +378,7 @@ bool NIBR::Tractogram2ImageMapper<T1>::processStreamline(std::vector<float**>& k
                     std::fread((float*)seg.data, sizeof(float), 1, weightFile[threadNo]);
                     // NIBR::disp(MSG_DETAIL,"Weight: %.2f", *(float*)seg.data);
                 } else {
+                    const auto& cumLen = tractogram->getNumberOfPoints();
                     fseek(weightFile[threadNo], sizeof(float)*cumLen[streamlineId], SEEK_SET);
                 }
             } else {
@@ -409,13 +390,14 @@ bool NIBR::Tractogram2ImageMapper<T1>::processStreamline(std::vector<float**>& k
         }
         
         // End of segment in real and its corner in image space
-        img->to_ijk(streamline[0],p0);
+        img->to_ijk(streamline[0].data(),p0);
         A[0]  = std::round(p0[0]);
         A[1]  = std::round(p0[1]);
         A[2]  = std::round(p0[2]);
         
         // If streamline has 1 point and no segment
         if (len==1) {
+
             if ( img->isInside(A) && ((mask==NULL) || mask[A[0]][A[1]][A[2]]) ) {
 
                 seg.p[0]   = streamline[0][0];
@@ -428,14 +410,6 @@ bool NIBR::Tractogram2ImageMapper<T1>::processStreamline(std::vector<float**>& k
                 
                 f(this, A, seg);
                 
-            }
-
-            if (streamlineCounter == 0) {
-                tractogram[threadNo].deleteStreamline(streamline,streamlineId);
-            } else {
-                delete[] streamline[0];
-                delete[] streamline;
-                streamline = NULL;
             }
             
             continue;
@@ -475,12 +449,13 @@ bool NIBR::Tractogram2ImageMapper<T1>::processStreamline(std::vector<float**>& k
                 if (weights.empty()) {
                     std::fread((float*)seg.data, sizeof(float), 1, weightFile[threadNo]);
                 } else {
+                    const auto& cumLen = tractogram->getNumberOfPoints();
                     *((float*)(seg.data)) = weights[cumLen[streamlineId]+i];
                 }
             }
 
             // End of segment in real and its corner in image space
-            img->to_ijk(streamline[i+1],p1);
+            img->to_ijk(streamline[i+1].data(),p1);
             for (int m=0;m<3;m++) {
                 seg.p[m]   = streamline[i][m];
                 seg.dir[m] = streamline[i+1][m] - streamline[i][m];
@@ -580,17 +555,7 @@ bool NIBR::Tractogram2ImageMapper<T1>::processStreamline(std::vector<float**>& k
         
         if (weightType!=NO_WEIGHT) {
             delete (float*)(seg.data);
-        }
-
-        if (streamlineCounter == 0) {
-            tractogram[threadNo].deleteStreamline(streamline,streamlineId);
-        } else {
-            for (int l=0; l<len; l++)
-                delete[] streamline[l];
-            delete[] streamline;
-            streamline = NULL;
-        }
-        
+        }        
 
     }
     

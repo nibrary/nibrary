@@ -29,13 +29,13 @@ bool NIBR::Pathway::getSeedInd(NIBR::Walker* walker)
             for (int ascInd=0; ascInd<(walker->streamline->size()-1.5); ascInd++) {
 
                 auto resetSegment = [&]() {
-                    begInd[0] = walker->streamline->at(ascInd).x;
-                    begInd[1] = walker->streamline->at(ascInd).y;
-                    begInd[2] = walker->streamline->at(ascInd).z;
+                    begInd[0] = walker->streamline->at(ascInd)[0];
+                    begInd[1] = walker->streamline->at(ascInd)[1];
+                    begInd[2] = walker->streamline->at(ascInd)[2];
 
-                    endInd[0] = walker->streamline->at(ascInd+1).x;
-                    endInd[1] = walker->streamline->at(ascInd+1).y;
-                    endInd[2] = walker->streamline->at(ascInd+1).z;
+                    endInd[0] = walker->streamline->at(ascInd+1)[0];
+                    endInd[1] = walker->streamline->at(ascInd+1)[1];
+                    endInd[2] = walker->streamline->at(ascInd+1)[2];
 
                     prepSegment(walker);
 
@@ -108,10 +108,10 @@ bool NIBR::Pathway::getSeedInd(NIBR::Walker* walker)
             float ascInd = 0;
             bool hit = false;
 
-            if (!isPointInsideRule(&(walker->streamline->front().x), seedRuleNo)) {
+            if (!isPointInsideRule(walker->streamline->front().data(), seedRuleNo)) {
                 for (ascInd=0; ascInd<(walker->streamline->size()-1.5); ascInd++) {
-                    walker->segment.beg = &(walker->streamline->at(ascInd).x);
-                    walker->segment.end = &(walker->streamline->at(ascInd+1).x);
+                    walker->segment.beg = walker->streamline->at(ascInd).data();
+                    walker->segment.end = walker->streamline->at(ascInd+1).data();
                     prepSegment(walker);
                     auto [isEntering, entryLength] = isSegmentEntering(walker->segment,seedRuleNo);
                     if (isEntering) {                
@@ -135,10 +135,10 @@ bool NIBR::Pathway::getSeedInd(NIBR::Walker* walker)
                 float desInd = float(walker->streamline->size()-1);
                 hit = false;
 
-                if (!isPointInsideRule(&(walker->streamline->back().x), seedRuleNo)) {
+                if (!isPointInsideRule(walker->streamline->back().data(), seedRuleNo)) {
                     for (desInd=float(walker->streamline->size()-1); desInd>0.5; desInd--) {
-                        walker->segment.beg = &(walker->streamline->at(desInd).x);
-                        walker->segment.end = &(walker->streamline->at(desInd-1).x);
+                        walker->segment.beg = walker->streamline->at(desInd).data();
+                        walker->segment.end = walker->streamline->at(desInd-1).data();
                         prepSegment(walker);
                         auto [isEntering, entryLength] = isSegmentEntering(walker->segment,seedRuleNo);
                         if (isEntering) {  
@@ -184,17 +184,17 @@ bool NIBR::Pathway::getSeedInd(NIBR::Walker* walker)
         disp(MSG_DEBUG,"ind: %d, res: %.6f, size: %d", ind, res, walker->streamline->size());
 
         if (ind<int(walker->streamline->size()-1)) {
-            walker->segment.beg = &(walker->streamline->at(ind).x);
-            walker->segment.end = &(walker->streamline->at(ind+1).x);
+            walker->segment.beg = walker->streamline->at(ind).data();
+            walker->segment.end = walker->streamline->at(ind+1).data();
             prepSegment(walker);
             // printWalker(walker);
             p[0] = walker->segment.beg[0] + walker->segment.dir[0] * res * walker->segment.len;
             p[1] = walker->segment.beg[1] + walker->segment.dir[1] * res * walker->segment.len;
             p[2] = walker->segment.beg[2] + walker->segment.dir[2] * res * walker->segment.len;
         } else {
-            p[0] = walker->streamline->back().x;
-            p[1] = walker->streamline->back().y;
-            p[2] = walker->streamline->back().z;
+            p[0] = walker->streamline->back()[0];
+            p[1] = walker->streamline->back()[1];
+            p[2] = walker->streamline->back()[2];
         }
 
     };
@@ -204,28 +204,28 @@ bool NIBR::Pathway::getSeedInd(NIBR::Walker* walker)
 
             if (res>EPS4) {
 
-                Point seed;
-                seed.x = p[0];
-                seed.y = p[1];
-                seed.z = p[2];
+                Point3D seed;
+                seed[0] = p[0];
+                seed[1] = p[1];
+                seed[2] = p[2];
                 
-                std::vector<Point>::iterator it = walker->streamline->begin() + ind + 1;
+                std::vector<Point3D>::iterator it = walker->streamline->begin() + ind + 1;
                 walker->streamline->insert(it,seed);
                 walker->seedInd      = ind + 1;
                 walker->seedInserted = true;
 
-                disp(MSG_DEBUG, "inserted seed at ind: %d, p: [%.4f,%.4f,%.4f]",walker->seedInd,walker->streamline->at(walker->seedInd).x,walker->streamline->at(walker->seedInd).y,walker->streamline->at(walker->seedInd).z);
+                disp(MSG_DEBUG, "inserted seed at ind: %d, p: [%.4f,%.4f,%.4f]",walker->seedInd,walker->streamline->at(walker->seedInd)[0],walker->streamline->at(walker->seedInd)[1],walker->streamline->at(walker->seedInd)[2]);
 
             } else {
                 walker->seedInd      = ind;
                 walker->seedInserted = false;
-                disp(MSG_DEBUG, "not inserting seed at ind: %d, p: [%.4f,%.4f,%.4f]",walker->seedInd,walker->streamline->at(walker->seedInd).x,walker->streamline->at(walker->seedInd).y,walker->streamline->at(walker->seedInd).z);
+                disp(MSG_DEBUG, "not inserting seed at ind: %d, p: [%.4f,%.4f,%.4f]",walker->seedInd,walker->streamline->at(walker->seedInd)[0],walker->streamline->at(walker->seedInd)[1],walker->streamline->at(walker->seedInd)[2]);
             }
 
         } else {
             walker->seedInd      = ind;
             walker->seedInserted = false;
-            disp(MSG_DEBUG, "using existing seed at ind: %d, p: [%.4f,%.4f,%.4f]",walker->seedInd,walker->streamline->at(walker->seedInd).x,walker->streamline->at(walker->seedInd).y,walker->streamline->at(walker->seedInd).z);
+            disp(MSG_DEBUG, "using existing seed at ind: %d, p: [%.4f,%.4f,%.4f]",walker->seedInd,walker->streamline->at(walker->seedInd)[0],walker->streamline->at(walker->seedInd)[1],walker->streamline->at(walker->seedInd)[2]);
         } 
     };   
 

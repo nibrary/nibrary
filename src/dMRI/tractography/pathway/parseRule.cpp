@@ -117,11 +117,11 @@ std::tuple<bool,float,float,float,float> surfArgHasSphere(const std::vector<std:
         if (isRule(inp,n)) {return std::make_tuple(false,NAN,NAN,NAN,NAN);}
         else {
             bool  isValid;
-            Point p;
+            Point3D p;
             float r;
             std::tie(isValid,p,r)  = getCenterAndRadius(inp[n]);
 
-            if (isValid) return std::make_tuple(true,p.x,p.y,p.z,r);
+            if (isValid) return std::make_tuple(true,p[0],p[1],p[2],r);
         }
     }
     return std::make_tuple(false,NAN,NAN,NAN,NAN);
@@ -181,9 +181,9 @@ std::tuple<PathwayRule,bool> parseSphere(std::vector<std::string> inp, std::size
     if (std::get<0>(sph)) {
 
         rule.src           = NIBR::sph_src;
-        rule.center[0]     = std::get<1>(sph).x;
-        rule.center[1]     = std::get<1>(sph).y;
-        rule.center[2]     = std::get<1>(sph).z;
+        rule.center[0]     = std::get<1>(sph)[0];
+        rule.center[1]     = std::get<1>(sph)[1];
+        rule.center[2]     = std::get<1>(sph)[2];
         rule.radius        = std::get<2>(sph);
         
         if ( isnan(rule.center[0]) || isnan(rule.center[1]) || isnan(rule.center[2]) ) {

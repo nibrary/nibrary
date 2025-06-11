@@ -41,7 +41,7 @@ namespace NIBR
 
 		void 		 randomizeWithinVoxel(float* p, float* pixdim);
 
-		std::vector<std::vector<float>>	getA3DRandomWalk(float* origin, float D, float dt, float N); // D: diffusivity, dt: delta t, N: number of steps
+		std::vector<Point3D>	getA3DRandomWalk(float* origin, float D, float dt, float N); // D: diffusivity, dt: delta t, N: number of steps
 
 		std::mt19937 getGen() { return gen; }
 
@@ -218,9 +218,10 @@ namespace NIBR
 
 	// origin: float[3], D: diffusivity, dt: delta t, N: number of steps
 	// Output walker is Nx3
-	inline std::vector<std::vector<float>> RandomDoer::getA3DRandomWalk(float* origin, float D, float dt, float N) {
+	inline std::vector<Point3D> RandomDoer::getA3DRandomWalk(float* origin, float D, float dt, float N) {
 
-		std::vector<std::vector<float>> out;
+		std::vector<Point3D> out;
+		out.reserve(N);
 
 		double k = std::sqrt(2*double(D)*double(dt));
 

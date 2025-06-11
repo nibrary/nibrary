@@ -38,8 +38,8 @@ void SeedSphere::computeMaxPossibleSeedCount() {
     maxPossibleSeedCount = INT_MAX;
 }
 
-bool SeedSphere::setSeed(Point  xyz, float r) {
-    return setSeed(xyz.x,xyz.y,xyz.z,r);
+bool SeedSphere::setSeed(Point3D  xyz, float r) {
+    return setSeed(xyz[0],xyz[1],xyz[2],r);
 }
 
 bool SeedSphere::setSeed(float* p, float r) {

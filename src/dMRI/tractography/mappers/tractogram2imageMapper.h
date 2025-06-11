@@ -68,20 +68,10 @@ namespace NIBR
 
     private:
 
-        void runAndDeleteStreamlines (
-            std::function<void(Tractogram2ImageMapper<T>* tim, int* _gridPos, NIBR::Segment& _seg)> processor_f,
-            std::function<void(Tractogram2ImageMapper<T>* tim)> outputCompiler_f
-        );
-
-        void runAndKeepStreamlines (
-            std::function<void(Tractogram2ImageMapper<T>* tim, int* _gridPos, NIBR::Segment& _seg)> processor_f,
-            std::function<void(Tractogram2ImageMapper<T>* tim)> outputCompiler_f
-        );
-
         bool processStreamline(
-            std::vector<float**>& _kernel, 
-            int _streamlineId, 
-            uint16_t _threadNo, 
+            StreamlineBatch& kernel, 
+            int streamlineId, 
+            uint16_t threadNo, 
             std::function<void(Tractogram2ImageMapper<T>* tim, int* _gridPos, NIBR::Segment& _seg)> f
         );
         
@@ -93,8 +83,6 @@ namespace NIBR
         std::vector<float>      weights;
         FILE**                  weightFile;
         WEIGHTTYPE              weightType;
-
-        int*                    cumLen;
         
         bool                    maskFromImage;
     };

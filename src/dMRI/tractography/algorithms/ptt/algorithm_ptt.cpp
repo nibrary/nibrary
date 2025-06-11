@@ -49,8 +49,8 @@ TrackWith_PTT::~TrackWith_PTT() {
 
 void TrackWith_PTT::setSeed() {
 	parametersAreReady = false;
-	fetchParams(thread->seed_coordinates);
-	curve->setPosition(thread->seed_coordinates);
+	fetchParams(trackingThread->seed_coordinates);
+	curve->setPosition(trackingThread->seed_coordinates);
 	curve->refreshParams();
 }
 
@@ -93,8 +93,8 @@ void TrackWith_PTT::reset() {
 
 void TrackWith_PTT::append() {
 
-    thread->walker->streamline->push_back({curve->p[0],curve->p[1],curve->p[2]});
-	// disp(MSG_DEBUG,"thread->walker->streamline[%d]=[%.2f,%.2f,%.2f]",thread->walker->streamline->size()-1,curve->p[0],curve->p[1],curve->p[2]);
+    trackingThread->walker->streamline->push_back({curve->p[0],curve->p[1],curve->p[2]});
+	// disp(MSG_DEBUG,"trackingThread->walker->streamline[%d]=[%.2f,%.2f,%.2f]",trackingThread->walker->streamline->size()-1,curve->p[0],curve->p[1],curve->p[2]);
 
 	/*
 	if (TRACKER::params_ptt.saveFrame) {
@@ -124,7 +124,7 @@ Propagation_Decision TrackWith_PTT::flip() {
 	fetchParams(curve->p);
 	curve->refreshParams();
 
-	std::reverse(thread->walker->streamline->begin(),thread->walker->streamline->end());
+	std::reverse(trackingThread->walker->streamline->begin(),trackingThread->walker->streamline->end());
 	
 	/*
 	if (TRACKER::params_ptt.saveFrame) {

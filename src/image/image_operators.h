@@ -15,8 +15,8 @@ typedef unsigned int uint;
 namespace NIBR
 {
 
-    void sf2sh(NIBR::Image<float>* out, NIBR::Image<float>* inp, std::vector<std::vector<float>>& coords, int shOrder);
-    void sh2sf(NIBR::Image<float>* out, NIBR::Image<float>* inp, std::vector<std::vector<float>>& coords);
+    void sf2sh(NIBR::Image<float>* out, NIBR::Image<float>* inp, std::vector<Point3D>& coords, int shOrder);
+    void sh2sf(NIBR::Image<float>* out, NIBR::Image<float>* inp, std::vector<Point3D>& coords);
 
     void reorientSH(NIBR::Image<float>* img, OrderOfDirections ood);
     void rotateSH(NIBR::Image<float>* img, float R[][4]);
@@ -194,7 +194,7 @@ namespace NIBR
         std::vector<std::vector<int64_t>> subs;
 
         for (int i=0; i<MT::MAXNUMBEROFTHREADS(); i++) {
-            subs.insert(subs.begin(),nnzVoxelSubs[i].begin(),nnzVoxelSubs[i].end());
+            subs.insert(subs.end(),nnzVoxelSubs[i].begin(),nnzVoxelSubs[i].end());
         }
         delete[] nnzVoxelSubs;
 

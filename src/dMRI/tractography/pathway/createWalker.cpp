@@ -3,7 +3,7 @@
 using namespace NIBR;
 
 // Create a walker
-NIBR::Walker* NIBR::Pathway::createWalker(std::vector<Point>* streamline) {
+NIBR::Walker* NIBR::Pathway::createWalker(std::vector<Point3D>* streamline) {
     
     NIBR::Walker* walker            = new NIBR::Walker();
     walker->streamline              = streamline;
@@ -40,7 +40,7 @@ NIBR::Walker* NIBR::Pathway::createWalker(std::vector<Point>* streamline) {
     return walker;
 }
 
-NIBR::Walker* NIBR::Pathway::createWalker(std::vector<Point>* streamline, int ind) {
+NIBR::Walker* NIBR::Pathway::createWalker(std::vector<Point3D>* streamline, int ind) {
     NIBR::Walker* walker = createWalker(streamline);
     walker->ind          = ind;   
     return walker;

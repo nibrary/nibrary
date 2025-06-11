@@ -21,13 +21,17 @@
     #define LINE_NO __LINE__
 #endif
 
-#define MSG_FATAL   NIBR::MESSAGE(NIBR::MESSAGE_TYPE::msg_fatal, FILE_NAME, FUNC_NAME, LINE_NO)
-#define MSG_ERROR   NIBR::MESSAGE(NIBR::MESSAGE_TYPE::msg_error, FILE_NAME, FUNC_NAME, LINE_NO)
-#define MSG_WARN    NIBR::MESSAGE(NIBR::MESSAGE_TYPE::msg_warn,  FILE_NAME, FUNC_NAME, LINE_NO)
-#define MSG_INFO    NIBR::MESSAGE(NIBR::MESSAGE_TYPE::msg_info,  FILE_NAME, FUNC_NAME, LINE_NO)
-#define MSG_DETAIL  NIBR::MESSAGE(NIBR::MESSAGE_TYPE::msg_detail,FILE_NAME, FUNC_NAME, LINE_NO)
-#define MSG_DEBUG   NIBR::MESSAGE(NIBR::MESSAGE_TYPE::msg_debug, FILE_NAME, FUNC_NAME, LINE_NO)
+#define MSG_FATAL           NIBR::MESSAGE(NIBR::MESSAGE_TYPE::msg_fatal,            FILE_NAME, FUNC_NAME, LINE_NO)
+#define MSG_ERROR           NIBR::MESSAGE(NIBR::MESSAGE_TYPE::msg_error,            FILE_NAME, FUNC_NAME, LINE_NO)
+#define MSG_WARN            NIBR::MESSAGE(NIBR::MESSAGE_TYPE::msg_warn,             FILE_NAME, FUNC_NAME, LINE_NO)
+#define MSG_INFO            NIBR::MESSAGE(NIBR::MESSAGE_TYPE::msg_info,             FILE_NAME, FUNC_NAME, LINE_NO)
+#define MSG_DETAIL          NIBR::MESSAGE(NIBR::MESSAGE_TYPE::msg_detail,           FILE_NAME, FUNC_NAME, LINE_NO)
+#define MSG_DEBUG           NIBR::MESSAGE(NIBR::MESSAGE_TYPE::msg_debug,            FILE_NAME, FUNC_NAME, LINE_NO)
 
+
+#define MSG_PROGRESS_START  NIBR::PROGRESS_MESSAGE(NIBR::PROGRESS_MESSAGE_TYPE::msg_progress_start,   FILE_NAME, FUNC_NAME, LINE_NO)
+#define MSG_PROGRESS_UPDATE NIBR::PROGRESS_MESSAGE(NIBR::PROGRESS_MESSAGE_TYPE::msg_progress_update,  FILE_NAME, FUNC_NAME, LINE_NO)
+#define MSG_PROGRESS_END    NIBR::PROGRESS_MESSAGE(NIBR::PROGRESS_MESSAGE_TYPE::msg_progress_end,     FILE_NAME, FUNC_NAME, LINE_NO)
 
 namespace NIBR 
 {
@@ -42,12 +46,12 @@ namespace NIBR
     } VERBOSE_LEVEL;
 
     typedef enum {
-        msg_fatal   = 0,
-        msg_error   = 1,
-        msg_warn    = 2,
-        msg_info    = 3,
-        msg_detail  = 4,
-        msg_debug   = 5
+        msg_fatal           = 0,
+        msg_error           = 1,
+        msg_warn            = 2,
+        msg_info            = 3,
+        msg_detail          = 4,
+        msg_debug           = 5
     } MESSAGE_TYPE;
 
     struct MESSAGE {
@@ -73,10 +77,40 @@ namespace NIBR
         // }
     };
 
+    typedef enum {
+        msg_progress_start  = 0,
+        msg_progress_update = 1,
+        msg_progress_end    = 2
+    } PROGRESS_MESSAGE_TYPE;
+
+    struct PROGRESS_MESSAGE {
+        PROGRESS_MESSAGE_TYPE   type;
+        std::string             fileName;
+        std::string             funcName;
+        int                     lineNo;
+
+        PROGRESS_MESSAGE(
+            PROGRESS_MESSAGE_TYPE   _type,
+            std::string             _fileName,
+            std::string             _funcName,
+            int                     _lineNo)
+        {
+            type        = _type;
+            fileName    = _fileName;
+            funcName    = _funcName;
+            lineNo      = _lineNo;
+        };
+
+        // ~PROGRESS_MESSAGE() {
+        //     std::cerr << "Progress message destroyed." << std::endl;
+        // }
+    };
+
     void disableTerminalOutput();
     void enableTerminalOutput();
 
     int disp(MESSAGE msg, const char *format, ...);
+    int disp(PROGRESS_MESSAGE msg, const char *format, ...);
     void wait(const char *format, ...);
 
 }

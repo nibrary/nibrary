@@ -43,9 +43,7 @@ bool NIBR::SCimageIndexer::isBg(int val) {
 NIBR::SCimageIndexer::SCimageIndexer(NIBR::TractogramReader* _tractogram, NIBR::Image<int>* _img) {
     
     // Initialize tractogram
-    tractogram = new NIBR::TractogramReader[NIBR::MT::MAXNUMBEROFTHREADS()]();
-    for (int t = 0; t < NIBR::MT::MAXNUMBEROFTHREADS(); t++)
-        tractogram[t].copyFrom(*_tractogram);
+    tractogram = _tractogram;
 
     // Initialize label image
     img = _img;
@@ -61,10 +59,7 @@ NIBR::SCimageIndexer::SCimageIndexer(NIBR::TractogramReader* _tractogram, NIBR::
 }
 
 NIBR::SCimageIndexer::~SCimageIndexer() { 
-    for (int t = 0; t < NIBR::MT::MAXNUMBEROFTHREADS(); t++) {
-        tractogram[t].destroyCopy();
-    }
-    delete[] tractogram;
+    return;
 }
 
 
@@ -106,16 +101,21 @@ void NIBR::SCimageIndexer::run() {
     labelCnt = original_labels.size();
     conn.resize(labelCnt, std::vector<std::set<size_t>>(labelCnt));
 
-    NIBR::MT::MTRUN(tractogram[0].numberOfStreamlines, "Computing connectome", [&](const NIBR::MT::TASK& task)->void{processStreamline(task.no,task.threadId);} );
+    tractogram->reset();
+
+    NIBR::MT::MTRUN(tractogram[0].numberOfStreamlines, "Computing connectome", 
+        [&]()->void {
+            auto [success,streamline,streamlineId] = tractogram->getNextStreamline();
+            processStreamline(streamline,streamlineId);
+        } );
 }
 
 
-bool NIBR::SCimageIndexer::processStreamline(int streamlineId, uint16_t threadNo) {
+bool NIBR::SCimageIndexer::processStreamline(const Streamline& streamline, std::size_t streamlineId) {
 
-    auto streamline = tractogram[threadNo].readStreamlineVector(streamlineId);
+    auto len            = streamline.size();
 
-    // If streamline is empty
-    if (tractogram[threadNo].len[streamlineId]<2) 
+    if (len<2) 
         return true;
 
     float pi[3], pip[3], pim[3]; // p[i], p[i+1], p[i-1] - points on streamline
@@ -128,6 +128,8 @@ bool NIBR::SCimageIndexer::processStreamline(int streamlineId, uint16_t threadNo
     std::vector<NIBR::Segment> end1;
     std::vector<NIBR::Segment> end2;
 
+    std::mutex modifier;
+
     auto insert2Conn = [&]()->void {
         
         int frLabel, toLabel;
@@ -136,13 +138,11 @@ bool NIBR::SCimageIndexer::processStreamline(int streamlineId, uint16_t threadNo
             if ( (frLabel != bgVal) && (toLabel != bgVal) ) {
                 
                 if (frLabel > toLabel) {
-                    NIBR::MT::PROC_MX().lock();
+                    std::lock_guard lock(modifier);
                     conn[toLabel-1][frLabel-1].insert(streamlineId);
-                    NIBR::MT::PROC_MX().unlock();
                 } else {
-                    NIBR::MT::PROC_MX().lock();
+                    std::lock_guard lock(modifier);
                     conn[frLabel-1][toLabel-1].insert(streamlineId);
-                    NIBR::MT::PROC_MX().unlock();
                 }
                 
             }
@@ -376,7 +376,7 @@ bool NIBR::SCimageIndexer::processStreamline(int streamlineId, uint16_t threadNo
         pushToEnd(1);
     } else {
 
-        for (uint32_t i=0; i<tractogram[threadNo].len[streamlineId]-1; i++) {
+        for (uint32_t i=0; i<len-1; i++) {
 
             // End of segment and its corner in image space
             // tractogram[threadNo].readPoint(streamlineId,i,  pi);
@@ -437,7 +437,7 @@ bool NIBR::SCimageIndexer::processStreamline(int streamlineId, uint16_t threadNo
         pushToEnd(2);
     } else {
 
-        for (uint32_t i=tractogram[threadNo].len[streamlineId]-1; i>0; i--) {
+        for (uint32_t i=len-1; i>0; i--) {
 
             // End of segment and its corner in image space
             // tractogram[threadNo].readPoint(streamlineId,i,  pi);

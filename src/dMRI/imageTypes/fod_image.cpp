@@ -95,8 +95,7 @@ bool NIBR::FOD_Image::read() {
         }
 
         for (auto p : std::get<1>(sphere)) {
-            std::vector<float> tmp = {p.x,p.y,p.z};
-            sphereCoords.push_back(tmp);
+            sphereCoords.push_back(p);
         }
 
         if (int64_t(sphereCoords.size())!=this->valCnt) {

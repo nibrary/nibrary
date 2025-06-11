@@ -65,6 +65,51 @@ int NIBR::disp(MESSAGE msg, const char *format, ...)
     return rc;
 }
 
+int NIBR::disp(PROGRESS_MESSAGE msg, const char *format, ...) 
+{
+
+    if (int(NIBR::VERBOSE())<VERBOSE_INFO)
+        return 0;
+
+    va_list args;
+    va_start(args, format);
+
+    char buffer[4096];
+    int rc = vsnprintf(buffer, sizeof(buffer), format, args);
+
+    va_end(args);
+    if (rc)
+    {
+        switch (msg.type) {
+
+            case msg_progress_start:
+            {
+                // Don't delete the first line
+                std::cout << "\033[1;32mNIBRARY::INFO: \033[0;32m" << buffer <<"\033[0m" << std::flush;
+                break;
+            }
+
+            case msg_progress_update:
+            {
+                std::cout << "\r\033[1;32mNIBRARY::INFO: \033[0;32m" << buffer <<"\033[0m" << std::flush;
+                break;
+            }
+
+            case msg_progress_end:
+            {
+                // Append a new line at the end
+                std::cout << "\r\033[1;32mNIBRARY::INFO: \033[0;32m" << buffer <<"\033[0m\033[K\n" << std::flush;
+                break;
+            }
+
+            default: break;
+
+        }
+
+    }
+    return rc;
+}
+
 void NIBR::wait(const char *format, ...) {
     va_list args;
     va_start(args, format);

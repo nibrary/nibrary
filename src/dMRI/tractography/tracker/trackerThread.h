@@ -2,6 +2,7 @@
 
 #include "base/nibr.h"
 #include "../pathway/pathway.h"
+#include "../io/tractogramWriter.h"
 
 namespace NIBR {
 
@@ -18,7 +19,7 @@ public:
 
 	TractographyAlgorithm  *method;
 	Walker             	   *walker;
-	std::vector<Point> 		streamline;
+	Streamline 				streamline;
 	
 	float*             		seed_coordinates;
 	float*             		seed_init_direction;
@@ -26,7 +27,7 @@ public:
 	void                    init();
 	void                    reset();
 	void                    clear();
-	bool 		            track(); // returns true if tracking was successful
+	bool 		            track(TractogramWriter* writer = NULL); // returns true if tracking was successful. It no writer is provided, then saves in internal tractogram.
 
 };
 

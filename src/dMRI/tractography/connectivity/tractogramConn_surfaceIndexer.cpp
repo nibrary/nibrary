@@ -43,9 +43,7 @@ bool NIBR::SCsurfaceIndexer::isBg(int val) {
 NIBR::SCsurfaceIndexer::SCsurfaceIndexer(NIBR::TractogramReader* _tractogram, NIBR::Surface* _surf, NIBR::SurfaceField *_surfLabels) {
     
     // Initialize tractogram
-    tractogram = new NIBR::TractogramReader[NIBR::MT::MAXNUMBEROFTHREADS()]();
-    for (int t = 0; t < NIBR::MT::MAXNUMBEROFTHREADS(); t++)
-        tractogram[t].copyFrom(*_tractogram);
+    tractogram = _tractogram;
 
     // Initialize label image
     surf            = _surf;
@@ -61,10 +59,7 @@ NIBR::SCsurfaceIndexer::SCsurfaceIndexer(NIBR::TractogramReader* _tractogram, NI
 }
 
 NIBR::SCsurfaceIndexer::~SCsurfaceIndexer() { 
-    for (int t = 0; t < NIBR::MT::MAXNUMBEROFTHREADS(); t++) {
-        tractogram[t].destroyCopy();
-    }
-    delete[] tractogram;
+    return;
 }
 
 

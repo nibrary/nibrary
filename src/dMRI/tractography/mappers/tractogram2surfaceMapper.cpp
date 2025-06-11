@@ -6,15 +6,10 @@ using namespace NIBR;
 
 // mapping contains streamline2faceMaps for each face of the input surface
 // if mapOnce is true, then a face will not have two instances from the same streamline
-void NIBR::tractogram2surfaceMapper(NIBR::TractogramReader* _tractogram, NIBR::Surface* surf, std::vector<std::vector<NIBR::streamline2faceMap>>& mapping, bool mapOnce)
+void NIBR::tractogram2surfaceMapper(NIBR::TractogramReader* tractogram, NIBR::Surface* surf, std::vector<std::vector<NIBR::streamline2faceMap>>& mapping, bool mapOnce)
 {
 
     surf->calcCentersOfFaces();
-
-    // Make copies of tractogram for multithreader
-    NIBR::TractogramReader* tractogram = new NIBR::TractogramReader[NIBR::MT::MAXNUMBEROFTHREADS()]();
-    for (int t = 0; t < NIBR::MT::MAXNUMBEROFTHREADS(); t++)
-        tractogram[t].copyFrom(*_tractogram);
 
     std::vector<std::vector<std::vector<std::vector<int>>>> surfaceGrid;
 
@@ -28,19 +23,20 @@ void NIBR::tractogram2surfaceMapper(NIBR::TractogramReader* _tractogram, NIBR::S
         map2surf[t].resize(surf->nf);
     }
 
-    auto doMapping = [&](const NIBR::MT::TASK& task)->void {
+    tractogram->reset();
 
-        int streamlineId = task.no;
-        int threadNo     = task.threadId;
+    auto doMapping = [&](const NIBR::MT::TASK& task)->void {        
+
+        auto [success,streamline,streamlineId] = tractogram->getNextStreamline();
+
+        int len = streamline.size();
 
         // If streamline does not have a segment, then exit
-        if (tractogram[threadNo].len[streamlineId]<2) return;
+        if (len<2) return;
     
         double p0[3], p1[3], dir[3], t, length;
         
         int32_t A[3], B[3];
-        
-        float** streamline = tractogram[threadNo].readStreamline(streamlineId);
         
         NIBR::LineSegment seg;
         seg.id = streamlineId;
@@ -62,25 +58,25 @@ void NIBR::tractogram2surfaceMapper(NIBR::TractogramReader* _tractogram, NIBR::S
                     tmp.p[1]   = pointOfIntersection[1];
                     tmp.p[2]   = pointOfIntersection[2];
                     tmp.angle  = angle;
-                    map2surf[threadNo][f].push_back(tmp);
+                    map2surf[task.threadId][f].push_back(tmp);
                 }
 
             }
         };
 
         // Beginning of segment in real and image space
-        img.to_ijk(streamline[0],p0);
+        img.to_ijk(streamline[0].data(),p0);
         A[0]  = std::round(p0[0]);
         A[1]  = std::round(p0[1]);
         A[2]  = std::round(p0[2]);
 
         // If streamline has many points and segments
-        for (uint32_t i=0; i<tractogram[threadNo].len[streamlineId]-1; i++) {
+        for (int i=0; i<len-1; i++) {
 
             // End of segment in real and image space
-            img.to_ijk(streamline[i+1],p1);
-            seg.beg = streamline[i];
-            seg.end = streamline[i+1];
+            img.to_ijk(streamline[i+1].data(),p1);
+            seg.beg = streamline[i].data();
+            seg.end = streamline[i+1].data();
             for (int m=0;m<3;m++) {
                 seg.dir[m] = streamline[i+1][m] - streamline[i][m];
                 B[m]       = std::round(p1[m]);
@@ -136,11 +132,9 @@ void NIBR::tractogram2surfaceMapper(NIBR::TractogramReader* _tractogram, NIBR::S
             
 
         }
-        
-        tractogram[threadNo].deleteStreamline(streamline,streamlineId);
 
     };
-    NIBR::MT::MTRUN(tractogram[0].numberOfStreamlines, NIBR::MT::MAXNUMBEROFTHREADS(), "Tractogram to surface mapping", doMapping);
+    NIBR::MT::MTRUN(tractogram->numberOfStreamlines, NIBR::MT::MAXNUMBEROFTHREADS(), "Tractogram to surface mapping", doMapping);
 
     // Clean up 
     for (int i = 0; i < img.imgDims[0]; i++) {
@@ -150,11 +144,6 @@ void NIBR::tractogram2surfaceMapper(NIBR::TractogramReader* _tractogram, NIBR::S
         delete[] mask[i];
     }
     delete[] mask;
-
-    for (int t = 0; t < NIBR::MT::MAXNUMBEROFTHREADS(); t++) {
-        tractogram[t].destroyCopy();
-    }
-    delete[] tractogram;
 
     auto finMapping = [&](const NIBR::MT::TASK& task)->void {  
 

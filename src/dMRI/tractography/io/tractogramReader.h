@@ -1,22 +1,19 @@
 #pragma once
 
-#include <stdio.h>
 #include <fstream>
-#include <iostream>
-#include <string>
-#include <cstring>
-#include <vector>
-#include <float.h>
-#include <cstdint>
+#include <deque>
+#include <atomic>
+#include <mutex>
+#include <future>
 #include "base/nibr.h"
 #include "math/core.h"
 #include "image/image.h"
-
-#define STREAMLINE_BATCH_SIZE 100000
+#include "dMRI/tractography/tractogram.h"
 
 namespace NIBR
 {
 
+    #pragma pack(push, 1)
     struct trkFileStruct {
 
         char            id_string[6];
@@ -44,16 +41,16 @@ namespace NIBR
         int             hdr_size;
 
     };
-
-    struct Segment {
-        int    streamlineNo;
-        float  p[3];
-        float  dir[3];
-        float  length;
-        void*  data;
-    };
+    #pragma pack(pop)
 
     typedef enum {
+        UNKNOWN_TRACTOGRAM_FORMAT,
+        VTK_ASCII_3,
+        VTK_BINARY_3,
+        VTK_ASCII_4,
+        VTK_BINARY_4,
+        VTK_ASCII_5,
+        VTK_BINARY_5,
         VTK_ASCII,
         VTK_BINARY,
         TCK,
@@ -64,41 +61,30 @@ namespace NIBR
         
         public:
             
-            TractogramReader();
-            TractogramReader(std::string _fileName);
-            TractogramReader(std::string _fileName, bool _usePreload);
-
+            TractogramReader(std::string _fileName, bool _preload = false);
             ~TractogramReader();
-            TractogramReader(const TractogramReader& obj);
-            void copyFrom(const TractogramReader& obj);
-            void destroyCopy();
+
+            TractogramReader(const TractogramReader& obj) = delete;             // Disable the copy constructor
+            TractogramReader& operator=(const TractogramReader& obj) = delete;  // Disable copy assignment operator
+
             void printInfo();
-            bool isPreloaded() {return usePreload;}
-            
-            bool     initReader(std::string _fileName);
-            bool     initReader(std::string _fileName, bool _usePreload);
+            bool isReady()      const {return isInitialized;}
+            bool isPreloaded()  const {return isPreloadMode;}
+            void reset();
 
-            template<typename T>
-            void     setReferenceImage(Image<T>* ref);
-            
-            float**  readStreamline(std::size_t n);          // Core function to read streamlines
-            void     deleteStreamline(float**, std::size_t);
+            std::tuple<bool, Streamline, size_t>    getNextStreamline();                        // Returns a tuple: {success, streamline, streamline_index}
+            StreamlineBatch                         getNextStreamlineBatch(size_t batchSize);
+            const Streamline&                       getStreamline(std::size_t n);               // Preloaded mode specific
+            Tractogram                              getTractogram();                            // Complete tractogram reader
+            size_t                                  getNumberOfStreamlines() const { return numberOfStreamlines; }
+            const std::vector<uint64_t>&            getNumberOfPoints();                        // Size of streamline n is out[n] - out[n-1]. The last element, out[numberOfStreamlines+1] is the total number of points
 
-            bool     readNextBatch(std::size_t batchSize, std::vector<std::vector<std::vector<float>>>& batch_out);
-            void     resetBatchReader() {currentStreamlineIdx = 0;}
-            
-            std::vector<std::vector<float>> readStreamlineVector(std::size_t n);
-            std::vector<Point>              readStreamlinePoints(std::size_t n);
-
-            FILE                   *file;
             std::string             fileName;
             std::string             fileDescription;
             TRACTOGRAMFILEFORMAT    fileFormat;
-            
-            std::size_t             numberOfPoints;
             std::size_t             numberOfStreamlines;
-            uint32_t*               len;
 
+            // TRK specific
             // Nifti assumes voxel center to be 0,0,0.
             // TRK assumes 0,0,0 to be one of the corners. But which corner? 
             // That depends on the image orientation, which makes it difficult to compute.
@@ -110,35 +96,63 @@ namespace NIBR
             // - when reading a trk file, we will subtract 0.5 from all values
             // - when writing a trk file, we will add 0.5 to all values
 
-            short                   imgDims[3];
-            float                   pixDims[3];
-            char                    voxOrdr[4];         // We assume this to be LAS for now
-            float                   ijk2xyz[4][4];
-            float                   xyz2ijk[4][4];
+            short   imgDims[3];
+            float   pixDims[3];
+            char    voxOrdr[4];         // We assume this to be LAS for now
+            float   ijk2xyz[4][4];
+            float   xyz2ijk[4][4];
             
-            long*                   streamlinePos;      // file positions for first points of streamlines
+            template<typename T>
+            void    setReferenceImage(Image<T>* ref);            
 
-
-            // Batch reader overrides
-            bool                                         readNextBatch(std::vector<std::vector<std::vector<float>>>& batch_out);
-            std::vector<std::vector<std::vector<float>>> readNextBatch(std::size_t batchSize = STREAMLINE_BATCH_SIZE);
-        
         private:
 
-            bool                    readToMemory();
+            FILE* file;
+            bool  initReader(std::string _fileName, bool _preload);
+
+            // Core I/O logic, reads a batch from the file. Not thread-safe by itself.
+            StreamlineBatch readBatchFromFile(size_t batchSize);
+        
+            // Producer-consumer members
+            void producerLoop();
+            std::thread             producerThread;
+            std::deque<Streamline>  streamline_buffer;
+            std::mutex              buffer_mutex;
+            std::condition_variable buffer_cv;
+            std::atomic<bool>       stop_producer{false};
+            std::atomic<bool>       producer_finished{false};
+            size_t                  buffer_capacity;
+            size_t                  buffer_low_water_mark;
+            bool                    isPreloadMode;
+            
+            // State variables
+            bool  isInitialized = false;
+            char* readerBuffer  = nullptr;
+            
+            // File position tracking
+            std::atomic<size_t>     streamlines_read_from_file{0};
+            std::atomic<size_t>     consumed_streamline_count{0};
+            long                    firstStreamlinePos   = 0;
+            long                    currentStreamlinePos = 0;
+
+            std::vector<uint64_t>   numberOfPoints; // Number of points
+
+            // VTK specific
+            bool            vtk_needsByteSwap   = true;
+            long            vtk_currOffsetPos   = 0;
+            int64_t         vtk_prevOffset      = 0;
+            long            vtk_firstOffsetPos  = 0;
+            int64_t         vtk_firstOffset     = 0;
+            bool            vtk_isV5            = false;
+            bool            vtk5_64bitOffsets   = true;
+
+            // TCK specific
+            std::vector<char>   tck_read_buffer;
+            size_t              tck_buffer_offset = 0;
 
             // TRK specific
-            short                   n_scalars_trk;      // TRK file format extension
-            short                   n_properties_trk;   // TRK file format extension
-
-            // loading the whole tractogram to memory
-            float*                  fileBuffer       = NULL;
-            std::vector<float**>*   streamlineBuffer = NULL;
-            bool                    usePreload       = false;    // if we load the whole thing in memory
-            bool                    finishedLoading  = false;    //this is set to true after reading the whole thing in memmory
-
-            // batch reading
-            std::size_t             currentStreamlineIdx = 0; // Tracks the next streamline to read         
+            short           n_scalars_trk;          // TRK file format extension
+            short           n_properties_trk;       // TRK file format extension
 
     };
 

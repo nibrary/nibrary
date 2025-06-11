@@ -7,28 +7,27 @@
 
 namespace NIBR 
 {
-    float getStreamlineLength(float** inp, int len);
-    float getStreamlineLength(std::vector<std::vector<float>>& inp);
-    float getStreamlineLength(std::vector<Point>& inp);
+    float   getStreamlineLength(float** inp, int len);
+    float   getStreamlineLength(Streamline& inp);
 
-    float getStreamlineLength_hermite(float** inp, int len, int div);                   // Uses Hermite interpolation and does numerical integration with div number of divisions
-    float getStreamlineLength_hermite(std::vector<std::vector<float>>& inp, int div);   // Uses Hermite interpolation and does numerical integration with div number of divisions
-    std::vector<float> getStreamlineLength_hermiteWithSpeed(const std::vector<std::vector<float>>& inp, int div);
+    float   getStreamlineLength_hermite(float** inp, int len, int div);                   // Uses Hermite interpolation and does numerical integration with div number of divisions
+    float   getStreamlineLength_hermite(Streamline& inp, int div);                          // Uses Hermite interpolation and does numerical integration with div number of divisions
+    std::vector<float> getStreamlineLength_hermiteWithSpeed(const Streamline& inp, int div);
 
-    float getHausdorffDistance(std::vector<std::vector<float>>& trk1, std::vector<std::vector<float>>& trk2);
-    float getMDFDistance(std::vector<std::vector<float>>& trk1, std::vector<std::vector<float>>& trk2);
+    float   getHausdorffDistance(Streamline& trk1, Streamline& trk2);
+    float   getMDFDistance(Streamline& trk1, Streamline& trk2);
 
+    bool    areStreamlinesIdentical(const Streamline& s1, const Streamline& s2, float tolerance = 1e-5f);
 
-    float** colorStreamline(std::vector<std::vector<float>>& inp);
+    std::vector<Point3D> colorStreamline(const Streamline& inp);
 
     template<typename T>
     std::unordered_map<int64_t,float> traceStreamline(
-        size_t streamlineId,
-        int threadNo, 
-        TractogramReader* tractogram,
+        const Streamline& streamline,
+        std::size_t streamlineId,
         Image<T>& img,
         bool*** mask, 
-        std::function<void(std::unordered_map<int64_t,float>*,Image<T>*,int*,NIBR::Segment&,void*)> f, void* fData)
+        const std::function<void(std::unordered_map<int64_t,float>*,Image<T>*,int*,NIBR::Segment&,void*)>& f, void* fData)
 
     {
 
@@ -36,10 +35,8 @@ namespace NIBR
 
         std::unordered_map<int64_t,float> vIdx;
 
-        int len = tractogram[threadNo].len[streamlineId];
+        int len = streamline.size();
         if (len < 1) return vIdx;
-        
-        float** streamline = tractogram[threadNo].readStreamline(streamlineId);
         
         double p0[3], p1[3], dir[3], length, lengthR, lengthScale;
 
@@ -49,7 +46,7 @@ namespace NIBR
         seg.streamlineNo = streamlineId;
         
         // End of segment in real and its corner in image space
-        img.to_ijk(streamline[0],p0);
+        img.to_ijk(streamline[0].data(),p0);
         A[0]  = std::round(p0[0]);
         A[1]  = std::round(p0[1]);
         A[2]  = std::round(p0[2]);
@@ -66,7 +63,7 @@ namespace NIBR
             // disp(MSG_DEBUG,"Segment: %d", i);
 
             // End of segment in real and its corner in image space
-            img.to_ijk(streamline[i+1],p1);
+            img.to_ijk(streamline[i+1].data(),p1);
             for (int m=0;m<3;m++) {
                 seg.p[m]    = streamline[i][m];
                 seg.dir[m]  = streamline[i+1][m] - streamline[i][m];
@@ -162,14 +159,26 @@ namespace NIBR
             
 
         }
-
-        tractogram[threadNo].deleteStreamline(streamline,streamlineId);
         
         // disp(MSG_DEBUG,"vIdx size: %d", vIdx.size());
 
         return vIdx;
 
         
+    }
+
+
+    // Works only for preloaded tractograms
+    template<typename T>
+    std::unordered_map<int64_t,float> traceStreamline(
+        TractogramReader* tractogram,
+        std::size_t streamlineId,
+        Image<T>& img,
+        bool*** mask, 
+        const std::function<void(std::unordered_map<int64_t,float>*,Image<T>*,int*,NIBR::Segment&,void*)>& f, void* fData)
+
+    {
+        return traceStreamline(tractogram->getStreamline(streamlineId),streamlineId,img,mask,f,fData);        
     }
 
 }

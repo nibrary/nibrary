@@ -27,7 +27,6 @@ namespace NIBR
 using namespace NIBR;
 using namespace NIBR::MT;
 
-std::mutex&                                 NIBR::MT::PROC_MX()                     {return NIBR::MT::prox_mx;}
 int&                                        NIBR::MT::MAXNUMBEROFTHREADS()          {return NIBR::MT::maxNumberOfThreads;}
 std::atomic<std::size_t>&                   NIBR::MT::FINISHEDTASKCOUNT()           {return NIBR::MT::finishedTaskCount;}
 std::atomic<std::size_t>&                   NIBR::MT::FINISHEDTASKCOUNTTOSTOP()     {return NIBR::MT::finishedTaskCountToStop;}

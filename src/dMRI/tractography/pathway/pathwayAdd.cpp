@@ -114,7 +114,7 @@ bool NIBR::Pathway::add(PathwayRule prule) {
                     delete seedDef;
                     return cleanExit();
                 }
-                pntLists.back()  = new std::vector<Point>();
+                pntLists.back()  = new std::vector<Point3D>();
                 *pntLists.back() = std::get<1>(p);
 
                 if (prule.dirListFile != "") {
@@ -124,7 +124,7 @@ bool NIBR::Pathway::add(PathwayRule prule) {
                         delete seedDef;
                         return cleanExit();
                     }
-                    dirLists.back()  = new std::vector<Point>();
+                    dirLists.back()  = new std::vector<Point3D>();
                     *dirLists.back() = std::get<1>(d);
                 }
 

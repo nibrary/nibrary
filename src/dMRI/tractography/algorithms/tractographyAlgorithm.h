@@ -20,7 +20,7 @@ typedef enum {
 class TractographyAlgorithm {
 
 public:
-	TractographyAlgorithm() {thread = NULL;}
+	TractographyAlgorithm() {trackingThread = NULL;}
 	virtual ~TractographyAlgorithm() {}
 
 	virtual Propagation_Decision 	initialize() 		 = 0;
@@ -33,8 +33,8 @@ public:
 	virtual float writeStepSize()    = 0; // returns the writeStepSize
 	virtual int   appendInterval()   = 0; // returns the interval for appending a new point
 
-	void setThread(TrackingThread* _thread) {thread = _thread;}
-	TrackingThread* thread;
+	void setThread(TrackingThread* _trackingThread) {trackingThread = _trackingThread;}
+	TrackingThread* trackingThread;
 
 };
 

@@ -26,12 +26,12 @@ public:
 
     // Sphere
     virtual bool setSeed(float,float,float,float) {return false;}
-	virtual bool setSeed(Point,float) {return false;}
+	virtual bool setSeed(Point3D,float) {return false;}
 	virtual bool setSeed(float*,float) {return false;}
 
     // List
-    virtual bool setSeed(std::vector<Point>&) {return false;}
-	virtual bool setSeed(std::vector<Point>&,std::vector<Point>&) {return false;}
+    virtual bool setSeed(std::vector<Point3D>&) {return false;}
+	virtual bool setSeed(std::vector<Point3D>&,std::vector<Point3D>&) {return false;}
 
     // Surface
     virtual bool setSeed(Surface*) {return false;}
@@ -48,6 +48,7 @@ private:
     std::vector<int>   seed_indices;
     float              max4rs;
     int                volInd{-1};
+    std::mutex         seedCheck;
 
 	RandomDoer        *doRandomThings{NULL};
     

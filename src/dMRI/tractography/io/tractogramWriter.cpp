@@ -1,1062 +1,646 @@
-#include <iostream>
-#include <fstream>
-#include <stdio.h>
-#include <cstring>
-#include <algorithm>
-#include <map>
-#include <memory>
-#include <mutex>
-
-#include "base/dataTypeHandler.h"
-#include "base/vectorOperations.h"
+#include <cstring>                 // For strcpy, memset
+#include <algorithm>               // For std::sort, std::unique for idx processing
+#include "base/vectorOperations.h" // For removeIdx
+#include "math/core.h"             // For inverseAffine if needed
 #include "tractogramWriter.h"
-#include "tractogramWriter_vtk.h"
 #include "tractogramWriter_tck.h"
+#include "tractogramWriter_trk.h"
+#include "tractogramWriter_vtk_binary.h"
+#include "tractogramWriter_vtk_ascii.h"
 
-using namespace NIBR;
+#define WRITE_BUFFER_SIZE   20000
 
-TractogramWriter::TractogramWriter(std::string _filename) : filename_(_filename) {
-        
+namespace NIBR {
+
+TractogramWriter::TractogramWriter(std::string _filename) : filename_(std::move(_filename)) 
+{
+    
     std::string ext = getFileExtension(filename_);
 
-    if (ext == "vtk") {
-        pImpl_ = std::make_unique<VTKBinaryWriter>(filename_);
-        disp(MSG_DEBUG, "Selected VTKBinaryWriter for %s", filename_.c_str());
-    } else if (ext == "tck") {
-        pImpl_ = std::make_unique<TCKWriter>(filename_);
+    if (ext == "tck") {
+        pImpl_      = std::make_unique<TCKWriter>(filename_);
+        fileFormat_ = TCK;
         disp(MSG_DEBUG, "Selected TCKWriter for %s", filename_.c_str());
+    } else if (ext == "trk") {
+        pImpl_      = std::make_unique<TRKWriter>(filename_);
+        fileFormat_ = TRK;
+        disp(MSG_DEBUG, "Selected TRKWriter for %s", filename_.c_str());
+    } else if (ext == "vtk") {
+        pImpl_      = std::make_unique<VTKBinaryWriter>(filename_);
+        fileFormat_ = VTK_BINARY_3;
+        disp(MSG_DEBUG, "Selected VTKBinaryWriter for %s", filename_.c_str());
     } else {
-        pImpl_ = nullptr; // Set to null if format is unsupported
-        disp(MSG_ERROR, "Unsupported output format: %s. Can't create writer for: %s", ext.c_str(), filename_.c_str());
+        pImpl_      = nullptr;
+        fileFormat_ = UNKNOWN_TRACTOGRAM_FORMAT;
+        disp(MSG_ERROR, "Unsupported output file extension: .%s for file: %s. Cannot create writer.", ext.c_str(), filename_.c_str());
+    }
+
+    asyncBufferA_.reserve(WRITE_BUFFER_SIZE);
+    asyncBufferB_.reserve(WRITE_BUFFER_SIZE);
+}
+
+TractogramWriter::~TractogramWriter() 
+{
+    if (is_open_ && !is_closed_) {
+        disp(MSG_WARN, "TractogramWriter for %s destroyed without explicit close(). Flushing and closing.", filename_.c_str());
+        close();
     }
 }
 
-TractogramWriter::~TractogramWriter() {
-    // If the writer was opened but not explicitly closed,
-    // attempt to close it to prevent data loss/corruption.
-    if (pImpl_ && is_open_ && !is_closed_) {
-            disp(MSG_WARN, "TractogramWriter destroyed without explicit close(). Attempting to close %s", filename_.c_str());
-            pImpl_->close();
+void TractogramWriter::setVTKIsAscii(bool isAscii) 
+{
+    if ((isAscii == true) && (fileFormat_ == VTK_BINARY_3)) {
+        pImpl_ = std::make_unique<VTKAsciiWriter>(filename_);
+        disp(MSG_DEBUG, "Selected VTKAsciiWriter for %s", filename_.c_str());
+    }
+
+    if ((isAscii == true) && (fileFormat_ != VTK_BINARY_3)) {
+        disp(MSG_ERROR, "Unsupported output file extension. VTKAsciiWriter only support .vtk. %s", filename_.c_str());
+        return;
     }
 }
 
-bool TractogramWriter::open() {
-    if (!pImpl_) return false; // Writer creation failed
+void TractogramWriter::setVTKFields(const std::vector<TractogramField>& fields) 
+{
+    if (pImpl_) {
+        pImpl_->setVTKFields(fields);
+    } else {
+        disp(MSG_WARN, "Cannot set VTK fields: writer implementation is null.");
+    }
+}
 
+bool TractogramWriter::open() 
+{
+    if (!pImpl_) {
+        disp(MSG_ERROR, "Cannot open %s: Writer implementation is null (unsupported format or creation failed).", filename_.c_str());
+        return false;
+    }
     if (is_open_) {
-        disp(MSG_WARN, "File %s already open.", filename_.c_str());
+        disp(MSG_WARN, "File %s is already open.", filename_.c_str());
         return true;
     }
     if (is_closed_) {
-        disp(MSG_ERROR, "File %s was already closed. Cannot reopen.", filename_.c_str());
+        disp(MSG_ERROR, "File %s was already closed and cannot be reopened.", filename_.c_str());
         return false;
     }
 
     is_open_ = pImpl_->open();
+    if (!is_open_) {
+        disp(MSG_ERROR, "Failed to open file: %s", filename_.c_str());
+    }
+
+    // Reset state and start the background writer thread
+    stop_requested_ = false;
+    write_pending_  = false;
+    writerThread_   = std::thread(&TractogramWriter::asyncWriteLoop, this);
+
     return is_open_;
 }
 
-bool TractogramWriter::writeBatch(const std::vector<std::vector<std::vector<float>>>& batch) {
-    if (!pImpl_ || !is_open_ || is_closed_) {
-            disp(MSG_ERROR, "Cannot write batch. File not open or already closed: %s", filename_.c_str());
-            return false;
-    }
-    // Don't bother writing if the batch is empty, but return true
-    if (batch.empty()) {
-        return true;
-    }
-    return pImpl_->writeBatch(batch);
-}
-
-bool TractogramWriter::close() {
-    if (!pImpl_) return false; // No writer
-
-    if (!is_open_) {
-            disp(MSG_WARN, "File %s not open, cannot close.", filename_.c_str());
-            return true; // Not an error if it was never opened
-    }
-    if (is_closed_) {
-            disp(MSG_WARN, "File %s already closed.", filename_.c_str());
-            return true;
-    }
-
-    is_closed_ = pImpl_->close();
-    return is_closed_;
-}
-
-bool NIBR::writeTractogram(std::string fname,NIBR::TractogramReader* tractogram) 
+void TractogramWriter::asyncWriteLoop()
 {
+    while (true) {
+        std::unique_lock<std::mutex> lock(asyncMutex_);
+        asyncCond_.wait(lock, [this] { 
+            return write_pending_.load() || stop_requested_.load(); 
+        });
 
-    std::string ext = getFileExtension(fname);
+        if (stop_requested_.load() && !write_pending_.load()) {
+            break; // Correct way to exit the loop
+        }
 
-    if (ext == "tck")
-        writeTractogram_TCK(fname,tractogram);
-    else if( ext == "trk")
-        writeTractogram_TRK(fname,tractogram);
-    else if( ext == "vtk")
-        writeTractogram_VTK_binary(fname,tractogram);
-    else {
-        disp(MSG_ERROR,"Cannot write output. Unknown file extension.");
-        return false;
-    }
+        lock.unlock();
 
-    return true;
-
-}
-
-bool NIBR::writeTractogram(std::string fname,std::vector<std::vector<std::vector<float>>>& tractogram)
-{
-
-    std::string ext = getFileExtension(fname);
-
-    if (ext == "tck")
-        writeTractogram_TCK(fname,tractogram);
-    else if( ext == "vtk")
-        writeTractogram_VTK_binary(fname,tractogram);
-    else {
-		disp(MSG_ERROR,"Cannot write output. Unknown file extension.");
-        return false;
-    }
-
-    return true;
-
-}
-
-template<typename T>
-bool NIBR::writeTractogram(std::string fname,std::vector<std::vector<std::vector<float>>>& tractogram,Image<T>* refImg)
-{
-
-    std::string ext = getFileExtension(fname);
-
-    if (ext == "tck")
-        writeTractogram_TCK(fname,tractogram);
-    else if( ext == "trk")
-        writeTractogram_TRK(fname,tractogram,refImg);
-    else if( ext == "vtk")
-        writeTractogram_VTK_binary(fname,tractogram);
-    else {
-		disp(MSG_ERROR,"Cannot write output. Unknown file extension.");
-        return false;
-    }
-
-    return true;
-
-}
-
-bool NIBR::writeTractogram_VTK_binary(std::string fname,NIBR::TractogramReader* tractogram) {
-
-    std::vector<std::size_t> idx;
-    idx.reserve(tractogram->numberOfStreamlines);
-    for (std::size_t n = 0; n < tractogram->numberOfStreamlines; n++) {
-        idx.push_back(n);
-    }
-    return NIBR::writeTractogram_VTK_binary(fname,tractogram,idx);
-    
-}
-
-bool NIBR::writeTractogram_VTK_binary(std::string out_fname,NIBR::TractogramReader* tractogram,std::vector<std::size_t>& idx) {
-
-    // Prepare output
-    FILE *out;
-	out = fopen(out_fname.c_str(),"wb+");
-	if (out==NULL) {
-		disp(MSG_ERROR,"Cannot write output. Output path doesn't exist.");
-		return false;
-	}
-
-    const std::size_t BUFFER_STREAMLINES = 5000; // Will write this many streamlines at a time
-
-    // Prep tractogram
-    std::size_t streamlineCount = idx.size();
-    std::size_t totalPointCount = 0;
-
-    std::vector<int> len;
-    len.reserve(streamlineCount);
-
-    for (std::size_t i=0; i<streamlineCount; i++) {
-        len.push_back(tractogram->len[idx[i]]);
-        totalPointCount += len[i];
-    }
-
-    // Write header
-	char buffer[256];
-	sprintf(buffer, "# vtk DataFile Version 3.0\n");	    fwrite(buffer, sizeof(char), strlen(buffer), out);
-    sprintf(buffer, "Generated by %s\n", SGNTR().c_str());    fwrite(buffer, sizeof(char), strlen(buffer), out);
-	sprintf(buffer, "BINARY\n"); 						    fwrite(buffer, sizeof(char), strlen(buffer), out);
-	sprintf(buffer, "DATASET POLYDATA\n"); 				    fwrite(buffer, sizeof(char), strlen(buffer), out);
-
-    // Write points
-    sprintf(buffer, "POINTS %lu float\n", totalPointCount);
-	fwrite(buffer, sizeof(char), strlen(buffer), out);
-
-
-    // Buffer for points data
-    std::vector<float> pointsBuffer;
-    pointsBuffer.reserve(BUFFER_STREAMLINES * 1000 * 3); // Assuming average 1000 points per streamline
-
-    std::size_t currentStreamline = 0;
-
-    while (currentStreamline < streamlineCount) {
-
-        std::size_t batchSize = std::min(BUFFER_STREAMLINES, streamlineCount - currentStreamline);
+        if (!writeAsyncBuffer_->empty()) {
+            if (!pImpl_->writeBatch(*writeAsyncBuffer_)) {
+                async_write_failed_ = true;
+            }
+        }
         
-        pointsBuffer.clear();
-
-        // Accumulate points for the current batch
-        for (std::size_t i = 0; i < batchSize; ++i) {
-
-            std::size_t idxStream   = currentStreamline + i;
-
-            float** streamline = tractogram->readStreamline(idx[idxStream]);
-
-            if (streamline == nullptr) {
-                disp(MSG_ERROR, "Error reading streamline %d from %s", idx[idxStream], tractogram->fileName.c_str());
-                fclose(out);
-                return false;
-            }
-
-            for (int p = 0; p < len[idxStream]; p++) {
-                pointsBuffer.push_back(streamline[p][0]);
-                pointsBuffer.push_back(streamline[p][1]);
-                pointsBuffer.push_back(streamline[p][2]);
-            }
-            tractogram->deleteStreamline(streamline,idx[idxStream]);
-        }
-
-        // Swap byte order for all floats in the buffer
-        for (auto& val : pointsBuffer) {
-            swapByteOrder(val);
-        }
-
-        // Write the binary data in one fwrite call
-        std::size_t bytesToWrite = pointsBuffer.size() * sizeof(float);
-        std::size_t written      = fwrite(pointsBuffer.data(), 1, bytesToWrite, out);
-
-        if (written != bytesToWrite) {
-            disp(MSG_ERROR, "Error writing points data to file.");
-            fclose(out);
-            return false;
-        }
-
-        currentStreamline += batchSize;
+        lock.lock();
+        writeAsyncBuffer_->clear(); // Clear the buffer after writing
+        write_pending_ = false;
+        asyncCond_.notify_one(); 
     }
-
-    // Write lines
-    sprintf(buffer, "LINES %lu %lu\n",streamlineCount,streamlineCount+totalPointCount);
-	fwrite(buffer, sizeof(char), strlen(buffer), out);
-
-    // Buffer for lines data
-    std::vector<int> linesBuffer;
-    linesBuffer.reserve(BUFFER_STREAMLINES * 1000); // Assuming average 1000 points per streamline
-
-    // Current index tracking
-    currentStreamline   = 0;
-    int continue_index  = 0;
-
-    while (currentStreamline < streamlineCount) {
-
-        std::size_t batchSize = std::min(BUFFER_STREAMLINES, streamlineCount - currentStreamline);
-
-        linesBuffer.clear();
-
-        // Accumulate lines for the current batch
-        for (std::size_t i = 0; i < batchSize; ++i) {
-            int length = len[currentStreamline + i];
-            linesBuffer.push_back(length);
-            for (int p = 0; p < length; ++p) {
-                linesBuffer.push_back(continue_index + p);
-            }
-            continue_index += length;
-        }
-
-        // Swap byte order for all ints in the buffer
-        for (auto& val : linesBuffer) {
-            swapByteOrder(val);
-        }
-
-        // Write the binary data in one fwrite call
-        std::size_t bytesToWrite = linesBuffer.size() * sizeof(int);
-        std::size_t written      = fwrite(linesBuffer.data(), 1, bytesToWrite, out);
-
-        if (written != bytesToWrite) {
-            disp(MSG_ERROR, "Error writing lines data to file.");
-            fclose(out);
-            return false;
-        }
-
-        currentStreamline += batchSize;
-    }
-
-    fclose(out);
-
-    return true;
-
 }
 
-bool NIBR::writeTractogram_VTK_binary(std::string fname,std::vector<std::vector<std::vector<float>>>& tractogram) {
-
-    // Prepare output
-    FILE *out;
-	out = fopen(fname.c_str(),"wb+");
-	if (out==NULL) {
-		disp(MSG_ERROR,"Cannot write output. Output path doesn't exist.");
-		return false;
-	}
-
-
-    // Prep tractogram
-    std::size_t streamlineCount = tractogram.size();
-    std::size_t totalPointCount = 0;
-
-    std::vector<int> len;
-    len.resize(streamlineCount);
-
-    for (std::size_t i=0; i<streamlineCount; i++) {
-        len[i]           = tractogram[i].size();
-        totalPointCount += len[i];
-    }
-
-    // Write header
-	char buffer[256];
-	sprintf(buffer, "# vtk DataFile Version 3.0\n");	    fwrite(buffer, sizeof(char), strlen(buffer), out);
-    sprintf(buffer, "Generated by %s\n", SGNTR().c_str());  fwrite(buffer, sizeof(char), strlen(buffer), out);
-	sprintf(buffer, "BINARY\n"); 						    fwrite(buffer, sizeof(char), strlen(buffer), out);
-	sprintf(buffer, "DATASET POLYDATA\n"); 				    fwrite(buffer, sizeof(char), strlen(buffer), out);
-
-    // Write points
-    sprintf(buffer, "POINTS %lu float\n", totalPointCount);
-	fwrite(buffer, sizeof(char), strlen(buffer), out);
-	for (std::size_t i=0; i<streamlineCount; i++) {
-        for (int p=0; p<len[i]; p++) {
-            float tmp;
-            tmp = tractogram[i][p][0]; 	swapByteOrder(tmp); fwrite(&tmp, sizeof(float), 1, out);
-            tmp = tractogram[i][p][1]; 	swapByteOrder(tmp); fwrite(&tmp, sizeof(float), 1, out);
-            tmp = tractogram[i][p][2]; 	swapByteOrder(tmp); fwrite(&tmp, sizeof(float), 1, out);
-        }
-    }
-
-
-    // Write lines
-    sprintf(buffer, "LINES %lu %lu\n",streamlineCount,streamlineCount+totalPointCount);
-	fwrite(buffer, sizeof(char), strlen(buffer), out);
-
-	int continue_index = 0;
-	for (std::size_t i=0; i<streamlineCount; i++) {
-
-		int first_count = len[i];
-		swapByteOrder(first_count); fwrite(&first_count, sizeof(int), 1, out);
-
-		int first_index	= continue_index;
-		int last_index	= first_index + len[i];
-		for (int i=continue_index; i<last_index; i++) {
-			int tmp = i;
-			swapByteOrder(tmp); fwrite(&tmp, sizeof(int), 1, out);
-		}
-
-		continue_index = last_index;
-	}
-
-    fclose (out);
-    return true;
-}
-
-bool NIBR::writeTractogram_VTK_ascii(std::string fname,NIBR::TractogramReader* tractogram) {
-
-    // Prepare output
-    FILE *out;
-	out = fopen(fname.c_str(),"wb+");
-	if (out==NULL) {
-		disp(MSG_ERROR,"Cannot write output. Output path doesn't exist.");
-		return false;
-	}
-
-    // Prep tractogram
-    std::size_t streamlineCount = tractogram->numberOfStreamlines;
-    std::size_t totalPointCount = tractogram->numberOfPoints;
-
-    // Write header
-	char buffer[256];
-	sprintf(buffer, "# vtk DataFile Version 3.0\n");	    fwrite(buffer, sizeof(char), strlen(buffer), out);
-    sprintf(buffer, "Generated by %s\n", SGNTR().c_str());    fwrite(buffer, sizeof(char), strlen(buffer), out);
-	sprintf(buffer, "ASCII\n"); 						    fwrite(buffer, sizeof(char), strlen(buffer), out);
-	sprintf(buffer, "DATASET POLYDATA\n"); 				    fwrite(buffer, sizeof(char), strlen(buffer), out);
-
-    // Write points
-    sprintf(buffer, "POINTS %lu float\n", totalPointCount);
-	fwrite(buffer, sizeof(char), strlen(buffer), out);
-	for (std::size_t i=0; i<streamlineCount; i++) {
-        float** streamline = tractogram->readStreamline(i);
-        for (uint32_t p=0; p<tractogram->len[i]; p++) {
-            sprintf(buffer, "%f %f %f\n", streamline[p][0], streamline[p][1], streamline[p][2]);
-            fwrite(buffer, sizeof(char), strlen(buffer), out);
-        }
-        tractogram->deleteStreamline(streamline,i);
-    }
-
-    // Write lines
-    sprintf(buffer, "LINES %lu %lu\n",streamlineCount,streamlineCount+totalPointCount);
-	fwrite(buffer, sizeof(char), strlen(buffer), out);
-
-	int continue_index = 0;
-	for (std::size_t i=0; i<streamlineCount; i++) {
-
-		int first_count = tractogram->len[i];
-        sprintf(buffer, "%d ", first_count); fwrite(buffer, sizeof(char), strlen(buffer), out);
-
-		int first_index	= continue_index;
-		int last_index	= first_index + tractogram->len[i];
-		
-        for (int i=continue_index; i<last_index; i++) {
-            sprintf(buffer, "%d ", i); fwrite(buffer, sizeof(char), strlen(buffer), out);
-        }
-
-        sprintf(buffer, "\n"); fwrite(buffer, sizeof(char), strlen(buffer), out);
-
-		continue_index = last_index;
-	}
-
-    fclose (out);
-    return true;
-
-}
-
-bool NIBR::writeTractogram_VTK_ascii(std::string fname,NIBR::TractogramReader* tractogram,std::vector<std::size_t>& idx) {
-
-    // Prepare output
-    FILE *out;
-	out = fopen(fname.c_str(),"wb+");
-	if (out==NULL) {
-		disp(MSG_ERROR,"Cannot write output. Output path doesn't exist.");
-		return false;
-	}
-
-    // Prep tractogram
-    std::size_t streamlineCount = idx.size();
-    std::size_t totalPointCount = 0;
-
-    std::vector<int> len;
-    len.reserve(streamlineCount);
-
-    for (std::size_t i=0; i<streamlineCount; i++) {
-        len.push_back(tractogram->len[idx[i]]);
-        totalPointCount += len[i];
-    }
-
-    // Write header
-	char buffer[256];
-	sprintf(buffer, "# vtk DataFile Version 3.0\n");	    fwrite(buffer, sizeof(char), strlen(buffer), out);
-    sprintf(buffer, "Generated by %s\n", SGNTR().c_str());    fwrite(buffer, sizeof(char), strlen(buffer), out);
-	sprintf(buffer, "ASCII\n"); 						    fwrite(buffer, sizeof(char), strlen(buffer), out);
-	sprintf(buffer, "DATASET POLYDATA\n"); 				    fwrite(buffer, sizeof(char), strlen(buffer), out);
-
-    // Write points
-    sprintf(buffer, "POINTS %lu float\n", totalPointCount);
-	fwrite(buffer, sizeof(char), strlen(buffer), out);
-	for (std::size_t i=0; i<streamlineCount; i++) {
-        float** streamline = tractogram->readStreamline(idx[i]);
-        for (int p=0; p<len[i]; p++) {
-            sprintf(buffer, "%f %f %f\n", streamline[p][0], streamline[p][1], streamline[p][2]);
-            fwrite(buffer, sizeof(char), strlen(buffer), out);
-        }
-        tractogram->deleteStreamline(streamline,idx[i]);
-    }
-
-    // Write lines
-    sprintf(buffer, "LINES %lu %lu\n",streamlineCount,streamlineCount+totalPointCount);
-	fwrite(buffer, sizeof(char), strlen(buffer), out);
-
-	int continue_index = 0;
-	for (std::size_t i=0; i<streamlineCount; i++) {
-
-		int first_count = len[i];
-        sprintf(buffer, "%d ", first_count); fwrite(buffer, sizeof(char), strlen(buffer), out);
-
-		int first_index	= continue_index;
-		int last_index	= first_index + len[i];
-		
-        for (int i=continue_index; i<last_index; i++) {
-            sprintf(buffer, "%d ", i); fwrite(buffer, sizeof(char), strlen(buffer), out);
-        }
-
-        sprintf(buffer, "\n"); fwrite(buffer, sizeof(char), strlen(buffer), out);
-
-		continue_index = last_index;
-	}
-
-    fclose (out);
-    return true;
-
-}
-
-
-bool NIBR::writeTractogram_VTK_ascii(std::string fname,std::vector<std::vector<std::vector<float>>>& tractogram) {
-
-    // Prepare output
-    FILE *out;
-	out = fopen(fname.c_str(),"wb+");
-	if (out==NULL) {
-		disp(MSG_ERROR,"Cannot write output. Output path doesn't exist.");
-		return false;
-	}
-
-
-    // Prep tractogram
-    std::size_t streamlineCount = tractogram.size();
-    std::size_t totalPointCount = 0;
-
-    std::vector<int> len;
-    len.resize(streamlineCount);
-
-    for (std::size_t i=0; i<streamlineCount; i++) {
-        len[i]           = tractogram[i].size();
-        totalPointCount += len[i];
-    }
-
-    // Write header
-	char buffer[256];
-	sprintf(buffer, "# vtk DataFile Version 3.0\n");	    fwrite(buffer, sizeof(char), strlen(buffer), out);
-    sprintf(buffer, "Generated by %s\n", SGNTR().c_str());  fwrite(buffer, sizeof(char), strlen(buffer), out);
-	sprintf(buffer, "ASCII\n"); 						    fwrite(buffer, sizeof(char), strlen(buffer), out);
-	sprintf(buffer, "DATASET POLYDATA\n"); 				    fwrite(buffer, sizeof(char), strlen(buffer), out);
-
-    // Write points
-    sprintf(buffer, "POINTS %lu float\n", totalPointCount);
-	fwrite(buffer, sizeof(char), strlen(buffer), out);
-	for (std::size_t i=0; i<streamlineCount; i++) {
-        for (int p=0; p<len[i]; p++) {
-            sprintf(buffer, "%f %f %f\n", tractogram[i][p][0], tractogram[i][p][1], tractogram[i][p][2]);
-            fwrite(buffer, sizeof(char), strlen(buffer), out);
-        }
-    }
-
-    // Write lines
-    sprintf(buffer, "LINES %lu %lu\n",streamlineCount,streamlineCount+totalPointCount);
-	fwrite(buffer, sizeof(char), strlen(buffer), out);
-
-	int continue_index = 0;
-	for (std::size_t i=0; i<streamlineCount; i++) {
-
-		int first_count = len[i];
-        sprintf(buffer, "%d ", first_count); fwrite(buffer, sizeof(char), strlen(buffer), out);
-
-		int first_index	= continue_index;
-		int last_index	= first_index + len[i];
-		
-        for (int i=continue_index; i<last_index; i++) {
-            sprintf(buffer, "%d ", i); fwrite(buffer, sizeof(char), strlen(buffer), out);
-        }
-
-        sprintf(buffer, "\n"); fwrite(buffer, sizeof(char), strlen(buffer), out);
-
-		continue_index = last_index;
-	}
-
-    fclose (out);
-    return true;
-}
-
-bool NIBR::writeTractogram_TRK(std::string fname,NIBR::TractogramReader* tractogram) {
-
-    // Prepare output
-    FILE *out;
-	out = fopen(fname.c_str(),"wb+");
-	if (out==NULL) {
-		disp(MSG_ERROR,"Cannot write output. Output path doesn't exist.");
-		return false;
-	}
-
-    // Prep tractogram
-    std::size_t streamlineCount = tractogram->numberOfStreamlines;
-
-    // Write header
-    trkFileStruct trkHeader;
-    memset(&trkHeader,0,sizeof(trkFileStruct));
-    strcpy(trkHeader.id_string, "TRACK");
-
-    for(int i=0;i<3;++i) {
-        trkHeader.dim[i]        = tractogram->imgDims[i];
-        trkHeader.voxel_size[i] = tractogram->pixDims[i];
-    }
-    std::strcpy(trkHeader.voxel_order,tractogram->voxOrdr);
-
-    trkHeader.version = 2;
-    for(int i=0;i<4;++i)
-		for(int j=0;j<4;++j)
-			trkHeader.vox_to_ras[i][j] = tractogram->ijk2xyz[i][j];
-
-    trkHeader.n_count   = streamlineCount;
-    trkHeader.hdr_size  = sizeof(trkFileStruct); // This should be 1000
-    std::fwrite(&trkHeader, sizeof(trkFileStruct), 1, out);
-
-    // Write points
-	for (std::size_t i=0; i<streamlineCount; i++) {
-        float** streamline = tractogram->readStreamline(i);
-        float tmp[3];
-        int len = tractogram->len[i];
-        fwrite(&len, sizeof(int), 1, out);
-        for (int p=0; p<len; p++) {
-            applyTransform(tmp,streamline[p],tractogram->xyz2ijk);
-            tmp[0] += 0.5f;
-            tmp[1] += 0.5f;
-            tmp[2] += 0.5f;
-            fwrite(tmp, sizeof(float), 3, out);
-        }
-        tractogram->deleteStreamline(streamline,i);
-    }
-
-    fclose (out);
-
-    return true;
-}
-
-bool NIBR::writeTractogram_TRK(std::string fname,NIBR::TractogramReader* tractogram,std::vector<std::size_t>& idx) {
-
-    // Prepare output
-    FILE *out;
-	out = fopen(fname.c_str(),"wb+");
-	if (out==NULL) {
-		disp(MSG_ERROR,"Cannot write output. Output path doesn't exist.");
-		return false;
-	}
-
-    // Prep tractogram
-    std::size_t streamlineCount = idx.size();
-
-    // Write header
-    trkFileStruct trkHeader;
-    memset(&trkHeader,0,sizeof(trkFileStruct));
-    strcpy(trkHeader.id_string, "TRACK");
-
-    for(int i=0;i<3;++i) {
-        trkHeader.dim[i]        = tractogram->imgDims[i];
-        trkHeader.voxel_size[i] = tractogram->pixDims[i];
-    }
-    std::strcpy(trkHeader.voxel_order,tractogram->voxOrdr);
-
-    trkHeader.version = 2;
-    for(int i=0;i<4;++i)
-		for(int j=0;j<4;++j)
-			trkHeader.vox_to_ras[i][j] = tractogram->ijk2xyz[i][j];
-    
-    trkHeader.n_count   = streamlineCount;
-    trkHeader.hdr_size  = sizeof(trkFileStruct);
-    std::fwrite(&trkHeader, sizeof(trkFileStruct), 1, out);
-
-    // Write points
-	for (std::size_t i=0; i<streamlineCount; i++) {
-        float** streamline = tractogram->readStreamline(idx[i]);
-        float tmp[3];
-        int len = tractogram->len[idx[i]];
-        fwrite(&len, sizeof(int), 1, out);
-        for (int p=0; p<len; p++) {
-            applyTransform(tmp,streamline[p],tractogram->xyz2ijk);
-            tmp[0] += 0.5f;
-            tmp[1] += 0.5f;
-            tmp[2] += 0.5f;
-            fwrite(tmp, sizeof(float), 3, out);
-        }
-        tractogram->deleteStreamline(streamline,idx[i]);
-    }
-
-    fclose (out);
-
-    return true;
-}
-
-template<typename T>
-bool NIBR::writeTractogram_TRK(std::string fname,std::vector<std::vector<std::vector<float>>>& tractogram, Image<T>* refImg) {
-
-    // Prepare output
-    FILE *out;
-	out = fopen(fname.c_str(),"wb+");
-	if (out==NULL) {
-		disp(MSG_ERROR,"Cannot write output. Output path doesn't exist.");
-		return false;
-	}
-
-    // Prep tractogram
-    std::size_t streamlineCount = tractogram.size();
-
-    std::vector<int> len;
-    len.resize(streamlineCount);
-
-    for (std::size_t i=0; i<streamlineCount; i++)
-        len[i] = tractogram[i].size();
-
-
-    // Write header
-    trkFileStruct trkHeader;
-    memset(&trkHeader,0,sizeof(trkFileStruct));
-    strcpy(trkHeader.id_string, "TRACK");
-
-    for(int i=0;i<3;++i) {
-        trkHeader.dim[i]        = refImg->imgDims[i];
-        trkHeader.voxel_size[i] = refImg->pixDims[i];
-    }
-    std::strcpy(trkHeader.voxel_order,"LAS");
-
-    trkHeader.version = 2;
-    float xyz2ijk[4][4];
-    for(int i=0;i<4;++i)
-		for(int j=0;j<4;++j) {
-			trkHeader.vox_to_ras[i][j]  = refImg->ijk2xyz[i][j];
-            xyz2ijk[i][j]               = refImg->xyz2ijk[i][j];
-        }
-
-    trkHeader.n_count   = streamlineCount;
-    trkHeader.hdr_size  = sizeof(trkFileStruct);
-    std::fwrite(&trkHeader, sizeof(trkFileStruct), 1, out);
-
-    // Write points
-	for (std::size_t i=0; i<streamlineCount; i++) {
-        float tmp[3];
-        fwrite(&len[i], sizeof(int), 1, out);
-        for (int p=0; p<len[i]; p++) {
-            applyTransform(tmp,tractogram[i][p],xyz2ijk);
-            tmp[0] += 0.5f;
-            tmp[1] += 0.5f;
-            tmp[2] += 0.5f;
-            fwrite(tmp, sizeof(float), 3, out);
-        }
-    }
-
-    fclose (out);
-
-    return true;
-}
-
-bool NIBR::writeTractogram_TCK(std::string fname,NIBR::TractogramReader* tractogram) {
-
-    // Prepare output
-    FILE *out;
-	out = fopen(fname.c_str(),"w+");
-	if (out==NULL) {
-		disp(MSG_ERROR,"Cannot write output. Output path doesn't exist.");
-		return false;
-	}
-    
-    std::size_t streamlineCount = tractogram->numberOfStreamlines;
-
-    // Write header
-    char buffer[256];
-    std::string str;
-    sprintf(buffer, "Generated by %s\n", SGNTR().c_str());  str.assign(buffer); fwrite(str.data(), sizeof(char), str.size(), out);
-    sprintf(buffer, "datatype: Float32LE\n");               str.assign(buffer); fwrite(str.data(), sizeof(char), str.size(), out);
-    sprintf(buffer, "count: %ld\n", streamlineCount);       str.assign(buffer); fwrite(str.data(), sizeof(char), str.size(), out);
-    sprintf(buffer, "file: . %ld\n", ftell(out)+15);        str.assign(buffer); fwrite(str.data(), sizeof(char), str.size(), out);
-    sprintf(buffer, "END\n");                               str.assign(buffer); fwrite(str.data(), sizeof(char), str.size(), out);
-    
-	//write points
-    float NANarr[3] = {NAN,NAN,NAN};
-    float INFarr[3] = {INFINITY,INFINITY,INFINITY};
-	for (std::size_t i=0; i<streamlineCount; i++) {
-        float** streamline = tractogram->readStreamline(i);
-        for (std::size_t p=0; p<tractogram->len[i]; p++) {
-            fwrite(streamline[p], sizeof(float), 3, out);
-        }
-        tractogram->deleteStreamline(streamline,i);
-        fwrite(NANarr, sizeof(float), 3, out);
-    }
-    fwrite(INFarr, sizeof(float), 3, out);
-    fclose (out);
-    return true;
-}
-
-bool NIBR::writeTractogram_TCK(std::string fname,NIBR::TractogramReader* tractogram,std::vector<std::size_t>& idx) {
-
-    // Prepare output
-    FILE *out;
-	out = fopen(fname.c_str(),"w+");
-	if (out==NULL) {
-		disp(MSG_ERROR,"Cannot write output. Output path doesn't exist.");
-		return false;
-	}
-    
-    std::size_t streamlineCount = idx.size();
-
-    // Write header
-    char buffer[256];
-    std::string str;
-    sprintf(buffer, "Generated by %s\n", SGNTR().c_str());  str.assign(buffer); fwrite(str.data(), sizeof(char), str.size(), out);
-    sprintf(buffer, "datatype: Float32LE\n");               str.assign(buffer); fwrite(str.data(), sizeof(char), str.size(), out);
-    sprintf(buffer, "count: %ld\n", streamlineCount);       str.assign(buffer); fwrite(str.data(), sizeof(char), str.size(), out);
-    sprintf(buffer, "file: . %ld\n", ftell(out)+15);        str.assign(buffer); fwrite(str.data(), sizeof(char), str.size(), out);
-    sprintf(buffer, "END\n");                               str.assign(buffer); fwrite(str.data(), sizeof(char), str.size(), out);
-    
-	//write points
-    float NANarr[3] = {NAN,NAN,NAN};
-    float INFarr[3] = {INFINITY,INFINITY,INFINITY};
-	for (std::size_t i=0; i<streamlineCount; i++) {
-        float** streamline = tractogram->readStreamline(idx[i]);
-        for (std::size_t p=0; p<tractogram->len[idx[i]]; p++) {
-            fwrite(streamline[p], sizeof(float), 3, out);
-        }
-        tractogram->deleteStreamline(streamline,idx[i]);
-        fwrite(NANarr, sizeof(float), 3, out);
-    }
-    fwrite(INFarr, sizeof(float), 3, out);
-    fclose (out);
-    return true;
-}
-
-bool NIBR::writeTractogram_TCK(std::string fname,std::vector<std::vector<std::vector<float>>>& tractogram) {
-
-    // Prepare output
-    FILE *out;
-	out = fopen(fname.c_str(),"w+");
-	if (out==NULL) {
-		disp(MSG_ERROR,"Cannot write output. Output path doesn't exist.");
-		return false;
-	}
-    
-    std::size_t streamlineCount = tractogram.size();
-
-    // Write header
-    char buffer[256];
-    std::string str;
-    sprintf(buffer, "Generated by %s\n", SGNTR().c_str());  str.assign(buffer); fwrite(str.data(), sizeof(char), str.size(), out);
-    sprintf(buffer, "datatype: Float32LE\n");               str.assign(buffer); fwrite(str.data(), sizeof(char), str.size(), out);
-    sprintf(buffer, "count: %ld\n", streamlineCount);       str.assign(buffer); fwrite(str.data(), sizeof(char), str.size(), out);
-    sprintf(buffer, "file: . %ld\n", ftell(out)+15);        str.assign(buffer); fwrite(str.data(), sizeof(char), str.size(), out);
-    sprintf(buffer, "END\n");                               str.assign(buffer); fwrite(str.data(), sizeof(char), str.size(), out);
-    
-	//write points
-    float NANarr[3] = {NAN,NAN,NAN};
-    float INFarr[3] = {INFINITY,INFINITY,INFINITY};
-	for (std::size_t i=0; i<streamlineCount; i++) {
-        for (std::size_t p=0; p<tractogram[i].size(); p++) {
-            fwrite(&tractogram[i][p][0], sizeof(float), 1, out);
-            fwrite(&tractogram[i][p][1], sizeof(float), 1, out);
-            fwrite(&tractogram[i][p][2], sizeof(float), 1, out);
-        }
-        fwrite(NANarr, sizeof(float), 3, out);
-    }
-    fwrite(INFarr, sizeof(float), 3, out);
-    fclose (out);
-    return true;
-}
-
-
-bool NIBR::writeTractogram(std::string fname,NIBR::TractogramReader* tractogram,std::vector<std::size_t>& idx) 
+bool TractogramWriter::writeStreamline(const NIBR::Streamline& streamline) 
 {
-
-    std::string ext = getFileExtension(fname);
-
-    if (ext == "tck")
-        writeTractogram_TCK(fname,tractogram,idx);
-    else if( ext == "trk")
-        writeTractogram_TRK(fname,tractogram,idx);
-    else if( ext == "vtk")
-        writeTractogram_VTK_binary(fname,tractogram,idx);
-    else {
-		disp(MSG_ERROR,"Cannot write output. Unknown file extension.");
+    if (!is_open_ || is_closed_) {
+        disp(MSG_ERROR, "Cannot write streamline: File not open or already closed.", filename_.c_str());
         return false;
     }
 
-    return true;
+    std::unique_lock<std::mutex> lock(asyncMutex_);
 
-}
-
-
-bool NIBR::writeTractogram(std::string out_fname,std::string inp_fname,std::vector<std::size_t>& idx) {
-    NIBR::TractogramReader tractogram(inp_fname);
-    return writeTractogram(out_fname,&tractogram,idx);
-}
-
-
-bool NIBR::writeTractogram(std::string out_kept_fname,std::string out_rmvd_fname,std::string inp_fname,std::vector<std::size_t>& idx) {
-
-    // Prep input
-
-    NIBR::TractogramReader tractogram(inp_fname);
-    NIBR::writeTractogram(out_kept_fname,&tractogram,idx);
-
-
-    // Rmvd tractogram
-    std::vector<std::size_t> rmvd_idx;
-    for (std::size_t i=0; i<tractogram.numberOfStreamlines; i++)
-        rmvd_idx.push_back(i);
-
-    removeIdx(rmvd_idx,idx);
-
-    writeTractogram(out_rmvd_fname,&tractogram,rmvd_idx);
-
-    return true;
-}
-
-
-bool NIBR::writeTractogram(std::string fname,std::vector<std::vector<std::vector<float>>>& tractogram,std::vector<NIBR::TractogramField>& fields) {
-
-    // Prepare output
-    FILE *out;
-	out = fopen(fname.c_str(),"wb+");
-	if (out==NULL) {
-        disp(MSG_ERROR,"Cannot write output. Output path doesn't exist.");
-		return false;
-	}
-
-
-    // Prep tractogram
-    std::size_t streamlineCount = tractogram.size();
-    std::size_t totalPointCount = 0;
-
-    std::vector<int> len;
-    len.resize(streamlineCount);
-
-    for (std::size_t i=0; i<streamlineCount; i++) {
-        len[i]           = tractogram[i].size();
-        totalPointCount += len[i];
+    if (async_write_failed_.load()) {
+        disp(MSG_ERROR, "Async writer failed. Aborting writeStreamline.");
+        return false;
     }
 
-    // Write header
-	char buffer[256];
-	sprintf(buffer, "# vtk DataFile Version 3.0\n");	    fwrite(buffer, sizeof(char), strlen(buffer), out);
-    sprintf(buffer, "Generated by %s\n", SGNTR().c_str());    fwrite(buffer, sizeof(char), strlen(buffer), out);
-	sprintf(buffer, "BINARY\n"); 						    fwrite(buffer, sizeof(char), strlen(buffer), out);
-	sprintf(buffer, "DATASET POLYDATA\n"); 				    fwrite(buffer, sizeof(char), strlen(buffer), out);
+    fillAsyncBuffer_->push_back(streamline);
 
-    // Write points
-    sprintf(buffer, "POINTS %lu float\n", totalPointCount);
-	fwrite(buffer, sizeof(char), strlen(buffer), out);
-	for (std::size_t i=0; i<streamlineCount; i++) {
-        for (int p=0; p<len[i]; p++) {
-            float tmp;
-            tmp = tractogram[i][p][0]; 	swapByteOrder(tmp); fwrite(&tmp, sizeof(float), 1, out);
-            tmp = tractogram[i][p][1]; 	swapByteOrder(tmp); fwrite(&tmp, sizeof(float), 1, out);
-            tmp = tractogram[i][p][2]; 	swapByteOrder(tmp); fwrite(&tmp, sizeof(float), 1, out);
+    // If the fill buffer is full, swap and notify the writer
+    if (fillAsyncBuffer_->size() >= WRITE_BUFFER_SIZE) {
+        
+        // Wait for the background writer to become free
+        asyncCond_.wait(lock, [this]{ return !write_pending_.load(); });
+        
+        // Swap buffers
+        std::swap(fillAsyncBuffer_, writeAsyncBuffer_);
+        
+        // Signal writer thread
+        write_pending_ = true;
+        asyncCond_.notify_one();
+    }
+
+    return true;
+}
+
+bool TractogramWriter::writeBatch(const StreamlineBatch& batch) 
+{
+    if (!is_open_ || is_closed_) {
+        disp(MSG_ERROR, "Cannot write batch: File not open or already closed.", filename_.c_str());
+        return false;
+    }
+    
+    if (batch.empty()) return true;
+
+    std::unique_lock<std::mutex> lock(asyncMutex_);
+
+    if (async_write_failed_.load()) {
+        disp(MSG_ERROR, "Async writer failed. Aborting writeBatch.");
+        return false;
+    }
+
+    asyncCond_.wait(lock, [this]{ return !write_pending_.load(); });
+
+    *fillAsyncBuffer_ = batch; 
+
+    std::swap(fillAsyncBuffer_, writeAsyncBuffer_);
+    
+    write_pending_ = true;
+    lock.unlock();
+    asyncCond_.notify_one();
+
+    return true;
+}
+
+bool TractogramWriter::writeBatch(StreamlineBatch&& batch)
+{
+    if (!is_open_ || is_closed_) {
+        disp(MSG_ERROR, "Cannot write batch: File not open or already closed.", filename_.c_str());
+        return false;
+    }
+    
+    if (batch.empty()) return true;
+
+    std::unique_lock<std::mutex> lock(asyncMutex_);
+
+    if (async_write_failed_.load()) {
+        disp(MSG_ERROR, "Async writer failed. Aborting writeBatch.");
+        return false;
+    }
+
+    asyncCond_.wait(lock, [this]{ return !write_pending_.load(); });
+
+    *fillAsyncBuffer_ = std::move(batch);
+
+    std::swap(fillAsyncBuffer_, writeAsyncBuffer_);
+
+    write_pending_ = true;
+    lock.unlock();
+    asyncCond_.notify_one();
+
+    return true;
+}
+
+bool TractogramWriter::close()
+{
+    if (!is_open_ && is_closed_) return true;
+
+    std::unique_lock<std::mutex> lock(asyncMutex_);
+
+    // Immediately prevent any new writes from other threads
+    is_open_ = false;
+
+    // Check for prior failure before proceeding
+    if (async_write_failed_.load()) {        
+        disp(MSG_ERROR, "Cannot close file cleanly, an async write operation failed previously.");
+    } else {
+
+        // Before waiting, check if there's a final partial batch to write.
+        if (!fillAsyncBuffer_->empty()) {
+            
+            // Wait for the writer to be free
+            asyncCond_.wait(lock, [this]{ return !write_pending_.load(); });
+            
+            // Swap the final partial batch into the write buffer
+            std::swap(fillAsyncBuffer_, writeAsyncBuffer_);
+            
+            // Signal this final write
+            write_pending_ = true;
+            asyncCond_.notify_one();
         }
     }
 
-    // Write lines
-    sprintf(buffer, "LINES %lu %lu\n",streamlineCount,streamlineCount+totalPointCount);
-	fwrite(buffer, sizeof(char), strlen(buffer), out);
+    // Now, wait for any pending write
+    asyncCond_.wait(lock, [this]{ return !write_pending_.load(); });
 
-	int continue_index = 0;
-	for (std::size_t i=0; i<streamlineCount; i++) {
+    // Signal the thread to stop.
+    stop_requested_ = true;
+    lock.unlock();
+    asyncCond_.notify_one();
 
-		int first_count = len[i];
-		swapByteOrder(first_count); fwrite(&first_count, sizeof(int), 1, out);
-
-		int first_index	= continue_index;
-		int last_index	= first_index + len[i];
-		for (int i=continue_index; i<last_index; i++) {
-			int tmp = i;
-			swapByteOrder(tmp); fwrite(&tmp, sizeof(int), 1, out);
-		}
-
-		continue_index = last_index;
-	}
-
-    
-    
-    // Write fields
-    std::vector<int> cellDataInd;
-    std::vector<int> pointDataInd;
-
-    for (std::size_t i=0; i<fields.size(); i++) {
-        if (fields[i].owner == STREAMLINE_OWNER) cellDataInd.push_back(i);
-        if (fields[i].owner == POINT_OWNER)      pointDataInd.push_back(i);
+    // Wait for the writer thread to terminate.
+    if (writerThread_.joinable()) {
+        writerThread_.join();
     }
 
+    // Now it's safe to call the underlying implementation's close
+    is_closed_ = pImpl_->close(finalStreamlineCount_, finalPointCount_);
+    is_open_   = false; // Ensure state is consistent
+
+    if (!is_closed_) {
+        disp(MSG_ERROR, "Failed to properly close file: %s", filename_.c_str());
+    } else {
+        disp(MSG_DEBUG, "Successfully closed %s. Final Streamlines: %ld, Final Points: %ld", filename_.c_str(), finalStreamlineCount_, finalPointCount_);
+    }
+
+    // Report failure if either the underlying close failed OR an async write failed.
+    return is_closed_ && !async_write_failed_.load();
+}
+
+
+// Helper free functions implementations
+bool writeTractogram(std::string out_fname, NIBR::TractogramReader* reader) 
+{
+
+    if (!reader || !reader->isReady()) {
+        disp(MSG_FATAL, "Input TractogramReader is not valid or not initialized.");
+        return false;
+    }
+
+    TractogramWriter writer(out_fname);
+    if (!writer.isValid())  return false;
+    if (!writer.open())     return false;
+
+    // Set TRK reference info if the output is TRK and reader has it
+    if (getFileExtension(out_fname) == "trk") {
+        disp(MSG_FATAL, "Missing reference image for trk output.");
+        return false;
+    }
+
+    int batch_count = 0;
+    reader->reset();
+
+    while (true) {
+        
+        StreamlineBatch batch = reader->getNextStreamlineBatch(WRITE_BUFFER_SIZE);
+
+        if (batch.empty()) break; 
+
+        if (!writer.writeBatch(std::move(batch))) {
+            disp(MSG_ERROR, "Failed to write batch %d to %s.", batch_count, out_fname.c_str());
+            writer.close();
+            return false;
+        }
+
+        batch_count++;
+        if (VERBOSE_LEVEL() == VERBOSE_DEBUG) {
+            if (batch_count % 10 == 0) {
+                disp(MSG_DEBUG, "Written %d batches to %s...", batch_count, out_fname.c_str());
+            }
+        }
+    }
+
+    return writer.close();
+}
+
+bool writeTractogram(std::string out_fname, const Tractogram& tractogram) 
+{
     
-    // Write STREAMLINE_OWNER fields
-    if (cellDataInd.size()>0) {
-        sprintf(buffer,"CELL_DATA %lu\n",streamlineCount); 	fwrite(buffer, sizeof(char), strlen(buffer), out);
+    if (getFileExtension(out_fname) == "trk") {
+        disp(MSG_FATAL, "Missing reference image for trk output.");
+        return false;
+    }
+    
+    TractogramWriter writer(out_fname);
+    if (!writer.isValid())  return false;
+    if (!writer.open())     return false;
 
-        for (std::size_t i=0; i<cellDataInd.size(); i++) {
+    const size_t single_batch_threshold = WRITE_BUFFER_SIZE * 5;
 
-            sprintf(buffer,"SCALARS %s ",fields[cellDataInd[i]].name.c_str());
-            fwrite(buffer, sizeof(char), strlen(buffer), out);
+    if (tractogram.size() > single_batch_threshold) {
+        disp(MSG_DEBUG, "Input tractogram is large (%zu streamlines), writing in chunks.", tractogram.size());
+        StreamlineBatch current_batch;
+        current_batch.reserve(WRITE_BUFFER_SIZE);
+        for(size_t i = 0; i < tractogram.size(); ++i) {
+            current_batch.push_back(tractogram[i]);
+            if (current_batch.size() >= WRITE_BUFFER_SIZE) {
+                if (!writer.writeBatch(std::move(current_batch))) {
+                    writer.close(); return false;
+                }
+                current_batch.clear();
+            }
+        }
+        if (!current_batch.empty()) {
+            if (!writer.writeBatch(std::move(current_batch))) {
+                 writer.close(); return false;
+            }
+        }
+    } else {
+         if (!tractogram.empty()) {
+            if (!writer.writeBatch(tractogram)) {
+                writer.close(); return false;
+            }
+        }
+    }
 
-            if (fields[cellDataInd[i]].datatype == FLOAT32_DT) sprintf(buffer,"float ");
-            if (fields[cellDataInd[i]].datatype == INT32_DT)   sprintf(buffer,"int ");
-            fwrite(buffer, sizeof(char), strlen(buffer), out);
 
-            sprintf(buffer,"%d\n",fields[cellDataInd[i]].dimension);
-            fwrite(buffer, sizeof(char), strlen(buffer), out);
+    return writer.close();
+}
 
-            sprintf(buffer,"LOOKUP_TABLE default\n");
-            fwrite(buffer, sizeof(char), strlen(buffer), out);
+template<typename T>
+bool writeTractogram(std::string out_fname, const Tractogram& tractogram, const Image<T>& refImg) 
+{
+    
+    if (getFileExtension(out_fname) != "trk") {
+        disp(MSG_WARN, "Reference image provided for non-TRK file type (%s). It will be ignored.", out_fname.c_str());
+        return writeTractogram(out_fname, tractogram);
+    }
 
-            int**   idata = NULL;
-            float** fdata = NULL;
-            if (fields[cellDataInd[i]].datatype==INT32_DT)   idata = reinterpret_cast<int**>(fields[cellDataInd[i]].data);
-            if (fields[cellDataInd[i]].datatype==FLOAT32_DT) fdata = reinterpret_cast<float**>(fields[cellDataInd[i]].data);
+    TractogramWriter writer(out_fname);
+    if (!writer.isValid()) return false;
 
-            for (std::size_t s=0; s<streamlineCount; s++) {
-                for (int d=0; d<fields[cellDataInd[i]].dimension; d++) {
+    writer.setTRKReference(refImg);
+    if (!writer.open())    return false;
+    
+    const size_t single_batch_threshold = WRITE_BUFFER_SIZE * 5;
 
-                    if (fields[cellDataInd[i]].datatype==INT32_DT) {
-                        int   tmp = idata[s][d];
-                        swapByteOrder(tmp);
-                        fwrite(&tmp, sizeof(int), 1, out);
-                    }
-                    if (fields[cellDataInd[i]].datatype==FLOAT32_DT) {
-                        float   tmp = fdata[s][d];
-                        swapByteOrder(tmp);
-                        fwrite(&tmp, sizeof(float), 1, out);
-                    }
+    if (tractogram.size() > single_batch_threshold) {
+        disp(MSG_DEBUG, "Input tractogram is large (%zu streamlines), writing in chunks.", tractogram.size());
+        StreamlineBatch current_batch;
+        current_batch.reserve(WRITE_BUFFER_SIZE);
+        for(size_t i = 0; i < tractogram.size(); ++i) {
+            current_batch.push_back(tractogram[i]);
+            if (current_batch.size() >= WRITE_BUFFER_SIZE) {
+                if (!writer.writeBatch(std::move(current_batch))) {
+                    writer.close(); return false;
+                }
+                current_batch.clear();
+            }
+        }
+        if (!current_batch.empty()) {
+            if (!writer.writeBatch(std::move(current_batch))) {
+                 writer.close(); return false;
+            }
+        }
+    } else {
+         if (!tractogram.empty()) {
+            if (!writer.writeBatch(tractogram)) {
+                writer.close(); return false;
+            }
+        }
+    }
 
+    return writer.close();
+}
+
+template bool writeTractogram<bool>         (std::string out_fname, const Tractogram& tractogram, const Image<bool>&          refImg);
+template bool writeTractogram<int8_t>       (std::string out_fname, const Tractogram& tractogram, const Image<int8_t>&        refImg);
+template bool writeTractogram<int16_t>      (std::string out_fname, const Tractogram& tractogram, const Image<int16_t>&       refImg);
+template bool writeTractogram<int32_t>      (std::string out_fname, const Tractogram& tractogram, const Image<int32_t>&       refImg);
+template bool writeTractogram<int64_t>      (std::string out_fname, const Tractogram& tractogram, const Image<int64_t>&       refImg);
+template bool writeTractogram<uint8_t>      (std::string out_fname, const Tractogram& tractogram, const Image<uint8_t>&       refImg);
+template bool writeTractogram<uint16_t>     (std::string out_fname, const Tractogram& tractogram, const Image<uint16_t>&      refImg);
+template bool writeTractogram<uint32_t>     (std::string out_fname, const Tractogram& tractogram, const Image<uint32_t>&      refImg);
+template bool writeTractogram<uint64_t>     (std::string out_fname, const Tractogram& tractogram, const Image<uint64_t>&      refImg);
+template bool writeTractogram<float>        (std::string out_fname, const Tractogram& tractogram, const Image<float>&         refImg);
+template bool writeTractogram<double>       (std::string out_fname, const Tractogram& tractogram, const Image<double>&        refImg);
+template bool writeTractogram<long double>  (std::string out_fname, const Tractogram& tractogram, const Image<long double>&   refImg);
+
+
+bool writeTractogram(std::string out_fname, const Tractogram& tractogram, const std::vector<TractogramField>& fields) 
+{
+    
+    if (getFileExtension(out_fname) != "vtk" ){
+        disp(MSG_ERROR, "Field data can be written only for vtk output.");
+        return false;
+    }
+
+    TractogramWriter writer(out_fname);
+    if (!writer.isValid()) return false;
+
+    writer.setVTKFields(fields);
+    if (!writer.open())    return false;
+
+    const size_t single_batch_threshold = WRITE_BUFFER_SIZE * 5;
+
+    if (tractogram.size() > single_batch_threshold) {
+        disp(MSG_DEBUG, "Input tractogram is large (%zu streamlines), writing in chunks.", tractogram.size());
+        StreamlineBatch current_batch;
+        current_batch.reserve(WRITE_BUFFER_SIZE);
+        for(size_t i = 0; i < tractogram.size(); ++i) {
+            current_batch.push_back(tractogram[i]);
+            if (current_batch.size() >= WRITE_BUFFER_SIZE) {
+                if (!writer.writeBatch(std::move(current_batch))) {
+                    writer.close(); return false;
+                }
+                current_batch.clear();
+            }
+        }
+        if (!current_batch.empty()) {
+            if (!writer.writeBatch(std::move(current_batch))) {
+                 writer.close(); return false;
+            }
+        }
+    } else {
+         if (!tractogram.empty()) {
+            if (!writer.writeBatch(tractogram)) {
+                writer.close(); return false;
+            }
+        }
+    }
+    
+    return writer.close();
+}
+
+
+bool writeTractogram(std::string out_fname, NIBR::TractogramReader* reader, const std::vector<size_t>& idx_to_keep_const) 
+{
+    
+    if (!reader || !reader->isReady()) {
+        disp(MSG_FATAL, "Input TractogramReader is not valid or not initialized.");
+        return false;
+    }
+
+    if (idx_to_keep_const.empty()) {
+        disp(MSG_WARN, "Empty index list provided to writeTractogram. Output file %s will be empty.", out_fname.c_str());
+        // Create an empty file by opening and closing the writer
+        TractogramWriter writer(out_fname);
+        if (!writer.isValid()) return false;
+        
+        if (getFileExtension(out_fname) == "trk") {
+            disp(MSG_FATAL, "Can't output selected streamlines with trk format.");
+            return false;
+        }
+        if (!writer.open()) return false;
+        return writer.close();
+    }
+
+    // Sort and unique indices for efficient processing if reader is not preloaded
+    std::vector<size_t> idx_to_keep = idx_to_keep_const;
+    std::sort(idx_to_keep.begin(), idx_to_keep.end());
+    idx_to_keep.erase(std::unique(idx_to_keep.begin(), idx_to_keep.end()), idx_to_keep.end());
+
+    TractogramWriter writer(out_fname);
+    if (!writer.isValid()) return false;
+
+    
+    if (getFileExtension(out_fname) == "trk") {
+        disp(MSG_FATAL, "Can't output selected streamlines with trk format.");
+        return false;
+    }
+    // TODO: Handle VTK fields if subsetting. This is complex as field data also needs subsetting.
+    // Current implementation does not transfer fields for indexed writing.
+    if (!writer.open())   return false;
+
+    reader->reset();
+
+    if (reader->isPreloaded()) {
+        StreamlineBatch out_batch;
+        out_batch.reserve(idx_to_keep.size());
+        for (size_t target_idx : idx_to_keep) {
+            if (target_idx < reader->numberOfStreamlines) {
+                out_batch.push_back(reader->getStreamline(target_idx));
+            } else {
+                disp(MSG_WARN, "Index %zu out of bounds (total streamlines: %zu). Skipping.", target_idx, reader->numberOfStreamlines);
+            }
+        }
+        if (!out_batch.empty()) {
+            if (!writer.writeBatch(std::move(out_batch))) {
+                writer.close(); return false;
+            }
+        }
+    } else {
+        // Streaming mode: read batches and pick streamlines
+        StreamlineBatch read_batch_buffer;
+        StreamlineBatch write_batch_buffer;
+        write_batch_buffer.reserve(WRITE_BUFFER_SIZE);
+
+        size_t current_reader_streamline_idx = 0;
+        size_t current_target_idx_pos = 0; // Position in sorted idx_to_keep
+
+        while (current_target_idx_pos < idx_to_keep.size()) {
+            size_t target_streamline_global_idx = idx_to_keep[current_target_idx_pos];
+
+            // Read batches until we reach or pass the target_streamline_global_idx
+            bool batch_read_ok = false;
+            while (current_reader_streamline_idx + read_batch_buffer.size() <= target_streamline_global_idx) {
+                current_reader_streamline_idx += read_batch_buffer.size();
+                read_batch_buffer = reader->getNextStreamlineBatch(WRITE_BUFFER_SIZE);
+                if (read_batch_buffer.size() <= 0) {
+                    goto end_streaming_loop; // End of input or error
+                }
+                batch_read_ok = true;
+            }
+            if (!batch_read_ok && read_batch_buffer.empty()) { // If we didn't read a new batch and buffer is empty
+                read_batch_buffer = reader->getNextStreamlineBatch(WRITE_BUFFER_SIZE);
+                if (read_batch_buffer.size() <= 0) {
+                    goto end_streaming_loop; // End of input or error
                 }
             }
 
-        }
 
-    }
-
-    // Write POINT fields
-    if (pointDataInd.size()>0) {
-
-        sprintf(buffer,"POINT_DATA %lu\n",totalPointCount); 	
-        fwrite(buffer, sizeof(char), strlen(buffer), out);
-
-        for (std::size_t i=0; i<pointDataInd.size(); i++) {
-
-            sprintf(buffer,"SCALARS %s ",fields[pointDataInd[i]].name.c_str());
-            fwrite(buffer, sizeof(char), strlen(buffer), out);
-
-            if (fields[pointDataInd[i]].datatype == FLOAT32_DT) sprintf(buffer,"float ");
-            if (fields[pointDataInd[i]].datatype == INT32_DT)   sprintf(buffer,"int ");
-            fwrite(buffer, sizeof(char), strlen(buffer), out);
-
-            sprintf(buffer,"%d\n",fields[pointDataInd[i]].dimension);
-            fwrite(buffer, sizeof(char), strlen(buffer), out);
-
-            sprintf(buffer,"LOOKUP_TABLE default\n");
-            fwrite(buffer, sizeof(char), strlen(buffer), out);
-
-            int***   idata = NULL;
-            float*** fdata = NULL;
-            if (fields[pointDataInd[i]].datatype==INT32_DT)   idata = reinterpret_cast<int***>(fields[pointDataInd[i]].data);
-            if (fields[pointDataInd[i]].datatype==FLOAT32_DT) fdata = reinterpret_cast<float***>(fields[pointDataInd[i]].data);
-
-            for (std::size_t s=0; s<streamlineCount; s++) {
-                for (int l=0; l<len[s]; l++) {
-                    for (int d=0; d<fields[pointDataInd[i]].dimension; d++) {
-
-                        if (fields[pointDataInd[i]].datatype==INT32_DT) {
-                            int tmp = idata[s][l][d];
-                            swapByteOrder(tmp);
-                            fwrite(&tmp, sizeof(int), 1, out);
-                        }
-
-                        if (fields[pointDataInd[i]].datatype==FLOAT32_DT) {
-                            float tmp = fdata[s][l][d];
-                            swapByteOrder(tmp);
-                            fwrite(&tmp, sizeof(float), 1, out);
-
-                        }
-
+            // Process the current read_batch_buffer for any matching indices
+            for (size_t i = 0; i < read_batch_buffer.size() && current_target_idx_pos < idx_to_keep.size(); ++i) {
+                size_t streamline_in_batch_global_idx = current_reader_streamline_idx + i;
+                if (streamline_in_batch_global_idx == idx_to_keep[current_target_idx_pos]) {
+                    write_batch_buffer.push_back(read_batch_buffer[i]);
+                    current_target_idx_pos++;
+                    if (write_batch_buffer.size() >= WRITE_BUFFER_SIZE) {
+                        if(!writer.writeBatch(std::move(write_batch_buffer))) { writer.close(); return false; }
+                        write_batch_buffer.clear();
                     }
+                } else if (streamline_in_batch_global_idx > idx_to_keep[current_target_idx_pos]) {
+                    // This can happen if indices are skipped or out of order, but we sorted.
+                    // It means the target index was missed or doesn't exist.
+                    // This shouldn't happen if idx_to_keep is sorted and reader->numberOfStreamlines is respected.
+                    disp(MSG_WARN, "Missed target index %zu while streaming. Current global index: %zu", idx_to_keep[current_target_idx_pos], streamline_in_batch_global_idx);
+                    current_target_idx_pos++; // Move to next target to avoid infinite loop
                 }
             }
-
         }
-
+        end_streaming_loop:;
+        if (!write_batch_buffer.empty()) {
+            if(!writer.writeBatch(std::move(write_batch_buffer))) { writer.close(); return false; }
+        }
+        if (current_target_idx_pos < idx_to_keep.size()) {
+            disp(MSG_WARN, "Not all requested streamlines were found/written from %s. Found %zu of %zu.",
+                reader->fileName.c_str(), current_target_idx_pos, idx_to_keep.size());
+        }
     }
 
+    return writer.close();
+}
 
 
-    fclose (out);
+bool writeTractogram(std::string out_fname, std::string inp_fname, const std::vector<size_t>& idx_to_keep) 
+{
+    NIBR::TractogramReader reader(inp_fname.c_str());
+    if (!reader.isReady()) {
+        disp(MSG_FATAL,"Failed to initialize reader for input file: %s", inp_fname.c_str());
+        return false;
+    }
+    return writeTractogram(out_fname, &reader, idx_to_keep);
+}
+
+bool writeTractogram(std::string out_kept_fname, std::string out_rmvd_fname, std::string inp_fname, const std::vector<size_t>& idx_to_keep_const) 
+{
+    
+    NIBR::TractogramReader reader(inp_fname.c_str()); // Open reader once
+    if (!reader.isReady()) {
+        disp(MSG_FATAL,"Failed to initialize reader for input file: %s", inp_fname.c_str());
+        return false;
+    }
+
+    // Write kept streamlines
+    disp(MSG_INFO, "Writing kept streamlines to: %s", out_kept_fname.c_str());
+    if (!writeTractogram(out_kept_fname, &reader, idx_to_keep_const)) {
+        disp(MSG_ERROR, "Failed to write kept streamlines.");
+        return false;
+    }
+    disp(MSG_INFO, "Finished writing kept streamlines.");
+
+    // Prepare indices for removed streamlines
+    std::vector<bool> is_kept(reader.numberOfStreamlines, false);
+    for (size_t original_idx : idx_to_keep_const) {
+        if (original_idx < reader.numberOfStreamlines) {
+            is_kept[original_idx] = true;
+        }
+    }
+
+    std::vector<size_t> idx_to_remove;
+    idx_to_remove.reserve(reader.numberOfStreamlines); // Max possible size
+    for (size_t i = 0; i < reader.numberOfStreamlines; ++i) {
+        if (!is_kept[i]) {
+            idx_to_remove.push_back(i);
+        }
+    }
+    
+    // Reset reader to read again for the removed streamlines
+    reader.reset(); 
+
+    disp(MSG_INFO, "Writing removed streamlines to: %s", out_rmvd_fname.c_str());
+    if (!writeTractogram(out_rmvd_fname, &reader, idx_to_remove)) {
+        disp(MSG_ERROR, "Failed to write removed streamlines.");
+        return false;
+    }
+    disp(MSG_INFO, "Finished writing removed streamlines.");
+
     return true;
+}
+
+
 }

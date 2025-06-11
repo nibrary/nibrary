@@ -211,7 +211,7 @@ void NIBR::SH::precompute(int _sphericalHarmonicOrder, OrderOfDirections _orderO
 // This is needed to ensure that the energy in the SH domain is same as that one in the SF domain.
 // This is the reason why sh2sf function in image_operators makes that scaling.
 
-void NIBR::SH_basis(std::vector<std::vector<float>>& Ylm, std::vector<std::vector<float>>& inpCoords, int order) {
+void NIBR::SH_basis(std::vector<std::vector<float>>& Ylm, std::vector<Point3D>& inpCoords, int order) {
     
     int coeffCount = (order%2 == 0) ? (order+3)*order/2+1 : (order+1)*(order+1);
     double *plm    = new double[coeffCount];

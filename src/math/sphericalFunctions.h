@@ -8,11 +8,11 @@ namespace NIBR
 
     namespace SF {
 
-        std::vector<std::vector<float>>&                    getSFCoords();
+        std::vector<Point3D>&                               getSFCoords();
         std::vector<std::vector<std::tuple<int,float> >>&   getSFNeighbors();
 
         void    init(bool _sfIsEven, int _sfDim);
-        void    init(std::vector<std::vector<float>>& coordinates, bool _sfIsEven);
+        void    init(std::vector<Point3D>& coordinates, bool _sfIsEven);
 
         void    clean();
         int64_t coordinate2index(float* coord);

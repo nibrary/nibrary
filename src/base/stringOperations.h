@@ -11,7 +11,7 @@ namespace NIBR
 
     std::vector<std::string> splitString (const std::string &s, char delim);
     
-    std::tuple<bool,Point,float> getCenterAndRadius(std::string inp);
+    std::tuple<bool,Point3D,float> getCenterAndRadius(std::string inp);
 
     template <typename T>
     std::string to_string_with_precision(const T val, const int n = 4)

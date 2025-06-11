@@ -167,7 +167,11 @@ void Params_PTT::clear() {
 	delete_img(probeCount_img);
 	delete_img(probeRadius_img);
 	delete_img(probeLength_img);
-	delete_img(probeQuality_img);	
+	delete_img(probeQuality_img);
+
+	delete_img(img_peaks);
+	delete_img(img_bias);
+	
 
 	disp(MSG_DEBUG,"PTT parameters cleared.");
 

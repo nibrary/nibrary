@@ -16,6 +16,65 @@ namespace NIBR
 {
 
     typedef enum {
+        WAIT_LOG,
+        FIRST_LOG,
+        UPDATED_LOG,
+        LAST_LOG
+    } PathwayLogState;
+
+    struct PathwayLog {
+        std::atomic<int>   log_success_REACHED_MAXLENGTH_LIMIT{0};
+        std::atomic<int>   log_success_REACHED_MINDATASUPPORT_LIMIT{0};
+        std::atomic<int>   log_success_SATISFIED_PATHWAY_RULES{0};
+        std::atomic<int>   log_discard_DISCARDINGREASON_NOTSET{0};
+        std::atomic<int>   log_discard_TOO_SHORT{0};
+        std::atomic<int>   log_discard_TOO_LONG{0};
+        std::atomic<int>   log_discard_DISCARD_ROI_REACHED{0};
+        std::atomic<int>   log_discard_REQUIRED_ROI_NOT_MET{0};
+        std::atomic<int>   log_discard_REQUIRED_ROI_ORDER_NOT_MET{0};
+        std::atomic<int>   log_discard_CANT_MEET_STOP_CONDITION{0};
+        std::atomic<int>   log_discard_ENDED_INSIDE_DISCARD_ROI{0};
+        std::atomic<int>   log_discard_REACHED_TIME_LIMIT{0};
+        std::atomic<int>   log_discard_SEED_NOT_FOUND{0};
+        std::atomic<int>   log_discard_DISCARD_SEED{0};
+        std::atomic<int>   log_discard_IMPROPER_SEED{0};
+        std::atomic<PathwayLogState> status{WAIT_LOG};
+        std::chrono::steady_clock::time_point initTime;
+        std::size_t        numberOfStreamlinesToProcess{0};
+        std::atomic<int>   numberOfStreamlinesProcessed{0};
+        std::atomic<int>   numberOfStreamlinesKept{0};
+        std::atomic<int>   numberOfStreamlinesDiscarded{0};
+        std::size_t        numberOfStreamlinesToStopAt{0};
+
+        void reset() {
+            log_success_REACHED_MAXLENGTH_LIMIT.store(0);
+            log_success_REACHED_MINDATASUPPORT_LIMIT.store(0);
+            log_success_SATISFIED_PATHWAY_RULES.store(0);
+            log_discard_DISCARDINGREASON_NOTSET.store(0);
+            log_discard_TOO_SHORT.store(0);
+            log_discard_TOO_LONG.store(0);
+            log_discard_DISCARD_ROI_REACHED.store(0);
+            log_discard_REQUIRED_ROI_NOT_MET.store(0);
+            log_discard_REQUIRED_ROI_ORDER_NOT_MET.store(0);
+            log_discard_CANT_MEET_STOP_CONDITION.store(0);
+            log_discard_ENDED_INSIDE_DISCARD_ROI.store(0);
+            log_discard_REACHED_TIME_LIMIT.store(0);
+            log_discard_SEED_NOT_FOUND.store(0);
+            log_discard_DISCARD_SEED.store(0);
+            log_discard_IMPROPER_SEED.store(0);
+
+            status.store(WAIT_LOG);
+            initTime = std::chrono::steady_clock::time_point(); // Reset time_point
+            
+            numberOfStreamlinesToProcess = 0;
+            numberOfStreamlinesProcessed.store(0);
+            numberOfStreamlinesKept.store(0);
+            numberOfStreamlinesDiscarded.store(0);
+            numberOfStreamlinesToStopAt = 0;
+        }
+    };
+
+    typedef enum {
         CONTINUE,
         STOP,
         DISCARD,
@@ -76,7 +135,7 @@ namespace NIBR
     } AtMaxLength;
 
     struct Walker {
-        std::vector<Point>*        streamline;
+        Streamline*                streamline;
         int                        ind;
         Tracking_Side              side;
         int                        sideAorder;
@@ -107,6 +166,9 @@ namespace NIBR
         Pathway();
         ~Pathway();
 
+        Pathway(const Pathway&) = delete;
+        Pathway& operator=(const Pathway&) = delete;
+
         // Set rules
         bool    add(PathwayRule prule);
         bool    remove(int ruleInd);
@@ -119,8 +181,7 @@ namespace NIBR
         bool    skipSeed(bool p)      {skipSeedROI = p;                                           isVerified = false; return verify();}
         // bool    noEdgeSeed(bool p)    {noEdgeSeeds = p;                                           isVerified = false; return verify();}
         bool    setSeedTrials(int p)  {seedTrials = p;                                            isVerified = false; return verify();}
-          
-        
+
         // Rules
         std::vector<PathwayRule>    prules;
         float                       minLength;
@@ -145,8 +206,8 @@ namespace NIBR
         void    print();
 
         // Pathway checking functions
-        Walker*                     createWalker(std::vector<Point>* streamline);
-        Walker*                     createWalker(std::vector<Point>* streamline, int ind);
+        Walker*                     createWalker(std::vector<Point3D>* streamline);
+        Walker*                     createWalker(std::vector<Point3D>* streamline, int ind);
         void                        seedlessProcess(Walker* walker);
         void                        seededProcess(Walker* walker);
         WalkerAction                checkSeed(Walker *w);                           // For seeded, two_sided case
@@ -167,6 +228,19 @@ namespace NIBR
 
         bool                        checkEndsInside(float* p, Walker* walker);
         bool                        skipSeed(Walker* walker, bool reverseDir);
+
+        // Apply pathway rules and log
+        std::tuple<bool,NIBR::Streamline>                                        apply(NIBR::Streamline& streamline);                                                    // Returns false and empty streamline if discarded, true and the output streamline if kept
+        std::tuple<NIBR::StreamlineBatch,std::vector<int>,NIBR::StreamlineBatch> apply(NIBR::StreamlineBatch& inpBatch, bool outputDiscarded = false);  // Returns kept streamlines, their indices, and discarded streamline if outputDiscard is true
+
+        PathwayLog pathwayLog;
+
+        
+        void startLogger(int N);    // Starts the interactive logging process in a separate thread.
+        void stopLogger();          // Stops the interactive logging thread and prints a final summary.
+        void showLogger();
+        void hideLogger();
+
 
 private:
 
@@ -201,8 +275,8 @@ private:
         std::vector<float*>                                                   sphCenter;
         std::vector<float>                                                    sphRadius;
         std::vector<float>                                                    sphRadiusSquared;
-        std::vector<std::vector<Point>*>                                      pntLists;
-        std::vector<std::vector<Point>*>                                      dirLists;
+        std::vector<std::vector<Point3D>*>                                    pntLists;
+        std::vector<std::vector<Point3D>*>                                    dirLists;
         std::vector<std::vector<std::vector<float>>*>                         data;
 
 
@@ -217,6 +291,13 @@ private:
 
         // This is an internally managed variable
         bool B_pulled;
+
+        // Logger thread
+        void printLogger();
+        std::thread logDisplayer;
+        std::atomic<bool> isLogging{false};
+        std::atomic<bool> isShowing{true};
+
 
     };
 

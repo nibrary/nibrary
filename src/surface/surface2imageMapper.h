@@ -156,7 +156,7 @@ namespace NIBR
         };
         NIBR::MT::MTRUN(img->voxCnt, NIBR::MT::MAXNUMBEROFTHREADS(), createMask);
 
-        std::swap(*faceGrid,grid);
+        *faceGrid = std::move(grid);
 
         return mask;
 

@@ -2,16 +2,10 @@
 
 using namespace NIBR;
 
-void NIBR::getParallelStreamlines(std::vector<std::vector<std::vector<float>>>& out, NIBR::TractogramReader* _tractogram, float radius, int ringCount, int pointCountPerRing)
+void NIBR::getParallelStreamlines(Tractogram& out, NIBR::TractogramReader* tractogram, float radius, int ringCount, int pointCountPerRing)
 {
-
-    // Initialize tractogram and make copies for multithreader
-    NIBR::TractogramReader* tractogram = new NIBR::TractogramReader[NIBR::MT::MAXNUMBEROFTHREADS()]();
-    for (int t = 0; t < NIBR::MT::MAXNUMBEROFTHREADS(); t++) {
-        tractogram[t].copyFrom(*_tractogram);
-    }
     
-    int N   = tractogram[0].numberOfStreamlines;
+    int N   = tractogram->numberOfStreamlines;
     int par = ringCount*pointCountPerRing+1;
     
     // Create output
@@ -34,20 +28,20 @@ void NIBR::getParallelStreamlines(std::vector<std::vector<std::vector<float>>>& 
         }
 
     // Iterate throught the whole tractogram
+    tractogram->reset();
+
     auto genParallel = [&](const NIBR::MT::TASK& task)->void{
 
-        int len = tractogram[task.threadId].len[task.no];
+        auto [success,streamline,streamlineId] = tractogram->getNextStreamline();
 
-        for (int p=0; p<par; p++) {
-            out[task.no*par+p].resize(len);
-            for (int l=0; l<len; l++)
-                out[task.no*par+p][l].resize(3);
-        }
+        int len = streamline.size();
 
         if (len<2)
             return;
 
-        float** streamline = tractogram[task.threadId].readStreamline(task.no);
+        for (int p=0; p<par; p++) {
+            out[streamlineId*par+p].resize(len);
+        }
 
         // To make cylinders around the streamlines, we will compute the parallel transport frame
         float T[3], N[3], B[3], curr_T[3];
@@ -63,7 +57,7 @@ void NIBR::getParallelStreamlines(std::vector<std::vector<std::vector<float>>>& 
 
         for (int p=0; p<par; p++)
             for (int i=0; i<3; i++)
-                out[task.no*par+p][0][i] = streamline[0][i] + N[i]*scale_N[p] + + B[i]*scale_B[p];
+                out[streamlineId*par+p][0][i] = streamline[0][i] + N[i]*scale_N[p] + + B[i]*scale_B[p];
 
         for (auto l=1; l<(len-1); l++) {
 
@@ -97,18 +91,14 @@ void NIBR::getParallelStreamlines(std::vector<std::vector<std::vector<float>>>& 
 
             for (int p=0; p<par; p++)
                 for (int i=0; i<3; i++)
-                    out[task.no*par+p][l][i] = streamline[l][i] + N[i]*scale_N[p] + + B[i]*scale_B[p];
+                    out[streamlineId*par+p][l][i] = streamline[l][i] + N[i]*scale_N[p] + + B[i]*scale_B[p];
 
         }
 
         // Repeat the last N, B for the last segment
         for (int p=0; p<par; p++)
             for (int i=0; i<3; i++)
-                out[task.no*par+p][len-1][i] = streamline[len-1][i] + N[i]*scale_N[p] + + B[i]*scale_B[p];
-
-        tractogram[task.threadId].deleteStreamline(streamline,task.no);
-
-        
+                out[streamlineId*par+p][len-1][i] = streamline[len-1][i] + N[i]*scale_N[p] + + B[i]*scale_B[p];        
 
     };
 
@@ -117,16 +107,11 @@ void NIBR::getParallelStreamlines(std::vector<std::vector<std::vector<float>>>& 
 }
 
 
-void NIBR::getParallelStreamlines(std::vector<std::vector<std::vector<float>>>& out, NIBR::TractogramReader* _tractogram, float sigma, int par)
+void NIBR::getParallelStreamlines(Tractogram& out, NIBR::TractogramReader* tractogram, float sigma, int par)
 {
-
-    // Initialize tractogram and make copies for multithreader
-    NIBR::TractogramReader* tractogram = new NIBR::TractogramReader[NIBR::MT::MAXNUMBEROFTHREADS()]();
-    for (int t = 0; t < NIBR::MT::MAXNUMBEROFTHREADS(); t++) {
-        tractogram[t].copyFrom(*_tractogram);
-    }
     
-    int N   = tractogram[0].numberOfStreamlines;
+    int N = tractogram->numberOfStreamlines;
+
     // Create output
     if (N<1)
         return;
@@ -144,20 +129,21 @@ void NIBR::getParallelStreamlines(std::vector<std::vector<std::vector<float>>>& 
     }
 
     // Iterate throught the whole tractogram
+
+    tractogram->reset();
+
     auto genParallel = [&](const NIBR::MT::TASK& task)->void{
 
-        int len = tractogram[task.threadId].len[task.no];
+        auto [success,streamline,streamlineId] = tractogram->getNextStreamline();
 
-        for (int p=0; p<par; p++) {
-            out[task.no*par+p].resize(len);
-            for (int l=0; l<len; l++)
-                out[task.no*par+p][l].resize(3);
-        }
-
+        int len = streamline.size();
+        
         if (len<2)
             return;
 
-        float** streamline = tractogram[task.threadId].readStreamline(task.no);
+        for (int p=0; p<par; p++) {
+            out[streamlineId*par+p].resize(len);
+        }
 
         // To make cylinders around the streamlines, we will compute the parallel transport frame
         float T[3], N[3], B[3], curr_T[3];
@@ -173,7 +159,7 @@ void NIBR::getParallelStreamlines(std::vector<std::vector<std::vector<float>>>& 
 
         for (int p=0; p<par; p++)
             for (int i=0; i<3; i++)
-                out[task.no*par+p][0][i] = streamline[0][i] + N[i]*scale_N[p] + + B[i]*scale_B[p];
+                out[streamlineId*par+p][0][i] = streamline[0][i] + N[i]*scale_N[p] + + B[i]*scale_B[p];
 
         for (auto l=1; l<(len-1); l++) {
 
@@ -207,16 +193,14 @@ void NIBR::getParallelStreamlines(std::vector<std::vector<std::vector<float>>>& 
 
             for (int p=0; p<par; p++)
                 for (int i=0; i<3; i++)
-                    out[task.no*par+p][l][i] = streamline[l][i] + N[i]*scale_N[p] + + B[i]*scale_B[p];
+                    out[streamlineId*par+p][l][i] = streamline[l][i] + N[i]*scale_N[p] + + B[i]*scale_B[p];
 
         }
 
         // Repeat the last N, B for the last segment
         for (int p=0; p<par; p++)
             for (int i=0; i<3; i++)
-                out[task.no*par+p][len-1][i] = streamline[len-1][i] + N[i]*scale_N[p] + + B[i]*scale_B[p];
-
-        tractogram[task.threadId].deleteStreamline(streamline,task.no);
+                out[streamlineId*par+p][len-1][i] = streamline[len-1][i] + N[i]*scale_N[p] + + B[i]*scale_B[p];
 
     };
 

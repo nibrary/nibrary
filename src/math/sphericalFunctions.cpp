@@ -5,14 +5,14 @@
 
 namespace NIBR {
     namespace SF {
-        std::vector<std::vector<float>>                      sfCoords;
-        std::vector<std::vector<std::tuple<int,float>>>      sfNeighbors;
-        bool                                                 sfIsEven  = false;
-        bool                                                 sfHasOwnCoordinates = false;
+        std::vector<Point3D>                            sfCoords;
+        std::vector<std::vector<std::tuple<int,float>>> sfNeighbors;
+        bool                                            sfIsEven  = false;
+        bool                                            sfHasOwnCoordinates = false;
     }
 }
 
-std::vector<std::vector<float>>&                     NIBR::SF::getSFCoords()    {return NIBR::SF::sfCoords;}
+std::vector<NIBR::Point3D>&                          NIBR::SF::getSFCoords()    {return NIBR::SF::sfCoords;}
 std::vector<std::vector<std::tuple<int,float> >>&    NIBR::SF::getSFNeighbors() {return NIBR::SF::sfNeighbors;}
 
 using namespace NIBR::SF;
@@ -62,10 +62,9 @@ void NIBR::SF::init(bool _sfIsEven, int _sfDim)
                 float dist = std::sqrt(x*x+y*y+z*z);
                 if (std::abs(dist-sfRadius)<(std::sqrt(3)/2)) {
                     sfInds[std::size_t((x+R)+((y+R)+(z-zs)*sfDim)*sfDim)] = ind++;                  
-                    float p[3] = {x,y,z}; 
+                    Point3D p = {x,y,z}; 
                     normalize(p);
-                    std::vector<float> vertex{p[0],p[1],p[2]};
-                    sfCoords.push_back(vertex);
+                    sfCoords.emplace_back(p);
                 }
                 else
                     sfInds[std::size_t((x+R)+((y+R)+(z-zs)*sfDim)*sfDim)] = -1;
@@ -81,7 +80,7 @@ void NIBR::SF::init(bool _sfIsEven, int _sfDim)
 
 }
 
-void NIBR::SF::init(std::vector<std::vector<float>>& coordinates, bool _sfIsEven)
+void NIBR::SF::init(std::vector<Point3D>& coordinates, bool _sfIsEven)
 {
     NIBR::SF::clean();
     sfHasOwnCoordinates = true;
@@ -95,7 +94,7 @@ void NIBR::SF::init(std::vector<std::vector<float>>& coordinates, bool _sfIsEven
 
         for (std::size_t u=0; u<sfCoords.size(); u++) {
             if (sfIsEven) {
-                std::vector<float> reverseDir = {-sfCoords[u][0],-sfCoords[u][1],-sfCoords[u][2]};
+                Point3D reverseDir = {-sfCoords[u][0],-sfCoords[u][1],-sfCoords[u][2]};
                 dist = std::min(distS2(sfCoords[v],sfCoords[u]), distS2(sfCoords[v],reverseDir));
             } else {
                 dist = distS2(sfCoords[v],sfCoords[u]);
@@ -125,7 +124,7 @@ void NIBR::SF::clean()
         delete[] sfInds;
         sfInds = NULL;
     }
-    std::vector<std::vector<float>>().swap(sfCoords);
+    std::vector<Point3D>().swap(sfCoords);
     std::vector<std::vector<std::tuple<int,float>>>().swap(sfNeighbors);
 }
 

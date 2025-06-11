@@ -2,25 +2,23 @@
 
 #include "base/nibr.h"
 #include "dMRI/tractography/io/tractogramReader.h"
-#include "dMRI/tractography/pathway/pathway.h"
-#include "dMRI/tractography/io/tractogramWriter.h"
-
+#include "dMRI/tractography/io/tractogramField.h"
 
 namespace NIBR 
 {
     
     // Compute bounding box of a tractogram
-    std::vector<float> getTractogramBBox(NIBR::TractogramReader* tractogram);
+    std::vector<float>  getTractogramBBox(NIBR::TractogramReader* tractogram);
 
-    // tuple<diffStreamlineIdx,sameStreamlineIdx>
-    std::tuple<std::vector<size_t>,std::vector<size_t>> tractogramDiff(NIBR::TractogramReader* inp_tractogram, NIBR::TractogramReader* ref_tractogram);
+    // Returns bool vector marking true for streamlines which are in the inpBatch but not in the refBatch
+    std::vector<bool>   tractogramDiff(const StreamlineBatch& inpBatch, const StreamlineBatch& refBatch);
 
-    // Extends inp1 by appending the streamlines in inp2, optionally checks and removes duplicates
-    std::vector<std::vector<std::vector<float>>> tractogramMerge(NIBR::TractogramReader* inp1, NIBR::TractogramReader* inp2, bool checkDuplicates);
+    StreamlineBatch     tractogramTransform(const StreamlineBatch& batch_in, float M[][4]);
 
-    std::vector<std::vector<std::vector<float>>> applyTransform(NIBR::TractogramReader* tractogram, float M[][4]);
+    TractogramField     colorTractogram(NIBR::TractogramReader* tractogram);
 
-    TractogramField colorTractogram(NIBR::TractogramReader* tractogram);
+    // Checks for corrupted streamlines and returns streamline lengths, number of points, mean step size and standard deviation of step size
+    std::tuple<bool,std::vector<float>, std::size_t, float, float> getTractogramStats(NIBR::TractogramReader* tractogram);
 
 }
 

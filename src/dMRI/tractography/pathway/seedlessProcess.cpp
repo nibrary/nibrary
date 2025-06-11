@@ -50,14 +50,14 @@ void NIBR::Pathway::seedlessProcess(NIBR::Walker* w) {
 
     // First check end point rules
     float firstPoint[3];
-    firstPoint[0]  = w->streamline->front().x;
-    firstPoint[1]  = w->streamline->front().y;
-    firstPoint[2]  = w->streamline->front().z;
+    firstPoint[0]  = w->streamline->front()[0];
+    firstPoint[1]  = w->streamline->front()[1];
+    firstPoint[2]  = w->streamline->front()[2];
 
     float lastPoint[3];
-    lastPoint[0]  = w->streamline->back().x;
-    lastPoint[1]  = w->streamline->back().y;
-    lastPoint[2]  = w->streamline->back().z;
+    lastPoint[0]  = w->streamline->back()[0];
+    lastPoint[1]  = w->streamline->back()[1];
+    lastPoint[2]  = w->streamline->back()[2];
 
     bool discard = false;
     bool keep    = true;
@@ -209,8 +209,8 @@ void NIBR::Pathway::seedlessProcess(NIBR::Walker* w) {
             // Prepare segment
             if (isSegmentReady == false) {
                 
-                w->segment.beg   = &(w->streamline->at(b).x);
-                w->segment.end   = &(w->streamline->at(e).x);
+                w->segment.beg   = w->streamline->at(b).data();
+                w->segment.end   = w->streamline->at(e).data();
 
                 vec3sub(w->segment.dir,w->segment.end,w->segment.beg);
                 w->segment.len   = norm(w->segment.dir);

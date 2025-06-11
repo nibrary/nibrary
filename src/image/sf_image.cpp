@@ -73,7 +73,7 @@ NIBR::SF_Image::SF_Image(std::string _filePath, std::string _dirPath, bool _isEv
         disp(MSG_FATAL, "Spherical function image must have 4 dimensions");
     }
 
-    auto tmp = NIBR::readTripletsFromTextFileTo2DVector(_dirPath);
+    auto tmp = NIBR::readTripletsFromTextFile(_dirPath);
     if (int(std::get<1>(tmp).size()) != int(this->imgDims[3])) {
         disp(MSG_ERROR,"Input image dimensions (%d) and number of directions (%d) do not match.",this->imgDims[3],std::get<1>(tmp).size());
         return;
@@ -104,6 +104,8 @@ void NIBR::SF_Image::smooth(float angle) {
 
     float dist = deg2rad(angle);
     
+    std::mutex modifier;
+
     // We will find and only process those voxels which have non-zero values
     std::vector<std::vector<int64_t>> nnzVoxelSubs;
     auto findNonZeroVoxels = [&](const NIBR::MT::TASK& task)->void {
@@ -116,9 +118,8 @@ void NIBR::SF_Image::smooth(float angle) {
 
                     if (data[sub2ind(i,j,k,t)]!=0){
                         std::vector<int64_t> tmp{i,j,k};
-                        NIBR::MT::PROC_MX().lock();
+                        std::lock_guard lock(modifier);
                         nnzVoxelSubs.push_back(tmp);
-                        NIBR::MT::PROC_MX().unlock();
                         break;
                     }
                     

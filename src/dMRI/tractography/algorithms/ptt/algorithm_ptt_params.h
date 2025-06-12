@@ -119,9 +119,6 @@ public:
 	Image<float>*      	 	    probeLength_img{NULL};
 	Image<float>*      	 	    probeQuality_img{NULL};
 
-	Image<float>*      	 	    img_peaks{NULL};
-	Image<float>*      	 	    img_bias{NULL};	
-
 	bool                 		checkWeakLinks{false};
 
 	float                		maxCurvature_global{NAN};

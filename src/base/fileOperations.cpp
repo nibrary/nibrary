@@ -2,9 +2,9 @@
 #include <random>
 #include <regex>
 #include <fcntl.h>
-#include <unistd.h>
 #include <thread>
 #include <system_error>
+#include "config.h"
 #include "fileOperations.h"
 #include "verbose.h"
 #include "multithreader.h"
@@ -373,7 +373,12 @@ void NIBR::prepSequentialRead(const std::string& filename)
         return;
     }
 
-    posix_fadvise(fd, 0, 0, POSIX_FADV_SEQUENTIAL);
+    // Advise the kernel that file access will be sequential
+    #if defined(__APPLE__)
+        fcntl(fd, F_RDAHEAD, 1);
+    #else
+        posix_fadvise(fd, 0, 0, POSIX_FADV_SEQUENTIAL);
+    #endif
 
     close(fd);
 
@@ -396,7 +401,11 @@ void NIBR::prepRandomRead(const std::string& filename)
     }
 
     // Advise the kernel that file access will be random
-    posix_fadvise(fd, 0, 0, POSIX_FADV_RANDOM);
+    #if defined(__APPLE__)
+        fcntl(fd, F_NOCACHE, 1);
+    #else
+        posix_fadvise(fd, 0, 0, POSIX_FADV_RANDOM);
+    #endif
 
     close(fd);
     

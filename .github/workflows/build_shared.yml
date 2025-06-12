@@ -218,13 +218,11 @@ jobs:
         apk add --no-cache cmake build-base
         
     - name: Set up build directory and environment
-      shell: bash
       run: |
         echo "build_type=Release" >> $GITHUB_ENV
         echo "build-output-dir=${{ github.workspace }}/build_linux" >> $GITHUB_ENV
 
     - name: Configure CMake (Ubuntu)
-      shell: bash
       run: |
         cmake -B ${{ env.build-output-dir }} \
           -DCMAKE_BUILD_TYPE=${{ env.build_type }} \
@@ -236,7 +234,6 @@ jobs:
       run: cmake --build ${{ env.build-output-dir }} --config ${{ env.build_type }} --target install
 
     - name: Rename executable
-      shell: bash
       run: |
         cd ${{ env.build-output-dir }}/install
         tar -czvf nibrary_linux_static.tar.gz include lib

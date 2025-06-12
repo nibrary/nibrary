@@ -14,4 +14,9 @@ namespace NIBR
             std::swap(byteArray[sizeof(a) - 1 - i],byteArray[i]);
     }
 
+    inline bool is_little_endian() {
+        int n = 1;
+        return (*(char *)&n == 1);
+    }
+
 }

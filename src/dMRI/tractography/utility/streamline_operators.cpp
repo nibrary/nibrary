@@ -19,7 +19,7 @@ float NIBR::getStreamlineLength(float** inp, int len)
     return length;
 }
 
-float NIBR::getStreamlineLength(std::vector<std::vector<float>>& inp)
+float NIBR::getStreamlineLength(Streamline& inp)
 {
     int len = inp.size();
 
@@ -33,23 +33,6 @@ float NIBR::getStreamlineLength(std::vector<std::vector<float>>& inp)
     }
 
     return length;
-}
-
-float NIBR::getStreamlineLength(std::vector<Point>& inp) {
-
-    int len = inp.size();
-
-    if (len<2)
-        return 0;
-
-    float length = 0;
-
-    for (int i=1; i<len; i++) {
-        length += dist(inp[i],inp[i-1]);
-    }
-
-    return length;
-
 }
 
 float NIBR::getStreamlineLength_hermite(float** inp, int len, int div) 
@@ -88,7 +71,7 @@ float NIBR::getStreamlineLength_hermite(float** inp, int len, int div)
     return length;
 }
 
-float NIBR::getStreamlineLength_hermite(std::vector<std::vector<float>>& inp, int div)
+float NIBR::getStreamlineLength_hermite(Streamline& inp, int div)
 {
 
     int len = int(inp.size());
@@ -127,7 +110,7 @@ float NIBR::getStreamlineLength_hermite(std::vector<std::vector<float>>& inp, in
     return length;
 }
 
-std::vector<float> NIBR::getStreamlineLength_hermiteWithSpeed(std::vector<std::vector<float>>& inp, int div)
+std::vector<float> NIBR::getStreamlineLength_hermiteWithSpeed(const Streamline& inp, int div)
 {
 
     int len = int(inp.size());
@@ -179,27 +162,32 @@ std::vector<float> NIBR::getStreamlineLength_hermiteWithSpeed(std::vector<std::v
     return out;
 }
 
-float** NIBR::colorStreamline(std::vector<std::vector<float>>& inp)
+std::vector<Point3D> NIBR::colorStreamline(const Streamline& inp)
 {
 
     int len = int(inp.size());
 
-    float** colors = new float*[len];
+    std::vector<Point3D> colors;
+    colors.reserve(len);
+
+    if (len < 1) {
+        return colors;
+    }
+
+    if (len == 1) {
+        colors.push_back({0.0f,0.0f,0.0f});
+        return colors;
+    }
 
     for (int n = 0; n < (len-1); n++) {
-        float* dir = new float[3];
+        Point3D dir;
         vec3sub(dir,inp[n+1],inp[n]);
         normalize(dir);
         vec3abs(dir);
-        colors[n] = dir;
+        colors.push_back(std::move(dir));
     }
     
-    float* dir = new float[3];
-    dir[0] = colors[len-2][0];
-    dir[1] = colors[len-2][1];
-    dir[2] = colors[len-2][2];
-
-    colors[len-1] = dir;
+    colors.push_back(colors.back());
 
     return colors;
 
@@ -208,7 +196,7 @@ float** NIBR::colorStreamline(std::vector<std::vector<float>>& inp)
 
 
 // Function to calculate the one-sided Hausdorff distance from trk1 to trk2
-float oneSidedHausdorffDistance(const std::vector<std::vector<float>>& trk1, const std::vector<std::vector<float>>& trk2) {
+float oneSidedHausdorffDistance(const Streamline& trk1, const Streamline& trk2) {
     float maxDist = 0;
 
     for (const auto& point1 : trk1) {
@@ -228,14 +216,14 @@ float oneSidedHausdorffDistance(const std::vector<std::vector<float>>& trk1, con
 }
 
 // Two-sided Hausdorff distance
-float NIBR::getHausdorffDistance(std::vector<std::vector<float>>& trk1, std::vector<std::vector<float>>& trk2) {
+float NIBR::getHausdorffDistance(Streamline& trk1, Streamline& trk2) {
     float hd1 = oneSidedHausdorffDistance(trk1, trk2);
     float hd2 = oneSidedHausdorffDistance(trk2, trk1);
     return std::max(hd1, hd2);
 }
 
 // Minimum average direct-flip (MDF) distance
-float NIBR::getMDFDistance(std::vector<std::vector<float>>& trk1, std::vector<std::vector<float>>& trk2) {
+float NIBR::getMDFDistance(Streamline& trk1, Streamline& trk2) {
 
     if (trk1.size() != trk2.size()) {
         disp(MSG_ERROR, "Number of points along streamlines must be equal.");
@@ -244,13 +232,32 @@ float NIBR::getMDFDistance(std::vector<std::vector<float>>& trk1, std::vector<st
 
     float directDist  = 0;
     float flippedDist = 0;
-    size_t n = trk1.size();
+    std::size_t n = trk1.size();
 
-    for (size_t i = 0; i < n; ++i) {
+    for (std::size_t i = 0; i < n; ++i) {
         directDist  += dist(trk1[i], trk2[i]);
         flippedDist += dist(trk1[i], trk2[n - i - 1]);
     }
 
     return std::min(directDist, flippedDist) / float(n);
 
+}
+
+bool NIBR::areStreamlinesIdentical(const Streamline& s1, const Streamline& s2, float tolerance) {
+    if (s1.size() != s2.size()) {
+        return false;
+    }
+    if (s1.empty()) {
+        return true;
+    }
+    for (size_t i = 0; i < s1.size(); ++i) {
+        const auto& p1 = s1[i];
+        const auto& p2 = s2[i];
+        if ( (std::fabs(p1[0] - p2[0]) > tolerance) ||
+             (std::fabs(p1[1] - p2[1]) > tolerance) ||
+             (std::fabs(p1[2] - p2[2]) > tolerance) ) {
+            return false;
+        }
+    }
+    return true;
 }

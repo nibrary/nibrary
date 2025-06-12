@@ -25,15 +25,18 @@ extern Pathway 		   pw;
 extern Params_PTT      params_ptt;
 
 // Derived parameters
-extern std::vector<std::vector<std::vector<float>>> tractogram;
+extern Tractogram                                   tractogram;
+extern std::vector<int>                             streamlineLength;
 extern std::vector<int>                             seedIndex;
 extern TractogramField                              seedIndexField;
 extern std::chrono::steady_clock::time_point        initTime;
 extern std::chrono::steady_clock::time_point        lastTime;
 extern bool                                         runtimeLimitReached;  // time passed since the TRACKER was initialized or reset
 extern bool                                         idletimeLimitReached; // time passed since the last successful streamline was computed and appended on the tractogram
+extern std::size_t                                  currentCount;
 extern bool                                         countIsReached;
 extern int                                          ready_thread_id;
+extern std::mutex                                   trackKeeper;
 
 // Loggers
 extern std::atomic<std::size_t> log_success_REACHED_MAXLENGTH_LIMIT;
@@ -55,8 +58,8 @@ extern std::atomic<std::size_t> log_failed_BY_THE_ALGORITHM;
 
 extern std::atomic<std::size_t> log_unexpected_TRACKING_STATUS;
 
-std::vector<std::vector<std::vector<float>>>& getTractogram();
-TractogramField& getSeedIndexField();
+Tractogram&         getTractogram();
+TractogramField&    getSeedIndexField();
 
 int  runTime();
 int  idleTime();

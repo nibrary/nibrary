@@ -15,8 +15,8 @@ typedef unsigned int uint;
 namespace NIBR
 {
 
-    void sf2sh(NIBR::Image<float>* out, NIBR::Image<float>* inp, std::vector<std::vector<float>>& coords, int shOrder);
-    void sh2sf(NIBR::Image<float>* out, NIBR::Image<float>* inp, std::vector<std::vector<float>>& coords);
+    void sf2sh(NIBR::Image<float>* out, NIBR::Image<float>* inp, std::vector<Point3D>& coords, int shOrder);
+    void sh2sf(NIBR::Image<float>* out, NIBR::Image<float>* inp, std::vector<Point3D>& coords);
 
     void reorientSH(NIBR::Image<float>* img, OrderOfDirections ood);
     void rotateSH(NIBR::Image<float>* img, float R[][4]);
@@ -172,7 +172,7 @@ namespace NIBR
 
         auto data    = img->data;
 
-        auto findVoxels = [&](NIBR::MT::TASK task)->void {
+        auto findVoxels = [&](const NIBR::MT::TASK& task)->void {
         
             int64_t i   = task.no;
             
@@ -194,7 +194,7 @@ namespace NIBR
         std::vector<std::vector<int64_t>> subs;
 
         for (int i=0; i<MT::MAXNUMBEROFTHREADS(); i++) {
-            subs.insert(subs.begin(),nnzVoxelSubs[i].begin(),nnzVoxelSubs[i].end());
+            subs.insert(subs.end(),nnzVoxelSubs[i].begin(),nnzVoxelSubs[i].end());
         }
         delete[] nnzVoxelSubs;
 
@@ -210,7 +210,7 @@ namespace NIBR
     template<typename T1,typename T2, typename T_OUT>
     void imgResample(NIBR::Image<T_OUT>* imgOut,NIBR::Image<T1>* img, T2 M) {
         
-        auto f = [&](NIBR::MT::TASK task)->void {
+        auto f = [&](const NIBR::MT::TASK& task)->void {
             
             int64_t i,j,k;
             float     p[3];
@@ -231,7 +231,7 @@ namespace NIBR
     template<typename T_INP, typename T_OUT>
     void imgResample(NIBR::Image<T_OUT>* imgOut,NIBR::Image<T_INP>* img) {
         
-        auto f = [&](NIBR::MT::TASK task)->void {
+        auto f = [&](const NIBR::MT::TASK& task)->void {
             
             int64_t i,j,k;
             float p[3];
@@ -443,7 +443,7 @@ namespace NIBR
         auto N = get3DNeighbors(conn);
         std::vector<int> inds = getNonZeroIndices(&img);
 
-        auto f = [&](NIBR::MT::TASK task)->void {
+        auto f = [&](const NIBR::MT::TASK& task)->void {
             int64_t i, j, k;
             img.ind2sub(inds[task.no], i, j, k);
 
@@ -479,7 +479,7 @@ namespace NIBR
         auto N = get3DNeighbors(conn);
         std::vector<int> inds = getNonZeroIndices(&img);
 
-        auto f = [&](NIBR::MT::TASK task)->void {
+        auto f = [&](const NIBR::MT::TASK& task)->void {
             int64_t i, j, k;
             img.ind2sub(inds[task.no], i, j, k);
 

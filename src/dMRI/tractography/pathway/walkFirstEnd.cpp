@@ -24,8 +24,8 @@ void NIBR::Pathway::walkFirstEnd(NIBR::Walker* walker)
         }
 
     } else {
-        walker->segment.beg   = &(walker->streamline->at(n).x);
-        walker->segment.end   = &(walker->streamline->at(n).x);
+        walker->segment.beg   = walker->streamline->at(n).data();
+        walker->segment.end   = walker->streamline->at(n).data();
         walker->segment.len   = 0;
         walker->segment.dir[0]= 0;
         walker->segment.dir[1]= 0;

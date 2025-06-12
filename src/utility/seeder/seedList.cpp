@@ -9,9 +9,9 @@ SeederOutputState SeedList::getSeed(float* p, int) {
     if (state!=SEED_OK)
         return state;
 
-    p[0] = seed_coordinates->at(curSeed).x;
-    p[1] = seed_coordinates->at(curSeed).y;
-    p[2] = seed_coordinates->at(curSeed).z;
+    p[0] = seed_coordinates->at(curSeed)[0];
+    p[1] = seed_coordinates->at(curSeed)[1];
+    p[2] = seed_coordinates->at(curSeed)[2];
     
     curSeed++;
 
@@ -26,14 +26,14 @@ SeederOutputState SeedList::getSeed(float* p, float* dir, int) {
     if (state!=SEED_OK)
         return state;
     
-    p[0]    = seed_coordinates->at(curSeed).x;
-    p[1]    = seed_coordinates->at(curSeed).y;
-    p[2]    = seed_coordinates->at(curSeed).z;
+    p[0]    = seed_coordinates->at(curSeed)[0];
+    p[1]    = seed_coordinates->at(curSeed)[1];
+    p[2]    = seed_coordinates->at(curSeed)[2];
 
     if (!seed_directions->empty()) {
-        dir[0]  = seed_directions->at(curSeed).x;
-        dir[1]  = seed_directions->at(curSeed).y;
-        dir[2]  = seed_directions->at(curSeed).z;
+        dir[0]  = seed_directions->at(curSeed)[0];
+        dir[1]  = seed_directions->at(curSeed)[1];
+        dir[2]  = seed_directions->at(curSeed)[2];
     }
 
     curSeed++;
@@ -54,7 +54,7 @@ void SeedList::computeMaxPossibleSeedCount() {
     maxPossibleSeedCount = seed_coordinates->size();
 }
 
-bool SeedList::setSeed(std::vector<Point>& p) {
+bool SeedList::setSeed(std::vector<Point3D>& p) {
 
     seed_coordinates = &p;
 
@@ -66,7 +66,7 @@ bool SeedList::setSeed(std::vector<Point>& p) {
     return true;
 }
 
-bool SeedList::setSeed(std::vector<Point>& p, std::vector<Point>& dir) {
+bool SeedList::setSeed(std::vector<Point3D>& p, std::vector<Point3D>& dir) {
 
     seed_coordinates = &p;
     seed_directions  = &dir;

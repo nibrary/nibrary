@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.15.0)
 
 set(nibrary_VERSION_MAJOR 0)
-set(nibrary_VERSION_MINOR 3)
+set(nibrary_VERSION_MINOR 4)
 set(nibrary_VERSION_PATCH 0)
 
 project(nibrary VERSION ${nibrary_VERSION_MAJOR}.${nibrary_VERSION_MINOR}.${nibrary_VERSION_PATCH} LANGUAGES CXX C)
@@ -38,6 +38,7 @@ include_directories(${CMAKE_SOURCE_DIR}/external)
 include_directories(${CMAKE_SOURCE_DIR}/external/expat)
 include_directories(${CMAKE_SOURCE_DIR}/external/marchingCubes)
 include_directories(${CMAKE_SOURCE_DIR}/external/triangleVoxelIntersection)
+include_directories(${CMAKE_SOURCE_DIR}/external/unordered_dense)
 
 # List source files
 file(GLOB_RECURSE SRCS CONFIGURE_DEPENDS RELATIVE ${CMAKE_SOURCE_DIR}
@@ -202,6 +203,7 @@ install(DIRECTORY ${CMAKE_SOURCE_DIR}/external/fast-marching-method DESTINATION 
 install(DIRECTORY ${CMAKE_SOURCE_DIR}/external/gifticlib DESTINATION include/${nibrary} FILES_MATCHING PATTERN "*.h")
 install(DIRECTORY ${CMAKE_SOURCE_DIR}/external/marchingCubes DESTINATION include/${nibrary} FILES_MATCHING PATTERN "*.h")
 install(DIRECTORY ${CMAKE_SOURCE_DIR}/external/niftilib DESTINATION include/${nibrary} FILES_MATCHING PATTERN "*.h")
+install(DIRECTORY ${CMAKE_SOURCE_DIR}/external/unordered_dense DESTINATION include/${nibrary} FILES_MATCHING PATTERN "*.h")
 
 if(BUILDING_EIGEN_FROM_SOURCE)
     install(DIRECTORY ${EIGEN_INCLUDE_DIR}/Eigen DESTINATION include/${nibrary})

@@ -1,6 +1,6 @@
 # SIMDe
 
-SET(SIMDE_MIN_VERSION "0.7.6")
+SET(SIMDE_MIN_VERSION "0.8.2")
 
 # Option to use the system library if it exists
 if (USE_SYSTEM_SIMDE)

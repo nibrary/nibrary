@@ -59,10 +59,9 @@ void NIBR::FOD_Image::fillDiscVolSph() {
                 float dist = std::sqrt(x*x+y*y+z*z);
                 if (std::abs(dist-discVolSphRadius)<(std::sqrt(3)/2)) {
                     discVolSphInds[size_t((x+R)+((y+R)+(z-zs)*discVolSphDim)*discVolSphDim)] = ind++;                  
-                    float p[3] = {x,y,z}; 
+                    std::array<float,3> p = {x,y,z}; 
                     normalize(p);
-                    std::vector<float> vertex{p[0],p[1],p[2]};
-                    discVolSphCoords.push_back(vertex);
+                    discVolSphCoords.emplace_back(p);
                 }
                 else
                     discVolSphInds[size_t((x+R)+((y+R)+(z-zs)*discVolSphDim)*discVolSphDim)] = -1;

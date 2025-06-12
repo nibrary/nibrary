@@ -16,7 +16,7 @@ Propagation_Decision TrackWith_PTT::initialize() {
 	posteriorMax 	= 0;
 
 	for (tries=0; tries < initMaxEstTrials; tries++) {
-		curve->getInitCandidate(thread->seed_init_direction);
+		curve->getInitCandidate(trackingThread->seed_init_direction);
 		if (curve->likelihood > posteriorMax) {
 			posteriorMax = curve->likelihood;
 			initial_curve->copy(curve);			// Saved for useBestAtInit
@@ -43,7 +43,7 @@ Propagation_Decision TrackWith_PTT::initialize() {
 		// Do rejection sampling for initialization
 		for (tries=0; tries<triesPerRejectionSampling; tries++) {
 
-			curve->getInitCandidate(thread->seed_init_direction);
+			curve->getInitCandidate(trackingThread->seed_init_direction);
 
 			dataSupport = std::pow(curve->likelihood,dataSupportExponent);
 

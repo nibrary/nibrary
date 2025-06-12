@@ -26,12 +26,12 @@ public:
 
     // Sphere
     virtual bool setSeed(float,float,float,float);
-	virtual bool setSeed(Point,float);
+	virtual bool setSeed(Point3D,float);
 	virtual bool setSeed(float*,float);
 
     // List
-    virtual bool setSeed(std::vector<Point>&) {return false;}
-	virtual bool setSeed(std::vector<Point>&,std::vector<Point>&) {return false;}
+    virtual bool setSeed(std::vector<Point3D>&) {return false;}
+	virtual bool setSeed(std::vector<Point3D>&,std::vector<Point3D>&) {return false;}
 
     // Surface
     virtual bool setSeed(Surface*) {return false;}

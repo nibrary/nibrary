@@ -95,8 +95,7 @@ bool NIBR::FOD_Image::read() {
         }
 
         for (auto p : std::get<1>(sphere)) {
-            std::vector<float> tmp = {p.x,p.y,p.z};
-            sphereCoords.push_back(tmp);
+            sphereCoords.push_back(p);
         }
 
         if (int64_t(sphereCoords.size())!=this->valCnt) {
@@ -135,10 +134,9 @@ bool NIBR::FOD_Image::read() {
     }
 
     float* ddata = new float[nnt*voxCnt];
-    
-    auto loadingTask = [&](NIBR::MT::TASK task)->void {
+    int    shNum = getNumberOfSHCoeffs(shOrder);
 
-        int shNum = getNumberOfSHCoeffs(shOrder);
+    auto loadingTask = [&](const NIBR::MT::TASK& task)->void {
         
         std::vector<int64_t> sub = nnzVoxelSubs[task.no];
         float *FOD               = new float[shNum];
@@ -148,11 +146,11 @@ bool NIBR::FOD_Image::read() {
                 FOD[t] = data[sub2ind(sub[0],sub[1],sub[2],t)];
         } else {
             for (int n=0; n<shNum; n++) {
+                FOD[n] = 0.0f;
                 for (int64_t t=0; t<imgDims[3]; t++)
                     FOD[n] += Ylm[t][n]*data[sub2ind(sub[0],sub[1],sub[2],t)];
             }
-        }
-    
+        }    
         
         if (discretizationFlag==true) {
             for (int64_t t=0; t<nnt; t++) {
@@ -164,7 +162,6 @@ bool NIBR::FOD_Image::read() {
                 ddata[t + sub[0]*nnt + sub[1]*nnt*imgDims[0] + sub[2]*nnt*imgDims[0]*imgDims[1]] = FOD[t];
             }
         }
-        
  
         delete[] FOD;
         

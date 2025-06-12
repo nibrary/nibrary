@@ -1,5 +1,6 @@
 #include "trekker.h"
 // #include "algorithms/ptt/algorithm_ptt_params.h"
+#include "io/tractogramWriter.h"
 #include "pathway/pathway.h"
 #include "pathway/parseRule.h"
 #include "tracker/tracker.h"
@@ -658,7 +659,7 @@ void Trekker::probeQuality(std::string paramStr) {
 void Trekker::reset() { TRACKER::reset();}
 
 // Runner
-void Trekker::run() {
+void Trekker::run(void* writer) {
 
     // Verify seed count and run time limit requirement
     if ( ((TRACKER::seed.sCount == INT64_MAX) || (TRACKER::seed.sCount <= 0)) && ((TRACKER::runTimeLimit == INT32_MAX) || (TRACKER::runTimeLimit <= 0)) ) {
@@ -699,9 +700,9 @@ void Trekker::run() {
     TRACKER::pw.print();
     
     // Run
-    auto runTrekker = [&](NIBR::MT::TASK task)->bool {
+    auto runTrekker = [&](const NIBR::MT::TASK& task)->bool {
         TrackingThread tracker(task.no);
-        return tracker.track();        
+        return tracker.track(static_cast<TractogramWriter*>(writer));
     };
 
     

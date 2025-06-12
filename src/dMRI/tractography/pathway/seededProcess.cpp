@@ -84,7 +84,7 @@ void NIBR::Pathway::seededProcess(NIBR::Walker* walker) {
 
             // If seed point is inside a discard_if_inside region, immediately discard.
             // Notice that we are doing this here, because discard_if_inside is B_pulled so needs to be checked for walker side_B. The check is therefore done for the seed point.
-            if (checkEndsInside(&walker->streamline->at(walker->seedInd).x,walker)) 
+            if (checkEndsInside(walker->streamline->at(walker->seedInd).data(),walker)) 
                 continue;
 
             // We first try to walk towards the first end, i.e. seed -> walker.endInd

@@ -45,10 +45,10 @@ double NIBR::isNumber(const std::string &s)
 
 }
 
-std::tuple<bool,Point,float> NIBR::getCenterAndRadius(std::string inp) {
+std::tuple<bool,Point3D,float> NIBR::getCenterAndRadius(std::string inp) {
     
-    Point p = {0,0,0};
-    float r = 0;
+    Point3D p = {0,0,0};
+    float   r = 0;
 
     std::vector<std::string> vals = NIBR::splitString(inp, ',');
 
@@ -56,10 +56,10 @@ std::tuple<bool,Point,float> NIBR::getCenterAndRadius(std::string inp) {
         return std::make_tuple(false,p,r);
     } else {
         try {
-            p.x = std::stof(vals[0]);
-            p.y = std::stof(vals[1]);
-            p.z = std::stof(vals[2]);
-            r   = std::stof(vals[3]);
+            p[0] = std::stof(vals[0]);
+            p[1] = std::stof(vals[1]);
+            p[2] = std::stof(vals[2]);
+            r    = std::stof(vals[3]);
             return std::make_tuple(true,p,r);
         }
         catch (const std::invalid_argument&) {

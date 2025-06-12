@@ -30,10 +30,10 @@ namespace NIBR {
 
     private:
 
-        bool                            isEven;
-        bool                            hasDirections;
-        int                             sphericalDomainResolution;
-        std::vector<std::vector<float>> dirs;
+        bool                    isEven;
+        bool                    hasDirections;
+        int                     sphericalDomainResolution;
+        std::vector<Point3D>    dirs;
 
     };
 

@@ -44,11 +44,12 @@ SeederOutputState SeedImage::getSeed(float* p, int t) {
     }
 
 
-    MT::PROC_MX().lock();
-    state = checkSeedingLimits();
-    if (state == SEED_OK)
-        curSeed++;
-    MT::PROC_MX().unlock();
+    {
+        std::lock_guard lock(seedCheck);
+        state = checkSeedingLimits();
+        if (state == SEED_OK)
+            curSeed++;
+    }
 
     return state;
 

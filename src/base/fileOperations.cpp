@@ -1,8 +1,13 @@
-#include "fileOperations.h"
-#include "verbose.h"
 #include <fstream>
 #include <random>
 #include <regex>
+#include <fcntl.h>
+#include <thread>
+#include <system_error>
+#include "config.h"
+#include "fileOperations.h"
+#include "verbose.h"
+#include "multithreader.h"
 
 using namespace NIBR;
 
@@ -222,10 +227,10 @@ std::string NIBR::generateRandomFileNameInTempPath() {
 
 
 // Returns false if values can't be read
-std::tuple<bool,std::vector<Point>> NIBR::readTripletsFromTextFile(std::string fname)
+std::tuple<bool,std::vector<Point3D>> NIBR::readTripletsFromTextFile(std::string fname)
 {
 
-    std::vector<Point> out;
+    std::vector<Point3D> out;
 
     std::string   values;
     std::ifstream inpFile(fname);
@@ -256,40 +261,6 @@ std::tuple<bool,std::vector<Point>> NIBR::readTripletsFromTextFile(std::string f
 
     return std::make_tuple(true,out);
 
-}
-
-std::tuple<bool,std::vector<std::vector<float>>> NIBR::readTripletsFromTextFileTo2DVector(std::string fname)
-{
-    std::vector<std::vector<float>> out;
-
-    std::string   values;
-    std::ifstream inpFile(fname);
-
-    if (!inpFile.good()) {
-        disp(MSG_ERROR,"Can't read values from %s", fname.c_str());
-        return std::make_tuple(false,out);
-    }
-
-    int lineNo = 1;
-    bool readError = false;
-    while(std::getline(inpFile,values)) {
-        if (!values.empty()) {
-            std::stringstream xyz(values);
-            float x,y,z;
-            if (xyz.good()) xyz >> x; else { readError = true; break; }
-            if (xyz.good()) xyz >> y; else { readError = true; break; }
-            if (xyz.good()) xyz >> z; else { readError = true; break; }
-            out.push_back({x,y,z});
-        }
-        lineNo++;
-    }
-    inpFile.close();
-    if (readError) {
-        disp(MSG_ERROR,"Can't read values from %s line %d", fname.c_str(),lineNo);
-        return std::make_tuple(false,out);
-    }
-
-    return std::make_tuple(true,out);
 }
 
 std::string wildcardToRegex(const std::string& wildcard) {
@@ -336,4 +307,109 @@ std::vector<std::string> NIBR::getMatchingFiles(const std::string& pattern) {
     }
 
     return result;
+}
+
+bool NIBR::areFilesIdentical(const std::string& fileName1, const std::string& fileName2) 
+{
+    
+    std::ifstream file1(fileName1, std::ifstream::binary | std::ifstream::ate);
+    std::ifstream file2(fileName2, std::ifstream::binary | std::ifstream::ate);
+
+    // Check if either file failed to open
+    if (!file1.is_open() || !file2.is_open()) {
+        if (!file1.is_open()) {
+            std::cerr << "Error opening file: " << fileName1 << std::endl;
+        }
+        if (!file2.is_open()) {
+            std::cerr << "Error opening file: " << fileName2 << std::endl;
+        }
+        return false;
+    }
+
+    // Get the size of each file
+    std::ifstream::pos_type fileSize1 = file1.tellg();
+    std::ifstream::pos_type fileSize2 = file2.tellg();
+
+    // If the file sizes are different, they are not identical
+    if (fileSize1 != fileSize2) {
+        return false;
+    }
+
+    // Move the file pointers back to the beginning of the files
+    file1.seekg(0, std::ifstream::beg);
+    file2.seekg(0, std::ifstream::beg);
+
+    // Define a buffer size for reading chunks of the files
+    const size_t bufferSize = 1024 * 1024 * 10; // 10 MB
+    std::vector<char> buffer1(bufferSize);
+    std::vector<char> buffer2(bufferSize);
+
+    // Read and compare the files in chunks
+    while (file1.read(buffer1.data(), bufferSize) && file2.read(buffer2.data(), bufferSize)) {
+        if (std::memcmp(buffer1.data(), buffer2.data(), bufferSize) != 0) {
+            return false;
+        }
+    }
+
+    // After the loop, check the number of bytes read in the last read operation
+    if (file1.gcount() != file2.gcount() || std::memcmp(buffer1.data(), buffer2.data(), file1.gcount()) != 0) {
+        return false;
+    }
+
+    // If all chunks are identical, the files are identical
+    return true;
+}
+
+void NIBR::prepSequentialRead(const std::string& filename) 
+{
+
+#ifndef _WIN32
+
+    disp(MSG_DETAIL, "Hinting kernel to preload %s using posix_fadvise...", filename.c_str());
+
+    int fd = open(filename.c_str(), O_RDONLY);
+    if (fd == -1) {
+        disp(MSG_FATAL, "Could not open file %s", filename.c_str());
+        return;
+    }
+
+    // Advise the kernel that file access will be sequential
+    #if defined(__APPLE__)
+        fcntl(fd, F_RDAHEAD, 1);
+    #else
+        posix_fadvise(fd, 0, 0, POSIX_FADV_SEQUENTIAL);
+    #endif
+
+    close(fd);
+
+#endif
+
+    return;
+}
+
+void NIBR::prepRandomRead(const std::string& filename)
+{
+
+#ifndef _WIN32
+
+    disp(MSG_DETAIL, "Hinting kernel for random access on %s using posix_fadvise...", filename.c_str());
+
+    int fd = open(filename.c_str(), O_RDONLY);
+    if (fd == -1) {
+        disp(MSG_FATAL, "Could not open file %s", filename.c_str());
+        return;
+    }
+
+    // Advise the kernel that file access will be random
+    #if defined(__APPLE__)
+        fcntl(fd, F_NOCACHE, 1);
+    #else
+        posix_fadvise(fd, 0, 0, POSIX_FADV_RANDOM);
+    #endif
+
+    close(fd);
+    
+#endif
+
+    return;
 }

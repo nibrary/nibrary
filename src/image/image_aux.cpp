@@ -35,7 +35,7 @@ void NIBR::Image<T>::printInfo() {
     }
     std::cout << "]" << std::endl;
     std::cout << "Pixdim:                 [" << pixDims[0] << " x " << pixDims[1] << " x " << pixDims[2] << "]" << std::endl;
-    // std::cout << "Index order:            [" << indexOrder[0] << "," << indexOrder[1] << "," << indexOrder[2] << "," << indexOrder[3] << "," << indexOrder[4] << "," << indexOrder[5] << "," << indexOrder[6] << "]" << std::endl;
+    std::cout << "Index order:            [" << indexOrder[0] << "," << indexOrder[1] << "," << indexOrder[2] << "," << indexOrder[3] << "," << indexOrder[4] << "," << indexOrder[5] << "," << indexOrder[6] << "]" << std::endl;
     // std::cout << "voxCnt, valCnt, numel:  [" << voxCnt << "," << valCnt << "," << numel << "]" << std::endl;
     // std::cout << "dataScaler, dataOffset: [" << dataScaler << "," << dataOffset << "]" << std::endl;
 

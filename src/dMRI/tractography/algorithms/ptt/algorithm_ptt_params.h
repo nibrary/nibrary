@@ -94,10 +94,6 @@ public:
 	std::string      	 	    probeLength_img_path{""};
 	std::string      	 	    probeQuality_img_path{""};
 
-	// Superpeak options
-	std::string           	    img_peaks_path{""};
-	std::string           	    img_bias_path{""};
-
 	// Parameter mask
 	std::string           	    img_param_mask_path{""};
 
@@ -143,7 +139,7 @@ private:
 
 	bool                        pttIsReady{false};
 
-	std::vector<Point>			fodSphere;
+	std::vector<Point3D>		fodSphere;
 	bool                        fodIsSpheresliced{false};
 	float		    		    smallestPixDim{NAN};
 	OrderOfDirections			orderOfDirections{XYZ};	

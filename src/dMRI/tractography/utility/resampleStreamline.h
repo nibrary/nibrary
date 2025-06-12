@@ -7,13 +7,12 @@
 namespace NIBR 
 {
 
-    std::vector<std::vector<float>> resampleStreamline_withStepSize (std::vector<std::vector<float>>& streamline, float step);
-    std::vector<std::vector<float>> resampleStreamline_withStepCount(std::vector<std::vector<float>>& streamline, int N);
+    Streamline resampleStreamline_withStepSize (const Streamline& streamline, float step);
+    Streamline resampleStreamline_withStepCount(const Streamline& streamline, int N);
 
-    std::vector<std::vector<float>> resampleStreamline_withStepSize (NIBR::TractogramReader* tractogram, int index, float step);
-    std::vector<std::vector<float>> resampleStreamline_withStepCount(NIBR::TractogramReader* tractogram, int index, int N);
+    StreamlineBatch resampleTractogram_withStepSize(const StreamlineBatch& batch_in, float step);
+    StreamlineBatch resampleTractogram_withStepCount(const StreamlineBatch& batch_in, int N);
 
-    std::vector<std::vector<std::vector<float>>> resampleTractogram_withStepSize(NIBR::TractogramReader* tractogram, float step);
-    std::vector<std::vector<std::vector<float>>> resampleTractogram_withStepCount(NIBR::TractogramReader* tractogram, int N);
+    StreamlineBatch resampleBatch(const StreamlineBatch& batch_in,float stepSize,int stepCount,bool useSizeOpt); 
 
 }

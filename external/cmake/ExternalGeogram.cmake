@@ -1,6 +1,6 @@
 # GEOGRAM
 
-SET(GEOGRAM_MIN_VERSION "1.9.2" CACHE STRING "Minimum geogram version") 
+SET(GEOGRAM_MIN_VERSION "1.9.5" CACHE STRING "Minimum geogram version") 
 
 include("${CMAKE_CURRENT_LIST_DIR}/utils.cmake")
 
@@ -33,6 +33,12 @@ if(NOT GEOGRAM_FOUND)
         set(GEOGRAM_SOURCE_DIR "${CMAKE_SOURCE_DIR}/external/geogram")
 
         set(BUILDING_GEOGRAM_FROM_SOURCE TRUE CACHE INTERNAL "Geogram will be built from local source")
+        
+        conditional_move("${CMAKE_SOURCE_DIR}/external/geogram/src/lib/geogram/basic/assert.cpp" "${CMAKE_SOURCE_DIR}/external/geogram/src/lib/geogram/basic/assert_bak")
+        conditional_copy_file("${CMAKE_SOURCE_DIR}/external/geogram_patch/assert.cpp" "${CMAKE_SOURCE_DIR}/external/geogram/src/lib/geogram/basic/assert.cpp")
+
+        conditional_move("${CMAKE_SOURCE_DIR}/external/geogram/src/lib/geogram/basic/process_unix.cpp" "${CMAKE_SOURCE_DIR}/external/geogram/src/lib/geogram/basic/process_unix_bak")
+        conditional_copy_file("${CMAKE_SOURCE_DIR}/external/geogram_patch/process_unix.cpp" "${CMAKE_SOURCE_DIR}/external/geogram/src/lib/geogram/basic/process_unix.cpp")
 
         message(STATUS "Geogram will be built from local source")
 
@@ -41,6 +47,12 @@ if(NOT GEOGRAM_FOUND)
         set(GEOGRAM_SOURCE_DIR "${CMAKE_SOURCE_DIR}/external/geogram_${GEOGRAM_MIN_VERSION}")
 
         set(BUILDING_GEOGRAM_FROM_SOURCE TRUE CACHE INTERNAL "Geogram will be built from local source")
+
+        conditional_move("${CMAKE_SOURCE_DIR}/external/geogram/src/lib/geogram/basic/assert.cpp" "${CMAKE_SOURCE_DIR}/external/geogram/src/lib/geogram/basic/assert_bak")
+        conditional_copy_file("${CMAKE_SOURCE_DIR}/external/geogram_patch/assert.cpp" "${CMAKE_SOURCE_DIR}/external/geogram/src/lib/geogram/basic/assert.cpp")
+
+        conditional_move("${CMAKE_SOURCE_DIR}/external/geogram/src/lib/geogram/basic/process_unix.cpp" "${CMAKE_SOURCE_DIR}/external/geogram/src/lib/geogram/basic/process_unix_bak")
+        conditional_copy_file("${CMAKE_SOURCE_DIR}/external/geogram_patch/process_unix.cpp" "${CMAKE_SOURCE_DIR}/external/geogram/src/lib/geogram/basic/process_unix.cpp")
 
         message(STATUS "Geogram will be built from local source")
 
@@ -75,6 +87,15 @@ if(NOT GEOGRAM_FOUND)
                 message(FATAL_ERROR "Error extracting ${DOWNLOAD_FNAME}: ${extract_result}")
             endif()
         endif()
+
+        message(STATUS "GEOGRAM_SOURCE_DIR is ${GEOGRAM_SOURCE_DIR}/src/lib/geogram/basic/assert.cpp")
+        message(STATUS "CMAKE_SOURCE_DIR is ${CMAKE_SOURCE_DIR}/external/geogram_patch/assert.cpp")
+
+        conditional_move("${GEOGRAM_SOURCE_DIR}/src/lib/geogram/basic/assert.cpp" "${GEOGRAM_SOURCE_DIR}/src/lib/geogram/basic/assert_bak")
+        conditional_copy_file("${CMAKE_SOURCE_DIR}/external/geogram_patch/assert.cpp" "${GEOGRAM_SOURCE_DIR}/src/lib/geogram/basic/assert.cpp")
+
+        conditional_move("${GEOGRAM_SOURCE_DIR}/src/lib/geogram/basic/process_unix.cpp" "${GEOGRAM_SOURCE_DIR}/src/lib/geogram/basic/process_unix_bak")
+        conditional_copy_file("${CMAKE_SOURCE_DIR}/external/geogram_patch/process_unix.cpp" "${GEOGRAM_SOURCE_DIR}/src/lib/geogram/basic/process_unix.cpp")
 
     endif()
 

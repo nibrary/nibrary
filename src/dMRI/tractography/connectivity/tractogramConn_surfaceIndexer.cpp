@@ -43,9 +43,7 @@ bool NIBR::SCsurfaceIndexer::isBg(int val) {
 NIBR::SCsurfaceIndexer::SCsurfaceIndexer(NIBR::TractogramReader* _tractogram, NIBR::Surface* _surf, NIBR::SurfaceField *_surfLabels) {
     
     // Initialize tractogram
-    tractogram = new NIBR::TractogramReader[NIBR::MT::MAXNUMBEROFTHREADS()]();
-    for (int t = 0; t < NIBR::MT::MAXNUMBEROFTHREADS(); t++)
-        tractogram[t].copyFrom(*_tractogram);
+    tractogram = _tractogram;
 
     // Initialize label image
     surf            = _surf;
@@ -61,10 +59,7 @@ NIBR::SCsurfaceIndexer::SCsurfaceIndexer(NIBR::TractogramReader* _tractogram, NI
 }
 
 NIBR::SCsurfaceIndexer::~SCsurfaceIndexer() { 
-    for (int t = 0; t < NIBR::MT::MAXNUMBEROFTHREADS(); t++) {
-        tractogram[t].destroyCopy();
-    }
-    delete[] tractogram;
+    return;
 }
 
 
@@ -111,7 +106,7 @@ void NIBR::SCsurfaceIndexer::run() {
     tractogram2surfaceMapper(tractogram, surf, tract2surfMap, true);
 
     // Compute connectome
-    NIBR::MT::MTRUN(tractogram[0].numberOfStreamlines, "Computing connectome", [&](NIBR::MT::TASK task)->void{processStreamline(task.no,task.threadId);} );
+    NIBR::MT::MTRUN(tractogram[0].numberOfStreamlines, "Computing connectome", [&](const NIBR::MT::TASK& task)->void{processStreamline(task.no,task.threadId);} );
 }
 
 

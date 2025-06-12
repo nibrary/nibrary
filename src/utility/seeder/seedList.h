@@ -26,12 +26,12 @@ public:
 
     // Sphere
     virtual bool setSeed(float,float,float,float) {return false;}
-	virtual bool setSeed(Point,float) {return false;}
+	virtual bool setSeed(Point3D,float) {return false;}
 	virtual bool setSeed(float*,float) {return false;}
 
     // List
-    virtual bool setSeed(std::vector<Point>&);
-	virtual bool setSeed(std::vector<Point>&,std::vector<Point>&);
+    virtual bool setSeed(std::vector<Point3D>&);
+	virtual bool setSeed(std::vector<Point3D>&,std::vector<Point3D>&);
 
     // Surface
     virtual bool setSeed(Surface*) {return false;}
@@ -43,8 +43,8 @@ public:
 
 private:
 
-    std::vector<Point> *seed_coordinates{NULL};
-	std::vector<Point> *seed_directions{NULL};
+    std::vector<Point3D> *seed_coordinates{NULL};
+	std::vector<Point3D> *seed_directions{NULL};
     
 };
 

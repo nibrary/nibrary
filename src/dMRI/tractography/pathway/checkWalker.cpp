@@ -17,8 +17,8 @@ NIBR::WalkerAction NIBR::Pathway::checkWalker(NIBR::Walker *w, int b, int e)
 
 	auto setSegment = [&]() {
 		if (isSegmentReady == false) {
-			w->segment.beg   = &(w->streamline->at(b).x);
-			w->segment.end   = &(w->streamline->at(e).x);
+			w->segment.beg   = w->streamline->at(b).data();
+			w->segment.end   = w->streamline->at(e).data();
 			vec3sub(w->segment.dir,w->segment.end,w->segment.beg);
 			w->segment.len   = norm(w->segment.dir);
 			w->segStopLength = w->segment.len;

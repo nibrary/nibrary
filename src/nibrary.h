@@ -3,12 +3,14 @@
 #include "base/nibr.h"
 #include "base/config.h"
 #include "base/stringOperations.h"
+#include "base/vectorOperations.h"
 
 // dMRI
 #include "dMRI/gradient/dMRI_grad.h"
 #include "dMRI/imageTypes/fod_image.h"
 #include "dMRI/reconstruction/transhi2015/recon_transhi2015.h"
 
+#include "dMRI/tractography/tractogram.h"
 #include "dMRI/tractography/trekker.h"
 
 #include "dMRI/tractography/algorithms/tractographyAlgorithm.h"
@@ -28,7 +30,8 @@
 #include "dMRI/tractography/mappers/gridder_4mask.h"
 #include "dMRI/tractography/mappers/gridder_4segmentLength.h"
 #include "dMRI/tractography/mappers/gridder_4streamlineCount.h"
-#include "dMRI/tractography/mappers/gridder_4streamlineIdAndGaussianWeightedLength.h"
+#include "dMRI/tractography/mappers/gridder_4streamlineIdAndGaussianWeightedLength_disk.h"
+#include "dMRI/tractography/mappers/gridder_4streamlineIdAndGaussianWeightedLength_mem.h"
 #include "dMRI/tractography/mappers/gridder_4streamlineIdAndLength.h"
 #include "dMRI/tractography/mappers/tractogram2imageMapper.h"
 #include "dMRI/tractography/mappers/tractogram2surfaceMapper.h"
@@ -43,7 +46,6 @@
 #include "dMRI/tractography/tracker/tracker.h"
 #include "dMRI/tractography/tracker/trackerThread.h"
 
-#include "dMRI/tractography/utility/pathFilter.h"
 #include "dMRI/tractography/utility/parallelStreamlineGenerator.h"
 #include "dMRI/tractography/utility/resampleStreamline.h"
 #include "dMRI/tractography/utility/segmentOperators.h"

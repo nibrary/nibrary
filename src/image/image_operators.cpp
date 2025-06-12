@@ -5,7 +5,7 @@ using namespace NIBR;
 using namespace SF;
 using namespace SH;
 
-void NIBR::sf2sh(NIBR::Image<float>* out, NIBR::Image<float>* inp, std::vector<std::vector<float>>& coords, int shOrder) {
+void NIBR::sf2sh(NIBR::Image<float>* out, NIBR::Image<float>* inp, std::vector<Point3D>& coords, int shOrder) {
     
     std::vector<std::vector<float>> Ylm;
     SH_basis(Ylm, coords, shOrder);
@@ -18,9 +18,11 @@ void NIBR::sf2sh(NIBR::Image<float>* out, NIBR::Image<float>* inp, std::vector<s
         out->create(4, &imgDims[0], inp->pixDims, inp->ijk2xyz, true);
     }
 
+    std::mutex modifier;
+
     // We will find and only process those voxels which have non-zero values
     std::vector<std::vector<int64_t>> nnzVoxelSubs;
-    auto findNonZeroVoxels = [&](NIBR::MT::TASK task)->void {
+    auto findNonZeroVoxels = [&](const NIBR::MT::TASK& task)->void {
         
         int64_t i   = task.no;
         
@@ -30,9 +32,8 @@ void NIBR::sf2sh(NIBR::Image<float>* out, NIBR::Image<float>* inp, std::vector<s
 
                     if (inp->data[inp->sub2ind(i,j,k,t)]!=0){
                         std::vector<int64_t> tmp{i,j,k};
-                        NIBR::MT::PROC_MX().lock();
+                        std::lock_guard lock(modifier);
                         nnzVoxelSubs.push_back(tmp);
-                        NIBR::MT::PROC_MX().unlock();
                         break;
                     }
                     
@@ -42,7 +43,7 @@ void NIBR::sf2sh(NIBR::Image<float>* out, NIBR::Image<float>* inp, std::vector<s
     NIBR::MT::MTRUN(inp->imgDims[0],findNonZeroVoxels);
 
     // Apply spherical harmonics expansion
-    auto shExpansion = [&](NIBR::MT::TASK task)->void {
+    auto shExpansion = [&](const NIBR::MT::TASK& task)->void {
         
         std::vector<int64_t> sub = nnzVoxelSubs[task.no];
         
@@ -58,7 +59,7 @@ void NIBR::sf2sh(NIBR::Image<float>* out, NIBR::Image<float>* inp, std::vector<s
 }
 
 
-void NIBR::sh2sf(NIBR::Image<float>* out, NIBR::Image<float>* inp, std::vector<std::vector<float>>& coords) {
+void NIBR::sh2sf(NIBR::Image<float>* out, NIBR::Image<float>* inp, std::vector<Point3D>& coords) {
     
     int shOrder = getSHOrderFromNumberOfCoeffs(inp->imgDims[3]);
 
@@ -71,9 +72,11 @@ void NIBR::sh2sf(NIBR::Image<float>* out, NIBR::Image<float>* inp, std::vector<s
         out->create(4, &imgDims[0], inp->pixDims, inp->ijk2xyz, true);
     }
 
+    std::mutex modifier;
+
     // We will find and only process those voxels which have non-zero values
     std::vector<std::vector<int64_t>> nnzVoxelSubs;
-    auto findNonZeroVoxels = [&](NIBR::MT::TASK task)->void {
+    auto findNonZeroVoxels = [&](const NIBR::MT::TASK& task)->void {
         
         int64_t i   = task.no;
         
@@ -83,9 +86,8 @@ void NIBR::sh2sf(NIBR::Image<float>* out, NIBR::Image<float>* inp, std::vector<s
 
                     if (inp->data[inp->sub2ind(i,j,k,t)]!=0){
                         std::vector<int64_t> tmp{i,j,k};
-                        NIBR::MT::PROC_MX().lock();
+                        std::lock_guard lock(modifier);
                         nnzVoxelSubs.push_back(tmp);
-                        NIBR::MT::PROC_MX().unlock();
                         break;
                     }
                     
@@ -97,7 +99,7 @@ void NIBR::sh2sf(NIBR::Image<float>* out, NIBR::Image<float>* inp, std::vector<s
     float scale = 4.0 * PI / float(coords.size());
 
     // Apply spherical harmonics synthesis
-    auto shSynthesis = [&](NIBR::MT::TASK task)->void {
+    auto shSynthesis = [&](const NIBR::MT::TASK& task)->void {
         
         std::vector<int64_t> sub = nnzVoxelSubs[task.no];
         
@@ -129,9 +131,11 @@ void NIBR::sh2sf(NIBR::Image<float>* out, NIBR::Image<float>* inp, std::vector<s
         out->create(4, &imgDims[0], inp->pixDims, inp->ijk2xyz, true);
     }
 
+    std::mutex modifier;
+
     // We will find and only process those voxels which have non-zero values
     std::vector<std::vector<int64_t>> nnzVoxelSubs;
-    auto findNonZeroVoxels = [&](NIBR::MT::TASK task)->void {
+    auto findNonZeroVoxels = [&](const NIBR::MT::TASK& task)->void {
         
         int64_t i   = task.no;
         
@@ -141,9 +145,8 @@ void NIBR::sh2sf(NIBR::Image<float>* out, NIBR::Image<float>* inp, std::vector<s
 
                     if (inp->data[inp->sub2ind(i,j,k,t)]!=0){
                         std::vector<int64_t> tmp{i,j,k};
-                        NIBR::MT::PROC_MX().lock();
+                        std::lock_guard lock(modifier);
                         nnzVoxelSubs.push_back(tmp);
-                        NIBR::MT::PROC_MX().unlock();
                         break;
                     }
                     
@@ -155,7 +158,7 @@ void NIBR::sh2sf(NIBR::Image<float>* out, NIBR::Image<float>* inp, std::vector<s
     float scale = 4.0 * PI / float(coords.size());
 
     // Apply spherical harmonics synthesis
-    auto shSynthesis = [&](NIBR::MT::TASK task)->void {
+    auto shSynthesis = [&](const NIBR::MT::TASK& task)->void {
         
         std::vector<int64_t> sub = nnzVoxelSubs[task.no];
         
@@ -186,12 +189,10 @@ DATATYPE NIBR::getImageDataType(std::string imgFname) {
 void NIBR::reorientSH(NIBR::Image<float>* img, OrderOfDirections ood)
 {
     // Compute directions
-    std::vector<std::vector<float>> coords;
+    std::vector<Point3D> coords;
 
     for (size_t i = 0; i < 2562; i++) {
-        float tmp[3] = {DENSESPHEREVERT[i][0],DENSESPHEREVERT[i][1],DENSESPHEREVERT[i][2]};
-        std::vector<float> inp_dir = { tmp[0] , tmp[1] , tmp[2] };
-        coords.push_back(inp_dir);
+        coords.push_back({DENSESPHEREVERT[i][0],DENSESPHEREVERT[i][1],DENSESPHEREVERT[i][2]});
     }
 
 
@@ -205,9 +206,11 @@ void NIBR::reorientSH(NIBR::Image<float>* img, OrderOfDirections ood)
     int coeffCount = img->imgDims[3];
     int valueCount = coords.size();
 
+    std::mutex modifier;
+
     // We will find and only process those voxels which have non-zero values
     std::vector<std::vector<int64_t>> nnzVoxelSubs;
-    auto findNonZeroVoxels = [&](NIBR::MT::TASK task)->void {
+    auto findNonZeroVoxels = [&](const NIBR::MT::TASK& task)->void {
         
         int64_t i   = task.no;
         
@@ -217,9 +220,8 @@ void NIBR::reorientSH(NIBR::Image<float>* img, OrderOfDirections ood)
 
                     if (img->data[img->sub2ind(i,j,k,t)]!=0){
                         std::vector<int64_t> tmp{i,j,k};
-                        NIBR::MT::PROC_MX().lock();
+                        std::lock_guard lock(modifier);
                         nnzVoxelSubs.push_back(tmp);
-                        NIBR::MT::PROC_MX().unlock();
                         break;
                     }
                     
@@ -231,7 +233,7 @@ void NIBR::reorientSH(NIBR::Image<float>* img, OrderOfDirections ood)
     float scale = (4.0 * PI) / float(coords.size());
 
     // Apply spherical harmonics synthesis and then expansion
-    auto reorient = [&](NIBR::MT::TASK task)->void {
+    auto reorient = [&](const NIBR::MT::TASK& task)->void {
         
         std::vector<int64_t> sub = nnzVoxelSubs[task.no];
 
@@ -270,19 +272,15 @@ void NIBR::rotateSH(NIBR::Image<float>* img, float R[][4])
     }
 
     // Compute directions
-    std::vector<std::vector<float>> inp_coords;
-    std::vector<std::vector<float>> out_coords;
+    std::vector<Point3D> inp_coords;
+    std::vector<Point3D> out_coords;
 
     for (size_t i = 0; i < 2562; i++) {
         float tmp[3] = {DENSESPHEREVERT[i][0],DENSESPHEREVERT[i][1],DENSESPHEREVERT[i][2]};
-        
-        std::vector<float> inp_dir = { tmp[0] , tmp[1] , tmp[2] };
-        inp_coords.push_back(inp_dir);
+        inp_coords.push_back({ tmp[0] , tmp[1] , tmp[2] });
 
         rotate(tmp,R);
-
-        std::vector<float> out_dir = { tmp[0] , tmp[1] , tmp[2] };
-        out_coords.push_back(out_dir);
+        out_coords.push_back({ tmp[0] , tmp[1] , tmp[2] });
     }
 
 
@@ -298,9 +296,11 @@ void NIBR::rotateSH(NIBR::Image<float>* img, float R[][4])
     int coeffCount = img->imgDims[3];
     int valueCount = out_coords.size();
 
+    std::mutex modifier;
+
     // We will find and only process those voxels which have non-zero values
     std::vector<std::vector<int64_t>> nnzVoxelSubs;
-    auto findNonZeroVoxels = [&](NIBR::MT::TASK task)->void {
+    auto findNonZeroVoxels = [&](const NIBR::MT::TASK& task)->void {
         
         int64_t i   = task.no;
         
@@ -310,9 +310,8 @@ void NIBR::rotateSH(NIBR::Image<float>* img, float R[][4])
 
                     if (img->data[img->sub2ind(i,j,k,t)]!=0){
                         std::vector<int64_t> tmp{i,j,k};
-                        NIBR::MT::PROC_MX().lock();
+                        std::lock_guard lock(modifier);
                         nnzVoxelSubs.push_back(tmp);
-                        NIBR::MT::PROC_MX().unlock();
                         break;
                     }
                     
@@ -324,7 +323,7 @@ void NIBR::rotateSH(NIBR::Image<float>* img, float R[][4])
     float scale = (4.0 * PI) / float(inp_coords.size());
 
     // Apply spherical harmonics synthesis and then expansion
-    auto reorient = [&](NIBR::MT::TASK task)->void {
+    auto reorient = [&](const NIBR::MT::TASK& task)->void {
         
         std::vector<int64_t> sub = nnzVoxelSubs[task.no];
 

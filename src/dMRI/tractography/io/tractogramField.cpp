@@ -4,20 +4,46 @@
 
 using namespace NIBR;
 
-auto initFieldReader(TractogramReader& tractogram) {
-    
-    auto input = tractogram.file;
+FILE* initFieldReader(TractogramReader& tractogram) {
+
+    if (tractogram.fileFormat != VTK_BINARY_3) {
+        disp(MSG_ERROR,"Can only read binary vtk v3 fields.");
+        return nullptr;
+    }
+
+    auto input = fopen(tractogram.fileName.c_str(), "rb");
+
+    if (input == nullptr) {
+        disp(MSG_ERROR, "Failed to open file %s.", tractogram.fileName.c_str());
+        return nullptr;
+    }
+
+    // Go to beginning of file
+    std::fseek(input, 0, SEEK_SET);
+
     const size_t strLength = 256;
 	char dummy[strLength];
 
-    std::fseek(input, tractogram.streamlinePos[tractogram.numberOfStreamlines-1], SEEK_SET);
-    std::fseek(input, sizeof(float)*tractogram.len[tractogram.numberOfStreamlines-1]*3,SEEK_CUR);
-    int tmp = std::fgetc(input);
-    if (tmp != '\n') std::ungetc(tmp,input);
+    int majorVersion = 0, minorVersion = 0;
+    std::fscanf(input, "# vtk DataFile Version %d.%d\n", &majorVersion, &minorVersion);
+    disp(MSG_DEBUG,"Vtk version is: %d.%d", majorVersion,minorVersion);
+
+    fgets(dummy, strLength, input);                        // file description
+    std::fscanf(input, "%s ", dummy);                      // ascii or binary
+    fgets(dummy, strLength, input);                        // always DATASET POLYDATA, we skip to check this for now
+    
+    std::size_t numberOfPoints;
+    std::fscanf(input, "%*s %zu %*s ", &numberOfPoints);   // number of points and datatype, we assume datatype is float and skip checking this
+    disp(MSG_DEBUG,"numberOfPoints: %d", numberOfPoints);
+
+    std::fseek(input, sizeof(float) * numberOfPoints * 3, SEEK_CUR);
+    int tmp = std::fgetc(input); if (tmp != '\n') std::ungetc(tmp, input); // Make sure to go end of the line
+
     std::fgets(dummy,strLength,input); // Skip the line about line number
-    std::fseek(input, sizeof(int)*(tractogram.numberOfStreamlines+tractogram.numberOfPoints),SEEK_CUR);
-    tmp = std::fgetc(input);
-    if (tmp != '\n') std::ungetc(tmp,input);
+    std::fseek(input, sizeof(int)*(tractogram.numberOfStreamlines+numberOfPoints),SEEK_CUR);
+    tmp = std::fgetc(input);     if (tmp != '\n') std::ungetc(tmp,input);
+
+    tractogram.getNumberOfPoints(); // Computes streamline sizes needed for later access
 
     return input;
 }
@@ -33,12 +59,17 @@ std::string toUpperCase(const std::string& input) {
 std::vector<NIBR::TractogramField> NIBR::findTractogramFields(TractogramReader& tractogram)
 {
     std::vector<NIBR::TractogramField> fieldList;
-    if (tractogram.fileFormat == VTK_ASCII) {
-        disp(MSG_ERROR,"Can't read fields from ASCII files");
+
+    if (tractogram.fileFormat != VTK_BINARY_3) {
+        disp(MSG_ERROR,"Can only read binary vtk v3 fields.");
         return fieldList;
     }
 
-    auto input = initFieldReader(tractogram);
+    auto input  = initFieldReader(tractogram);
+
+    const auto& cumLen = tractogram.getNumberOfPoints();
+
+    auto numberOfPoints = cumLen.back();
 
     const size_t strLength = 256;
 	char  dummy[strLength];
@@ -82,8 +113,8 @@ std::vector<NIBR::TractogramField> NIBR::findTractogramFields(TractogramReader& 
             if (pointDataFound==true) {
                 TractogramField f = {POINT_OWNER,std::string(name),NIBR::getTypeId(toUpperCase(std::string(type))),dimension,NULL};
                 fieldList.push_back(f);
-                if (std::string(type)=="float") std::fseek(input,sizeof(float)*tractogram.numberOfPoints*dimension,SEEK_CUR);
-                if (std::string(type)=="int")   std::fseek(input,sizeof(int)*tractogram.numberOfPoints*dimension,SEEK_CUR);
+                if (std::string(type)=="float") std::fseek(input,sizeof(float)*numberOfPoints*dimension,SEEK_CUR);
+                if (std::string(type)=="int")   std::fseek(input,sizeof(int)*numberOfPoints*dimension,SEEK_CUR);
             }
             tmpi = std::fgetc(input); if (tmpi != '\n') std::ungetc(tmpi,input); // Make sure to go end of the line
         }
@@ -94,6 +125,8 @@ std::vector<NIBR::TractogramField> NIBR::findTractogramFields(TractogramReader& 
     delete[] type;
 
     disp(MSG_DEBUG,"Found %d fields", fieldList.size());
+
+    fclose(input);
     
     return fieldList;
 
@@ -103,12 +136,14 @@ std::vector<NIBR::TractogramField> NIBR::readTractogramFields(TractogramReader& 
 {
 
     std::vector<NIBR::TractogramField> fieldList;
-    if (tractogram.fileFormat == VTK_ASCII) {
-        disp(MSG_ERROR,"Can't read fields from ASCII files");
+
+    if (tractogram.fileFormat != VTK_BINARY_3) {
+        disp(MSG_ERROR,"Can only read binary vtk v3 fields.");
         return fieldList;
     }
 
-    auto input = initFieldReader(tractogram);
+    auto input          = initFieldReader(tractogram);
+    const auto& cumLen  = tractogram.getNumberOfPoints();
 
     const size_t strLength = 256;
 	char  dummy[strLength];
@@ -204,10 +239,12 @@ std::vector<NIBR::TractogramField> NIBR::readTractogramFields(TractogramReader& 
                 
                 for (size_t s=0; s<tractogram.numberOfStreamlines; s++) {
 
-                    if (std::string(type)=="float") fdata[s] = new float*[tractogram.len[s]];
-                    if (std::string(type)=="int")   idata[s] = new   int*[tractogram.len[s]];
+                    auto len = cumLen[s+1]-cumLen[s];
 
-                    for (uint32_t l=0; l<tractogram.len[s]; l++) {
+                    if (std::string(type)=="float") fdata[s] = new float*[len];
+                    if (std::string(type)=="int")   idata[s] = new   int*[len];
+
+                    for (uint32_t l=0; l<len; l++) {
                     
                         if (std::string(type)=="float") fdata[s][l] = new float[dimension];
                         if (std::string(type)=="int")   idata[s][l] = new   int[dimension];
@@ -252,6 +289,8 @@ std::vector<NIBR::TractogramField> NIBR::readTractogramFields(TractogramReader& 
     delete[] name;
     delete[] type;
 
+    fclose(input);
+
     return fieldList;
 
 }
@@ -259,14 +298,18 @@ std::vector<NIBR::TractogramField> NIBR::readTractogramFields(TractogramReader& 
 TractogramField NIBR::readTractogramField(TractogramReader& tractogram,std::string fieldName) {
     
     TractogramField field;
-    if (tractogram.fileFormat == VTK_ASCII) {
-        disp(MSG_ERROR,"Can't read fields from ASCII files");
+
+    if (tractogram.fileFormat != VTK_BINARY_3) {
+        disp(MSG_ERROR,"Can only read binary vtk v3 fields.");
         return field;
     }
     
     field.name = fieldName;
 
     auto input = initFieldReader(tractogram);
+
+    const auto& cumLen  = tractogram.getNumberOfPoints();
+    auto numberOfPoints = cumLen.back();
 
     const size_t strLength = 256;
 	char  dummy[strLength];
@@ -351,10 +394,12 @@ TractogramField NIBR::readTractogramField(TractogramReader& tractogram,std::stri
                     
                     for (size_t s=0; s<tractogram.numberOfStreamlines; s++) {
 
-                        if (std::string(type)=="float") fdata[s] = new float*[tractogram.len[s]];
-                        if (std::string(type)=="int")   idata[s] = new   int*[tractogram.len[s]];
+                        auto len = cumLen[s+1]-cumLen[s];
 
-                        for (uint32_t l=0; l<tractogram.len[s]; l++) {
+                        if (std::string(type)=="float") fdata[s] = new float*[len];
+                        if (std::string(type)=="int")   idata[s] = new   int*[len];
+
+                        for (uint32_t l=0; l<(len); l++) {
                         
                             if (std::string(type)=="float") fdata[s][l] = new float[dimension];
                             if (std::string(type)=="int")   idata[s][l] = new   int[dimension];
@@ -398,8 +443,8 @@ TractogramField NIBR::readTractogramField(TractogramReader& tractogram,std::stri
                     if (std::string(type)=="int")   std::fseek(input,sizeof(int)*tractogram.numberOfStreamlines*dimension,SEEK_CUR);
                 }
                 if (pointDataFound==true) {
-                    if (std::string(type)=="float") std::fseek(input,sizeof(float)*tractogram.numberOfPoints*dimension,SEEK_CUR);
-                    if (std::string(type)=="int")   std::fseek(input,sizeof(int)*tractogram.numberOfPoints*dimension,SEEK_CUR);
+                    if (std::string(type)=="float") std::fseek(input,sizeof(float)*numberOfPoints*dimension,SEEK_CUR);
+                    if (std::string(type)=="int")   std::fseek(input,sizeof(int)*numberOfPoints*dimension,SEEK_CUR);
                 }
                 tmpi = std::fgetc(input); if (tmpi != '\n') std::ungetc(tmpi,input); // Make sure to go end of the line
                 
@@ -413,6 +458,8 @@ TractogramField NIBR::readTractogramField(TractogramReader& tractogram,std::stri
     delete[] name;
     delete[] type;
     
+    fclose(input);
+
     return field;
 }
 
@@ -422,21 +469,21 @@ void NIBR::clearField(TractogramField& field,TractogramReader& tractogram)
     switch (field.datatype) {
 
         case UNKNOWN_DT:       break;
-        case BOOL_DT:          clearFieldWrapper<bool>(field,tractogram);    break;
-        case UINT8_DT:         clearFieldWrapper<uint8_t>(field,tractogram);    break;
-        case INT8_DT:          clearFieldWrapper< int8_t>(field,tractogram);    break;
-        case UINT16_DT:        clearFieldWrapper<uint16_t>(field,tractogram);    break;
-        case INT16_DT:         clearFieldWrapper< int16_t>(field,tractogram);    break;
-        case UINT32_DT:        clearFieldWrapper<uint32_t>(field,tractogram);    break;
-        case INT32_DT:         clearFieldWrapper< int32_t>(field,tractogram);    break;
-        case UINT64_DT:        clearFieldWrapper<uint64_t>(field,tractogram);    break;
-        case INT64_DT:         clearFieldWrapper< int64_t>(field,tractogram);    break;
-        case FLOAT32_DT:       clearFieldWrapper<float>(field,tractogram);    break;
-        case FLOAT64_DT:       clearFieldWrapper<double>(field,tractogram);    break;
+        case BOOL_DT:          clearFieldWrapper<bool>(field,tractogram);           break;
+        case UINT8_DT:         clearFieldWrapper<uint8_t>(field,tractogram);        break;
+        case INT8_DT:          clearFieldWrapper<int8_t>(field,tractogram);         break;
+        case UINT16_DT:        clearFieldWrapper<uint16_t>(field,tractogram);       break;
+        case INT16_DT:         clearFieldWrapper<int16_t>(field,tractogram);        break;
+        case UINT32_DT:        clearFieldWrapper<uint32_t>(field,tractogram);       break;
+        case INT32_DT:         clearFieldWrapper<int32_t>(field,tractogram);        break;
+        case UINT64_DT:        clearFieldWrapper<uint64_t>(field,tractogram);       break;
+        case INT64_DT:         clearFieldWrapper<int64_t>(field,tractogram);        break;
+        case FLOAT32_DT:       clearFieldWrapper<float>(field,tractogram);          break;
+        case FLOAT64_DT:       clearFieldWrapper<double>(field,tractogram);         break;
         case FLOAT128_DT:      clearFieldWrapper<long double>(field,tractogram);    break;
-        // case COMPLEX64_DT:     clearFieldWrapper<std::complex<double>>(field,tractogram);    break;
-        // case COMPLEX128_DT:    clearFieldWrapper<std::complex<long double>>(field,tractogram);    break;
-        // case COMPLEX256_DT:    clearFieldWrapper<std::complex<long long double>>(field,tractogram);    break;
+        // case COMPLEX64_DT:     clearFieldWrapper<std::complex<double>>(field,tractogram);            break;
+        // case COMPLEX128_DT:    clearFieldWrapper<std::complex<long double>>(field,tractogram);       break;
+        // case COMPLEX256_DT:    clearFieldWrapper<std::complex<long long double>>(field,tractogram);  break;
 
         default:
             disp(MSG_FATAL,"Unknown datatype");
@@ -445,27 +492,27 @@ void NIBR::clearField(TractogramField& field,TractogramReader& tractogram)
 
 }
 
-void NIBR::clearField(TractogramField& field, std::vector<std::vector<std::vector<float>>>& tractogram)
+void NIBR::clearField(TractogramField& field, Tractogram& tractogram)
 {
 
     switch (field.datatype) {
 
         case UNKNOWN_DT:       break;
-        case BOOL_DT:          clearFieldWrapper<bool>(field,tractogram);    break;
-        case UINT8_DT:         clearFieldWrapper<uint8_t>(field,tractogram);    break;
-        case INT8_DT:          clearFieldWrapper< int8_t>(field,tractogram);    break;
-        case UINT16_DT:        clearFieldWrapper<uint16_t>(field,tractogram);    break;
-        case INT16_DT:         clearFieldWrapper< int16_t>(field,tractogram);    break;
-        case UINT32_DT:        clearFieldWrapper<uint32_t>(field,tractogram);    break;
-        case INT32_DT:         clearFieldWrapper< int32_t>(field,tractogram);    break;
-        case UINT64_DT:        clearFieldWrapper<uint64_t>(field,tractogram);    break;
-        case INT64_DT:         clearFieldWrapper< int64_t>(field,tractogram);    break;
-        case FLOAT32_DT:       clearFieldWrapper<float>(field,tractogram);    break;
-        case FLOAT64_DT:       clearFieldWrapper<double>(field,tractogram);    break;
+        case BOOL_DT:          clearFieldWrapper<bool>(field,tractogram);           break;
+        case UINT8_DT:         clearFieldWrapper<uint8_t>(field,tractogram);        break;
+        case INT8_DT:          clearFieldWrapper<int8_t>(field,tractogram);         break;
+        case UINT16_DT:        clearFieldWrapper<uint16_t>(field,tractogram);       break;
+        case INT16_DT:         clearFieldWrapper<int16_t>(field,tractogram);        break;
+        case UINT32_DT:        clearFieldWrapper<uint32_t>(field,tractogram);       break;
+        case INT32_DT:         clearFieldWrapper<int32_t>(field,tractogram);        break;
+        case UINT64_DT:        clearFieldWrapper<uint64_t>(field,tractogram);       break;
+        case INT64_DT:         clearFieldWrapper<int64_t>(field,tractogram);        break;
+        case FLOAT32_DT:       clearFieldWrapper<float>(field,tractogram);          break;
+        case FLOAT64_DT:       clearFieldWrapper<double>(field,tractogram);         break;
         case FLOAT128_DT:      clearFieldWrapper<long double>(field,tractogram);    break;
-        // case COMPLEX64_DT:     clearFieldWrapper<std::complex<double>>(field,tractogram);    break;
-        // case COMPLEX128_DT:    clearFieldWrapper<std::complex<long double>>(field,tractogram);    break;
-        // case COMPLEX256_DT:    clearFieldWrapper<std::complex<long long double>>(field,tractogram);    break;
+        // case COMPLEX64_DT:     clearFieldWrapper<std::complex<double>>(field,tractogram);            break;
+        // case COMPLEX128_DT:    clearFieldWrapper<std::complex<long double>>(field,tractogram);       break;
+        // case COMPLEX256_DT:    clearFieldWrapper<std::complex<long long double>>(field,tractogram);  break;
 
         default:
             disp(MSG_FATAL,"Unknown datatype");
@@ -499,7 +546,7 @@ TractogramField NIBR::makeTractogramFieldFromFile(TractogramReader& tractogram, 
 
     // Read field values
     FILE *input;
-	input = fopen(filePath.c_str(),"rb+");
+	input = fopen(filePath.c_str(),"rb");
 
     auto readStreamlineData = [&](auto data, auto t) {
         for (size_t s = 0; s < tractogram.numberOfStreamlines; s++) {
@@ -524,12 +571,17 @@ TractogramField NIBR::makeTractogramFieldFromFile(TractogramReader& tractogram, 
         }
     };
 
+    const auto& cumLen = tractogram.getNumberOfPoints();
+
 
     auto readPointData = [&](auto data, auto t) {
         for (size_t s = 0; s < tractogram.numberOfStreamlines; s++) {
-            data[s] = new decltype(&t)[tractogram.len[s]];
 
-            for (uint32_t l = 0; l < tractogram.len[s]; l++) {
+            auto len = cumLen[s+1] - cumLen[s];
+
+            data[s] = new decltype(&t)[len];
+
+            for (uint32_t l = 0; l < len; l++) {
                 data[s][l] = new decltype(t)[field.dimension];
                 
                 if (!isASCII) {

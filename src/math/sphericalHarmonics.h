@@ -15,7 +15,7 @@ namespace NIBR
     //  order: spherical harmonics order
     // Output:
     //  B: NxM basis coefficients
-    void  SH_basis(std::vector<std::vector<float>>& B, std::vector<std::vector<float>>& inpCoords, int order);
+    void  SH_basis(std::vector<std::vector<float>>& B, std::vector<Point3D>& inpCoords, int order);
 
     // TODO: Below should be a separate class.
     namespace SH 

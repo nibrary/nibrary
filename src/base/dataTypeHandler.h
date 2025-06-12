@@ -1,6 +1,7 @@
 #pragma once
 
 #include "base/nibr.h"
+#include <cstdint>
 #include <iostream>
 #include <typeinfo>
 #include <unordered_map>

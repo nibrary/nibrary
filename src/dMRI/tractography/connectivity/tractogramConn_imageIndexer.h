@@ -34,7 +34,7 @@ namespace NIBR
 
     private:
 
-        bool processStreamline(int _streamlineId, uint16_t _threadNo);
+        bool processStreamline(const Streamline& streamline, std::size_t streamlineId);
         bool isBg(int val);
 
         NIBR::TractogramReader* tractogram;

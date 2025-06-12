@@ -23,7 +23,7 @@ namespace NIBR
     };
 
     void clearField(TractogramField& field, TractogramReader& tractogram);
-    void clearField(TractogramField& field, std::vector<std::vector<std::vector<float>>>& tractogram);
+    void clearField(TractogramField& field, Tractogram& tractogram);
 
     std::vector<NIBR::TractogramField> findTractogramFields(TractogramReader& tractogram);
     std::vector<NIBR::TractogramField> readTractogramFields(TractogramReader& tractogram);
@@ -38,6 +38,8 @@ namespace NIBR
 template<class T>
 void clearFieldWrapper(TractogramField& field,TractogramReader& tractogram) {    
 
+    const auto& cumLen  = tractogram.getNumberOfPoints();
+
     if (field.data != NULL) {
 
         if (field.owner == POINT_OWNER) {
@@ -45,7 +47,10 @@ void clearFieldWrapper(TractogramField& field,TractogramReader& tractogram) {
             T*** toDel = reinterpret_cast<T***>(field.data);
 
             for (size_t s = 0; s < tractogram.numberOfStreamlines; s++) {
-                for (uint32_t l = 0; l < tractogram.len[s]; l++) {
+
+                auto len = cumLen[s+1] - cumLen[s];
+
+                for (uint32_t l = 0; l < len; l++) {
                     delete[] toDel[s][l];
                 }
                 delete[] toDel[s];
@@ -78,7 +83,7 @@ void clearFieldWrapper(TractogramField& field,TractogramReader& tractogram) {
 }
 
 template<class T>
-void clearFieldWrapper(TractogramField& field, std::vector<std::vector<std::vector<float>>>& tractogram) {    
+void clearFieldWrapper(TractogramField& field, Tractogram& tractogram) {    
 
     if (field.data != NULL) {
 

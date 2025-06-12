@@ -67,12 +67,6 @@ if(NOT GEOGRAM_FOUND)
         set(DOWNLOAD_FNAME "geogram_${GEOGRAM_MIN_VERSION}.zip")
         set(DOWNLOAD_URL   "https://github.com/BrunoLevy/geogram/releases/download/v${GEOGRAM_MIN_VERSION}/${DOWNLOAD_FNAME}")
         set(DOWNLOAD_PATH  "${CMAKE_BINARY_DIR}/external/download/${DOWNLOAD_FNAME}")
-
-        conditional_move("${GEOGRAM_SOURCE_DIR}/src/lib/geogram/basic/assert.cpp" "${GEOGRAM_SOURCE_DIR}/src/lib/geogram/basic/assert_bak.cpp")
-        conditional_copy_file("${CMAKE_SOURCE_DIR}/external/geogram_patch/assert.cpp" "${GEOGRAM_SOURCE_DIR}/src/lib/geogram/basic/assert.cpp")
-
-        conditional_move("${GEOGRAM_SOURCE_DIR}/src/lib/geogram/basic/process_unix.cpp" "${GEOGRAM_SOURCE_DIR}/src/lib/geogram/basic/process_unix_bak.cpp")
-        conditional_copy_file("${CMAKE_SOURCE_DIR}/external/geogram_patch/process_unix.cpp" "${GEOGRAM_SOURCE_DIR}/src/lib/geogram/basic/process_unix.cpp")
         
         if (NOT EXISTS ${DOWNLOAD_PATH})
             file(DOWNLOAD ${DOWNLOAD_URL} ${DOWNLOAD_PATH}
@@ -93,6 +87,12 @@ if(NOT GEOGRAM_FOUND)
                 message(FATAL_ERROR "Error extracting ${DOWNLOAD_FNAME}: ${extract_result}")
             endif()
         endif()
+
+        conditional_move("${GEOGRAM_SOURCE_DIR}/src/lib/geogram/basic/assert.cpp" "${GEOGRAM_SOURCE_DIR}/src/lib/geogram/basic/assert_bak.cpp")
+        conditional_copy_file("${CMAKE_SOURCE_DIR}/external/geogram_patch/assert.cpp" "${GEOGRAM_SOURCE_DIR}/src/lib/geogram/basic/assert.cpp")
+
+        conditional_move("${GEOGRAM_SOURCE_DIR}/src/lib/geogram/basic/process_unix.cpp" "${GEOGRAM_SOURCE_DIR}/src/lib/geogram/basic/process_unix_bak.cpp")
+        conditional_copy_file("${CMAKE_SOURCE_DIR}/external/geogram_patch/process_unix.cpp" "${GEOGRAM_SOURCE_DIR}/src/lib/geogram/basic/process_unix.cpp")
 
     endif()
 

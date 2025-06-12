@@ -67,6 +67,7 @@
 // #if !defined(GEO_OS_ANDROID) && !defined(GEO_OS_EMSCRIPTEN)
 // #include <execinfo.h>
 // #endif
+// -------------
 
 #ifdef GEO_OS_APPLE
 #include <mach-o/dyld.h>
@@ -445,11 +446,14 @@ namespace GEO {
                 | FE_OVERFLOW    // result not representable due to overflow
                 | FE_INVALID     // invalid operation
                 ;
-            if(flag) {
-                feenableexcept(excepts);
-            } else {
-                fedisableexcept(excepts);
-            }
+            
+            // NIBRARY PATCH
+            // if(flag) {
+            //     feenableexcept(excepts);
+            // } else {
+            //     fedisableexcept(excepts);
+            // }
+            // -------------
 #endif
             return true;
         }

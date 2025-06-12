@@ -210,8 +210,6 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-      with:
-        ref: ${{ github.event.pull_request.head.ref || github.ref_name }}
 
     - name: Install dependencies
       run: |
@@ -220,7 +218,7 @@ jobs:
     - name: Set up build directory and environment
       run: |
         echo "build_type=Release" >> $GITHUB_ENV
-        echo "build-output-dir=${{ github.workspace }}/build_linux" >> $GITHUB_ENV
+        echo "build-output-dir=./build_linux" >> $GITHUB_ENV
 
     - name: Configure CMake (Ubuntu)
       run: |
@@ -228,7 +226,7 @@ jobs:
           -DCMAKE_BUILD_TYPE=${{ env.build_type }} \
           -DBUILD_SHARED_LIBS=OFF \
           -DBUILD_NATIVE=OFF \
-          -S ${{ github.workspace }}
+          -S .
 
     - name: Build
       run: cmake --build ${{ env.build-output-dir }} --config ${{ env.build_type }} --target install

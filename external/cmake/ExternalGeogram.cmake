@@ -88,6 +88,9 @@ if(NOT GEOGRAM_FOUND)
             endif()
         endif()
 
+        message(STATUS "GEOGRAM_SOURCE_DIR is ${GEOGRAM_SOURCE_DIR}/src/lib/geogram/basic/assert.cpp")
+        message(STATUS "CMAKE_SOURCE_DIR is ${CMAKE_SOURCE_DIR}/external/geogram_patch/assert.cpp")
+
         conditional_move("${GEOGRAM_SOURCE_DIR}/src/lib/geogram/basic/assert.cpp" "${GEOGRAM_SOURCE_DIR}/src/lib/geogram/basic/assert_bak.cpp")
         conditional_copy_file("${CMAKE_SOURCE_DIR}/external/geogram_patch/assert.cpp" "${GEOGRAM_SOURCE_DIR}/src/lib/geogram/basic/assert.cpp")
 

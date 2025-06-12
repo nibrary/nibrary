@@ -143,6 +143,18 @@ if(BUILDING_GEOGRAM_FROM_SOURCE)
 
     endif()
 
+    if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
+        if(BUILD_SHARED_LIBS)
+            # Shared builds MUST use the dynamic runtime (/MD)
+            set(NIBRARY_RELEASE_CXX_FLAGS "/MD /O2 /Ob2 /DNDEBUG")
+            set(NIBRARY_RELEASE_C_FLAGS   "/MD /O2 /Ob2 /DNDEBUG")
+        else()
+            # Static builds MUST use the static runtime (/MT)
+            set(NIBRARY_RELEASE_CXX_FLAGS "/MT /O2 /Ob2 /DNDEBUG")
+            set(NIBRARY_RELEASE_C_FLAGS   "/MT /O2 /Ob2 /DNDEBUG")
+        endif()
+    endif()
+
     include(ExternalProject)
     ExternalProject_Add(build_geogram
 
@@ -169,6 +181,8 @@ if(BUILDING_GEOGRAM_FROM_SOURCE)
                     -DGEOGRAM_WITH_VORPALINE=OFF
                     -DVORPALINE_PLATFORM=${GEO_PLATFORM}
                     -DVORPALINE_BUILD_DYNAMIC=${BUILD_SHARED_LIBS}
+                    $<$<STREQUAL:${CMAKE_SYSTEM_NAME},Windows>:-DCMAKE_CXX_FLAGS=${NIBRARY_RELEASE_CXX_FLAGS}>
+                    $<$<STREQUAL:${CMAKE_SYSTEM_NAME},Windows>:-DCMAKE_C_FLAGS=${NIBRARY_RELEASE_C_FLAGS}>
     )
 
     ExternalProject_Add_Step(build_geogram move_geogram_headers

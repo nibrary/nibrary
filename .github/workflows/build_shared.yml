@@ -213,7 +213,7 @@ jobs:
 
     - name: Install dependencies
       run: |
-        apk add --no-cache cmake build-base
+        apk add --no-cache cmake build-base git
         
     - name: Set up build directory and environment
       run: |

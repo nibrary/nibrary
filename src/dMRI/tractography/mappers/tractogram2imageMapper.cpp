@@ -77,11 +77,11 @@ bool NIBR::Tractogram2ImageMapper<T>::setMask(NIBR::Image<int>* maskImg) {
 
     maskImg->read();
     
-    mask = new bool**[maskImg->imgDims[0]];
+    mask = new bool**[static_cast<uint32_t>(maskImg->imgDims[0])];
     for (int i = 0; i < maskImg->imgDims[0]; i++) {
-        mask[i] = new bool*[maskImg->imgDims[1]];
+        mask[i] = new bool*[static_cast<uint32_t>(maskImg->imgDims[1])];
         for (int j = 0; j < maskImg->imgDims[1]; j++) {
-            mask[i][j] = new bool[maskImg->imgDims[2]];
+            mask[i][j] = new bool[static_cast<uint32_t>(maskImg->imgDims[2])];
             for (int k = 0; k < maskImg->imgDims[2]; k++) {
                 if ((*maskImg)(i,j,k)>0) {
                     mask[i][j][k] = true;
@@ -127,11 +127,11 @@ bool NIBR::Tractogram2ImageMapper<T>::setMask(NIBR::Image<int>* maskImg, int sel
 
     maskImg->read();
 
-    mask = new bool**[maskImg->imgDims[0]];
+    mask = new bool**[static_cast<uint32_t>(maskImg->imgDims[0])];
     for (int i = 0; i < maskImg->imgDims[0]; i++) {
-        mask[i] = new bool*[maskImg->imgDims[1]];
+        mask[i] = new bool*[static_cast<uint32_t>(maskImg->imgDims[1])];
         for (int j = 0; j < maskImg->imgDims[1]; j++) {
-            mask[i][j] = new bool[maskImg->imgDims[2]];
+            mask[i][j] = new bool[static_cast<uint32_t>(maskImg->imgDims[2])];
             for (int k = 0; k < maskImg->imgDims[2]; k++) {
                 if ((*maskImg)(i,j,k)==selectedLabel) {
                     mask[i][j][k] = true;

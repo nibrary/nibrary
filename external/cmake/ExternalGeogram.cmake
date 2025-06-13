@@ -1,6 +1,6 @@
 # GEOGRAM
 
-SET(GEOGRAM_MIN_VERSION "1.9.5" CACHE STRING "Minimum geogram version") 
+SET(GEOGRAM_MIN_VERSION "1.9.2" CACHE STRING "Minimum geogram version") 
 
 include("${CMAKE_CURRENT_LIST_DIR}/utils.cmake")
 
@@ -88,9 +88,6 @@ if(NOT GEOGRAM_FOUND)
             endif()
         endif()
 
-        message(STATUS "GEOGRAM_SOURCE_DIR is ${GEOGRAM_SOURCE_DIR}/src/lib/geogram/basic/assert.cpp")
-        message(STATUS "CMAKE_SOURCE_DIR is ${CMAKE_SOURCE_DIR}/external/geogram_patch/assert.cpp")
-
         conditional_move("${GEOGRAM_SOURCE_DIR}/src/lib/geogram/basic/assert.cpp" "${GEOGRAM_SOURCE_DIR}/src/lib/geogram/basic/assert_bak")
         conditional_copy_file("${CMAKE_SOURCE_DIR}/external/geogram_patch/assert.cpp" "${GEOGRAM_SOURCE_DIR}/src/lib/geogram/basic/assert.cpp")
 
@@ -142,6 +139,8 @@ if(BUILDING_GEOGRAM_FROM_SOURCE)
         endif()
 
     endif()
+
+    message(STATUS "Building geogram with VORPALINE_PLATFORM=${GEO_PLATFORM}")
 
     include(ExternalProject)
     ExternalProject_Add(build_geogram

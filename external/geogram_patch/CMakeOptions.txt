@@ -1,6 +1,3 @@
-# Deactivating most optional content
-# Generating executables
-
 if(BUILD_SHARED_LIBS)
 
 set(VORPALINE_BUILD_DYNAMIC ON)

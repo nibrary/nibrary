@@ -1,6 +1,6 @@
 # GEOGRAM
 
-SET(GEOGRAM_MIN_VERSION "1.9.5" CACHE STRING "Minimum geogram version") 
+SET(GEOGRAM_MIN_VERSION "1.9.2" CACHE STRING "Minimum geogram version") 
 
 include("${CMAKE_CURRENT_LIST_DIR}/utils.cmake")
 

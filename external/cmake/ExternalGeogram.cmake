@@ -40,6 +40,9 @@ if(NOT GEOGRAM_FOUND)
         conditional_move("${CMAKE_SOURCE_DIR}/external/geogram/src/lib/geogram/basic/process_unix.cpp" "${CMAKE_SOURCE_DIR}/external/geogram/src/lib/geogram/basic/process_unix_bak")
         conditional_copy_file("${CMAKE_SOURCE_DIR}/external/geogram_patch/process_unix.cpp" "${CMAKE_SOURCE_DIR}/external/geogram/src/lib/geogram/basic/process_unix.cpp")
 
+        conditional_move("${CMAKE_SOURCE_DIR}/external/geogram/CMakeOptions.txt" "${CMAKE_SOURCE_DIR}/external/geogram/CMakeOptions_bak")
+        conditional_copy_file("${CMAKE_SOURCE_DIR}/external/geogram_patch/CMakeOptions.txt" "${CMAKE_SOURCE_DIR}/external/geogram/CMakeOptions.txt")
+
         message(STATUS "Geogram will be built from local source")
 
     elseif (EXISTS "${CMAKE_SOURCE_DIR}/external/geogram_${GEOGRAM_MIN_VERSION}/CMakeLists.txt")
@@ -53,6 +56,9 @@ if(NOT GEOGRAM_FOUND)
 
         conditional_move("${CMAKE_SOURCE_DIR}/external/geogram/src/lib/geogram/basic/process_unix.cpp" "${CMAKE_SOURCE_DIR}/external/geogram/src/lib/geogram/basic/process_unix_bak")
         conditional_copy_file("${CMAKE_SOURCE_DIR}/external/geogram_patch/process_unix.cpp" "${CMAKE_SOURCE_DIR}/external/geogram/src/lib/geogram/basic/process_unix.cpp")
+
+        conditional_move("${CMAKE_SOURCE_DIR}/external/geogram/CMakeOptions.txt" "${CMAKE_SOURCE_DIR}/external/geogram/CMakeOptions_bak")
+        conditional_copy_file("${CMAKE_SOURCE_DIR}/external/geogram_patch/CMakeOptions.txt" "${CMAKE_SOURCE_DIR}/external/geogram/CMakeOptions.txt")
 
         message(STATUS "Geogram will be built from local source")
 
@@ -94,53 +100,15 @@ if(NOT GEOGRAM_FOUND)
         conditional_move("${GEOGRAM_SOURCE_DIR}/src/lib/geogram/basic/process_unix.cpp" "${GEOGRAM_SOURCE_DIR}/src/lib/geogram/basic/process_unix_bak")
         conditional_copy_file("${CMAKE_SOURCE_DIR}/external/geogram_patch/process_unix.cpp" "${GEOGRAM_SOURCE_DIR}/src/lib/geogram/basic/process_unix.cpp")
 
+        conditional_move("${GEOGRAM_SOURCE_DIR}/CMakeOptions.txt" "${GEOGRAM_SOURCE_DIR}/CMakeOptions_bak")
+        conditional_copy_file("${CMAKE_SOURCE_DIR}/external/geogram_patch/CMakeOptions.txt" "${GEOGRAM_SOURCE_DIR}/CMakeOptions.txt")
+
     endif()
 
 endif()
 
 
 if(BUILDING_GEOGRAM_FROM_SOURCE)
-
-    # Check the system architecture and operating system
-    if (BUILD_SHARED_LIBS)
-
-        if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
-            set(GEO_PLATFORM "Linux64-gcc-dynamic")
-        elseif (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
-            if(${CMAKE_SYSTEM_PROCESSOR} MATCHES "arm64" OR ${CMAKE_SYSTEM_PROCESSOR} MATCHES "aarch64")
-                set(GEO_PLATFORM "Darwin-aarch64-clang-dynamic")
-            elseif(${CMAKE_SYSTEM_PROCESSOR} MATCHES "x86_64")
-                set(GEO_PLATFORM "Darwin-clang-dynamic")
-            else()
-                message(FATAL_ERROR "Unsupported processor architecture")
-            endif()
-        elseif (CMAKE_SYSTEM_NAME STREQUAL "Windows")
-            set(GEO_PLATFORM "Win-vs-dynamic-generic")
-        else()
-            message(FATAL_ERROR "Unsupported operating system")
-        endif()
-
-    else()
-
-        if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
-            set(GEO_PLATFORM "Linux64-gcc")
-        elseif (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
-            if(${CMAKE_SYSTEM_PROCESSOR} MATCHES "arm64" OR ${CMAKE_SYSTEM_PROCESSOR} MATCHES "aarch64")
-                set(GEO_PLATFORM "Darwin-aarch64-clang")
-            elseif(${CMAKE_SYSTEM_PROCESSOR} MATCHES "x86_64")
-                set(GEO_PLATFORM "Darwin-clang")
-            else()
-                message(FATAL_ERROR "Unsupported processor architecture")
-            endif()
-        elseif (CMAKE_SYSTEM_NAME STREQUAL "Windows")
-            set(GEO_PLATFORM "Win-vs-generic")
-        else()
-            message(FATAL_ERROR "Unsupported operating system")
-        endif()
-
-    endif()
-
-    message(STATUS "Building geogram with VORPALINE_PLATFORM=${GEO_PLATFORM}")
 
     include(ExternalProject)
     ExternalProject_Add(build_geogram
@@ -166,8 +134,6 @@ if(BUILDING_GEOGRAM_FROM_SOURCE)
                     -DGEOGRAM_WITH_GARGANTUA=OFF
                     -DGEOGRAM_WITH_GEOGRAMPLUS=OFF
                     -DGEOGRAM_WITH_VORPALINE=OFF
-                    -DVORPALINE_PLATFORM=${GEO_PLATFORM}
-                    -DVORPALINE_BUILD_DYNAMIC=${BUILD_SHARED_LIBS}
     )
 
     ExternalProject_Add_Step(build_geogram move_geogram_headers

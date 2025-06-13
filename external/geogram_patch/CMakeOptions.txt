@@ -1,0 +1,27 @@
+if(BUILD_SHARED_LIBS)
+
+set(VORPALINE_BUILD_DYNAMIC ON)
+
+if(WIN32)
+set(VORPALINE_PLATFORM Win-vs-dynamic-generic)
+elseif(APPLE)
+set(VORPALINE_PLATFORM Darwin-clang-dynamic)
+elseif(UNIX)
+set(VORPALINE_PLATFORM Linux64-gcc-dynamic)
+endif()
+
+else()
+
+set(VORPALINE_BUILD_DYNAMIC OFF)
+
+if(WIN32)
+set(VORPALINE_PLATFORM Win-vs-generic)
+elseif(APPLE)
+set(VORPALINE_PLATFORM Darwin-clang)
+elseif(UNIX)
+set(VORPALINE_PLATFORM Linux64-gcc)
+endif()
+
+endif()
+
+message(STATUS "Building geogram with VORPALINE_PLATFORM=${VORPALINE_PLATFORM} and VORPALINE_BUILD_DYNAMIC=${VORPALINE_BUILD_DYNAMIC} ")

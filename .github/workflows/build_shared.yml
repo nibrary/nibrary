@@ -217,18 +217,26 @@ jobs:
 
   build_ubuntu:
     runs-on: ubuntu-latest
-    container:
-      image: ubuntu:18.04
 
     steps:
-    - uses: actions/checkout@v3
-      with:
-        ref: ${{ github.event.pull_request.head.ref || github.ref_name }}
+    - name: Checkout code
+      uses: actions/checkout@v4
 
-    - name: Install dependencies
+    - name: Install build dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y gcc-9 g++-9 libomp-dev cmake
+        sudo apt-get install -y cmake wget
+
+    - name: Set up OBGGCC
+      run: |
+        # Download and extract the OBGGCC toolchain targeting Ubuntu 16.04 (glibc 2.23)
+        wget https://github.com/AmanoTeam/obggcc/releases/download/v1.1.0/x86_64-unknown-linux-gnu2.23.tar.gz
+        sudo tar -xf x86_64-unknown-linux-gnu2.23.tar.gz -C /opt
+        
+        # Set environment variables for the toolchain file path
+        OBGGCC_HOME=/opt/x86_64-unknown-linux-gnu2.23
+        TOOLCHAIN_FILE=$OBGGCC_HOME/usr/local/share/obggcc/cmake/x86_64-unknown-linux-gnu2.23.cmake
+        echo "TOOLCHAIN_FILE=$TOOLCHAIN_FILE" >> $GITHUB_ENV
         
     - name: Set up build directory and environment
       run: |
@@ -238,9 +246,8 @@ jobs:
     - name: Configure CMake (Ubuntu)
       run: |
         cmake -B ${{ env.build-output-dir }} \
+          -DCMAKE_TOOLCHAIN_FILE=${{ env.TOOLCHAIN_FILE }} \
           -DCMAKE_BUILD_TYPE=${{ env.build_type }} \
-          -DCMAKE_C_COMPILER=gcc-9 \
-          -DCMAKE_CXX_COMPILER=g++-9 \
           -DBUILD_SHARED_LIBS=ON \
           -DBUILD_NATIVE=OFF \
           -S .

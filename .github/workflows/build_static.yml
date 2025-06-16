@@ -244,7 +244,7 @@ jobs:
           -DCMAKE_BUILD_TYPE=${{ env.build_type }} \
           -DCMAKE_C_COMPILER=gcc-9 \
           -DCMAKE_CXX_COMPILER=g++-9 \
-          -DBUILD_SHARED_LIBS=ON \
+          -DBUILD_SHARED_LIBS=OFF \
           -DBUILD_NATIVE=OFF \
           -S .
 

@@ -181,7 +181,7 @@ void NIBR::Tractogram2ImageMapper<T>::setWeights(std::string _weightFile, WEIGHT
     // Initialize weights and make copies for multithreader
     weightFile = new FILE*[NIBR::MT::MAXNUMBEROFTHREADS()]();
     for (int t = 0; t < NIBR::MT::MAXNUMBEROFTHREADS(); t++) {
-        weightFile[t] = fopen(_weightFile.c_str(), "rb+");
+        weightFile[t] = fopen(_weightFile.c_str(), "rb");
     }
 
     tractogram->getNumberOfPoints(); // Precomputed the cumulative lengths for future use

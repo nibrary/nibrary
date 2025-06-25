@@ -15,7 +15,7 @@ std::tuple<NIBR::SurfaceField,std::vector<std::tuple<std::string,int,int,int,int
     } 
     
     FILE *input;
-	input = fopen(filePath.c_str(),"rb+");
+	input = fopen(filePath.c_str(),"rb");
     
     int tmpi;
         
@@ -159,7 +159,7 @@ std::tuple<NIBR::SurfaceField,std::vector<std::tuple<std::string,int,int,int,int
     if (!LUTfname.empty()) {
 
         FILE *fLUT;
-	    fLUT = fopen(LUTfname.c_str(),"rb+");
+	    fLUT = fopen(LUTfname.c_str(),"rb");
 
         std::vector<std::vector<int>> LUT;
 
@@ -207,7 +207,7 @@ NIBR::SurfaceField NIBR::Surface::readFreesurferLabel(std::string filePath) {
     } 
     
     FILE *input;
-	input = fopen(filePath.c_str(),"rb+");
+	input = fopen(filePath.c_str(),"rb");
     
     const int strLength = 128;
     char dummy[strLength];
@@ -272,7 +272,7 @@ NIBR::SurfaceField NIBR::Surface::makeFieldFromFile(std::string filePath, std::s
     
     // Read field values
     FILE *input;
-	input = fopen(filePath.c_str(),"rb+");    
+	input = fopen(filePath.c_str(),"rb");    
     
     float** fdata = NULL;
     int**   idata = NULL;
@@ -312,7 +312,7 @@ NIBR::SurfaceField NIBR::Surface::makeFieldFromFile(std::string filePath, std::s
     if (!LUTfname.empty()) {
 
         FILE *fLUT;
-	    fLUT = fopen(LUTfname.c_str(),"rb+");
+	    fLUT = fopen(LUTfname.c_str(),"rb");
 
         std::vector<std::vector<int>> LUT;
 

@@ -5,9 +5,9 @@
 #include <iterator>
 
 // Default buffer size for streaming mode
-#define LOW_BUFFER_CAPACITY     200000
-#define DISC_IO_BATCH_SIZE      20000
-#define READER_BUFFER_SIZE       1 * 1024 * 1024
+#define LOW_BUFFER_CAPACITY     1000000
+#define DISC_IO_BATCH_SIZE      100000
+#define READER_BUFFER_SIZE       4 * 1024 * 1024
 #define TCK_CHUNK_SIZE          16 * 1024 * 1024
 
 using namespace NIBR;
@@ -401,7 +401,7 @@ void NIBR::TractogramReader::producerLoop()
 
         if (streamlines_read_from_file >= numberOfStreamlines) break;
 
-        size_t batchReadSize = 0;
+        std::size_t batchReadSize = 0;
 
         {
             std::lock_guard<std::mutex> lock(buffer_mutex);
@@ -411,12 +411,12 @@ void NIBR::TractogramReader::producerLoop()
         // If batchReadSize is 0, it means the buffer is full. 
         // In preload mode, this could cause a busy-loop. We yield to prevent it.
         if (batchReadSize == 0) {
-             // Give other threads a chance to run.
-            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+            // Give other threads a chance to run.
+            std::this_thread::yield();
             continue; // Go back to the top of the while loop to re-check everything
         }
 
-        StreamlineBatch batch = readBatchFromFile(std::min(batchReadSize, size_t(DISC_IO_BATCH_SIZE)));
+        StreamlineBatch batch = readBatchFromFile(std::min(batchReadSize, std::size_t(DISC_IO_BATCH_SIZE)));
         
         if (batch.empty()) break;
 
@@ -437,7 +437,7 @@ void NIBR::TractogramReader::producerLoop()
 }
 
 
-std::tuple<bool, Streamline, size_t> NIBR::TractogramReader::getNextStreamline() 
+std::tuple<bool, Streamline, std::size_t> NIBR::TractogramReader::getNextStreamline() 
 {
     std::unique_lock<std::mutex> lock(buffer_mutex);
 
@@ -451,7 +451,7 @@ std::tuple<bool, Streamline, size_t> NIBR::TractogramReader::getNextStreamline()
         return {false, Streamline(), 0};
     }
 
-    size_t streamline_idx = consumed_streamline_count++;
+    std::size_t streamline_idx = consumed_streamline_count++;
 
     if (isPreloadMode) {
         return {true, streamline_buffer.at(streamline_idx), streamline_idx};
@@ -467,7 +467,7 @@ std::tuple<bool, Streamline, size_t> NIBR::TractogramReader::getNextStreamline()
 }
 
 
-StreamlineBatch NIBR::TractogramReader::getNextStreamlineBatch(size_t batchSize)
+StreamlineBatch NIBR::TractogramReader::getNextStreamlineBatch(std::size_t batchSize)
 {
     StreamlineBatch batch_out;
 
@@ -475,7 +475,7 @@ StreamlineBatch NIBR::TractogramReader::getNextStreamlineBatch(size_t batchSize)
 
     batch_out.reserve(batchSize);
 
-    for (size_t i = 0; i < batchSize; ++i) {
+    for (std::size_t i = 0; i < batchSize; ++i) {
         
         auto [success, streamline, streamline_idx] = this->getNextStreamline();
 
@@ -490,7 +490,7 @@ StreamlineBatch NIBR::TractogramReader::getNextStreamlineBatch(size_t batchSize)
 }
 
 
-const Streamline& NIBR::TractogramReader::getStreamline(size_t n) 
+const Streamline& NIBR::TractogramReader::getStreamline(std::size_t n) 
 {
     if (!isPreloadMode) {
         disp(MSG_FATAL, "getStreamline(n) is only available in preload mode.");
@@ -514,7 +514,7 @@ const Streamline& NIBR::TractogramReader::getStreamline(size_t n)
 
 
 // It is NOT thread-safe by itself and must be called from the producerLoop.
-StreamlineBatch NIBR::TractogramReader::readBatchFromFile(size_t batchSize) 
+StreamlineBatch NIBR::TractogramReader::readBatchFromFile(std::size_t batchSize) 
 {
     disp(MSG_DEBUG,"Reading batch from file...");
 
@@ -524,7 +524,7 @@ StreamlineBatch NIBR::TractogramReader::readBatchFromFile(size_t batchSize)
         return batch_out;
     }
 
-    size_t actualBatchSize = std::min(batchSize, numberOfStreamlines - streamlines_read_from_file.load());
+    std::size_t actualBatchSize = std::min(batchSize, numberOfStreamlines - streamlines_read_from_file.load());
     if (actualBatchSize == 0) return batch_out;
     batch_out.reserve(actualBatchSize);
 
@@ -548,7 +548,7 @@ StreamlineBatch NIBR::TractogramReader::readBatchFromFile(size_t batchSize)
                         // --- Buffer is exhausted, time to read a new chunk from the disk ---
 
                         // 1. Preserve any leftover bytes from the previous read.
-                        size_t leftover_bytes = tck_read_buffer.size() - tck_buffer_offset;
+                        std::size_t leftover_bytes = tck_read_buffer.size() - tck_buffer_offset;
                         if (leftover_bytes > 0) {
                             std::memmove(tck_read_buffer.data(), tck_read_buffer.data() + tck_buffer_offset, leftover_bytes);
                         }
@@ -558,10 +558,10 @@ StreamlineBatch NIBR::TractogramReader::readBatchFromFile(size_t batchSize)
                         // 2. Read the next large chunk from the file.
                         // We seek first to ensure our file position is correct.
                         fseek(file, currentStreamlinePos, SEEK_SET);
-                        size_t current_buffer_size = tck_read_buffer.size();
+                        std::size_t current_buffer_size = tck_read_buffer.size();
                         tck_read_buffer.resize(current_buffer_size + TCK_CHUNK_SIZE);
                         
-                        size_t bytes_read = fread(tck_read_buffer.data() + current_buffer_size, 1, TCK_CHUNK_SIZE, file);
+                        std::size_t bytes_read = fread(tck_read_buffer.data() + current_buffer_size, 1, TCK_CHUNK_SIZE, file);
                         
                         // Update our master file position and resize buffer to actual bytes read.
                         currentStreamlinePos += bytes_read;
@@ -836,7 +836,7 @@ const std::vector<uint64_t>& NIBR::TractogramReader::getNumberOfPoints()
         buffer_cv.wait(lock, [this] { return producer_finished && streamline_buffer.size() == numberOfStreamlines; });
         
         uint64_t cumulativeSum = 0;
-        for (size_t i = 0; i < numberOfStreamlines; ++i) {
+        for (std::size_t i = 0; i < numberOfStreamlines; ++i) {
             cumulativeSum           += streamline_buffer.at(i).size();
             numberOfPoints[i + 1]    = cumulativeSum;
         }
@@ -909,13 +909,13 @@ const std::vector<uint64_t>& NIBR::TractogramReader::getNumberOfPoints()
                     std::vector<int64_t> offsets(numberOfStreamlines);
                     if (fread(offsets.data(), sizeof(int64_t), numberOfStreamlines, numFile) == numberOfStreamlines) {
                         if (vtk_needsByteSwap) for(auto& v : offsets) swapByteOrder(v);
-                        for(size_t i=0; i < numberOfStreamlines; ++i) numberOfPoints[i+1] = offsets[i];
+                        for(std::size_t i=0; i < numberOfStreamlines; ++i) numberOfPoints[i+1] = offsets[i];
                     }
                 } else { // 32-bit offsets
                     std::vector<int32_t> offsets(numberOfStreamlines);
                     if (fread(offsets.data(), sizeof(int32_t), numberOfStreamlines, numFile) == numberOfStreamlines) {
                         if (vtk_needsByteSwap) for(auto& v : offsets) swapByteOrder(v);
-                        for(size_t i=0; i < numberOfStreamlines; ++i) numberOfPoints[i+1] = offsets[i];
+                        for(std::size_t i=0; i < numberOfStreamlines; ++i) numberOfPoints[i+1] = offsets[i];
                     }
                 }
             } else { // ASCII

@@ -34,7 +34,7 @@ namespace NIBR
 
     template<class T>
     std::tuple<bool, std::vector<T>> readValuesFromFile(std::string fname) {
-        auto f = fopen(fname.c_str(), "rb+");
+        auto f = fopen(fname.c_str(), "rb");
         if (f == NULL) {
             return std::make_tuple(false, std::vector<T>());
         }

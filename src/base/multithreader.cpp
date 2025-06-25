@@ -47,6 +47,60 @@ void NIBR::MT::SETMAXNUMBEROFTHREADS(int n)  {
 
 }
 
+int NIBR::MT::GETNUMBEROFRUNNINGTHREADS() {
+
+    int numberOfRunningThreads = 0;
+
+    #if defined(_WIN32)
+        // Windows implementation
+        DWORD current_pid = GetCurrentProcessId();
+        HANDLE snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, 0);
+        if (snapshot == INVALID_HANDLE_VALUE) {
+            disp(MSG_ERROR,"Failed to create snapshot. Can't get number of running threads.");
+            return numberOfRunningThreads;
+        }
+
+        THREADENTRY32 te32;
+        te32.dwSize = sizeof(THREADENTRY32);
+
+        if (Thread32First(snapshot, &te32)) {
+            do {
+                if (te32.th32OwnerProcessID == current_pid) {
+                    numberOfRunningThreads++;
+                }
+            } while (Thread32Next(snapshot, &te32));
+        }
+
+        CloseHandle(snapshot);
+
+    #elif defined(__APPLE__)
+        // macOS implementation
+        pid_t current_pid = getpid();
+        struct proc_taskinfo task_info;
+        auto count = proc_pidinfo(current_pid, PROC_PIDTASKINFO, 0, &task_info, sizeof(task_info));
+
+        if (count <= 0) {
+            disp(MSG_ERROR,"proc_pidinfo failed. Can't get number of running threads.");
+            return numberOfRunningThreads; // proc_pidinfo failed
+        }
+        numberOfRunningThreads = static_cast<unsigned int>(task_info.pti_threadnum);
+
+    #else
+        // Linux implementation
+        try {
+            // On Linux, each thread in a process has a directory in /proc/self/task/
+            const std::filesystem::path p("/proc/self/task");
+            numberOfRunningThreads = std::distance(std::filesystem::directory_iterator{p}, std::filesystem::directory_iterator{});
+        } catch (const std::exception&) {
+            disp(MSG_ERROR,"Filesystem error (e.g., /proc not mounted). Can't get number of running threads.");
+            return numberOfRunningThreads;
+        }
+    #endif
+
+    return numberOfRunningThreads;
+
+}
+
 void NIBR::MT::MTINIT() 
 {
     // Ensure initialization happens only once
@@ -119,6 +173,8 @@ void NIBR::MT::MTRUN(std::size_t range, int numberOfThreads, std::function<void(
                 disp(MSG_FATAL, "Failed executing task %d", taskIndex);
             }
 
+            std::this_thread::yield(); // Give other threads a chance to run.
+
         }
 
     };
@@ -169,6 +225,8 @@ void NIBR::MT::MTRUN(std::size_t range, int numberOfThreads, std::function<bool(
             } catch (const std::exception& e) {
                 disp(MSG_FATAL, "Failed executing task %d", taskIndex);
             }
+
+            std::this_thread::yield(); // Give other threads a chance to run.
 
         }
 

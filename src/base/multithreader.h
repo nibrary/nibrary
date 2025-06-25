@@ -18,6 +18,14 @@
 #include <mutex>
 #include <condition_variable>
 
+#if defined(_WIN32)
+#include <tlhelp32.h>
+#elif defined(__APPLE__)
+#include <libproc.h>
+#else
+#include <filesystem>
+#endif
+
 #include "base/nibr.h"
 #include "math/randomThings.h"
 
@@ -33,13 +41,13 @@ namespace NIBR
         };
 
         int&                                             MAXNUMBEROFTHREADS();
+        int                                              GETNUMBEROFRUNNINGTHREADS();
         void                                             SETMAXNUMBEROFTHREADS(int n);
         std::atomic<std::size_t>&                        FINISHEDTASKCOUNT();
         std::atomic<std::size_t>&                        FINISHEDTASKCOUNTTOSTOP();
         uint16_t&                                        FINISHEDTHREADID();
         void                                             SET_DISP_RANGE(std::size_t start, std::size_t total);
-        std::vector<std::unique_ptr<NIBR::RandomDoer>>&  RNDM();
-        
+        std::vector<std::unique_ptr<NIBR::RandomDoer>>&  RNDM();        
 
         // C++17 compatible barrier class (This already exists in C++20)
         // Allows a fixed number of threads to wait until all threads reach the barrier.

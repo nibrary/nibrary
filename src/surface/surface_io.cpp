@@ -34,7 +34,7 @@ bool NIBR::Surface::readVTKMeshHeader()
 {
 
     FILE *input;
-    input = fopen(filePath.c_str(), "rb+");
+    input = fopen(filePath.c_str(), "rb");
 
     const size_t strLength = 256;
     char dummy[strLength];
@@ -112,7 +112,7 @@ bool NIBR::Surface::readFreesurferMeshHeader()
 {
 
     FILE *input;
-    input = fopen(filePath.c_str(), "rb+");
+    input = fopen(filePath.c_str(), "rb");
 
     // Check magic number
     unsigned char m1, m2, m3;
@@ -161,7 +161,7 @@ bool NIBR::Surface::readVTKMesh()
 {
 
     FILE *input;
-    input = fopen(filePath.c_str(), "rb+");
+    input = fopen(filePath.c_str(), "rb");
 
     const size_t strLength = 256;
     char dummy[strLength];
@@ -264,7 +264,7 @@ bool NIBR::Surface::readFreesurferMesh()
 {
 
     FILE *input;
-    input = fopen(filePath.c_str(), "rb+");
+    input = fopen(filePath.c_str(), "rb");
 
     // Skip header since all is checked by the point
     const size_t strLength = 256;

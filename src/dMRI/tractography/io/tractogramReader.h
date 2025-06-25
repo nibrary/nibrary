@@ -72,12 +72,12 @@ namespace NIBR
             bool isPreloaded()  const {return isPreloadMode;}
             void reset();
 
-            std::tuple<bool, Streamline, size_t>    getNextStreamline();                        // Returns a tuple: {success, streamline, streamline_index}
-            StreamlineBatch                         getNextStreamlineBatch(size_t batchSize);
-            const Streamline&                       getStreamline(std::size_t n);               // Preloaded mode specific
-            Tractogram                              getTractogram();                            // Complete tractogram reader
-            size_t                                  getNumberOfStreamlines() const { return numberOfStreamlines; }
-            const std::vector<uint64_t>&            getNumberOfPoints();                        // Size of streamline n is out[n] - out[n-1]. The last element, out[numberOfStreamlines+1] is the total number of points
+            std::tuple<bool, Streamline, std::size_t>   getNextStreamline();                        // Returns a tuple: {success, streamline, streamline_index}
+            StreamlineBatch                             getNextStreamlineBatch(std::size_t batchSize);
+            const Streamline&                           getStreamline(std::size_t n);               // Preloaded mode specific
+            Tractogram                                  getTractogram();                            // Complete tractogram reader
+            std::size_t                                 getNumberOfStreamlines() const { return numberOfStreamlines; }
+            const std::vector<uint64_t>&                getNumberOfPoints();                        // Size of streamline n is out[n] - out[n-1]. The last element, out[numberOfStreamlines+1] is the total number of points
 
             std::string             fileName;
             std::string             fileDescription;
@@ -111,7 +111,7 @@ namespace NIBR
             bool  initReader(std::string _fileName, bool _preload);
 
             // Core I/O logic, reads a batch from the file. Not thread-safe by itself.
-            StreamlineBatch readBatchFromFile(size_t batchSize);
+            StreamlineBatch readBatchFromFile(std::size_t batchSize);
         
             // Producer-consumer members
             void producerLoop();
@@ -121,8 +121,8 @@ namespace NIBR
             std::condition_variable buffer_cv;
             std::atomic<bool>       stop_producer{false};
             std::atomic<bool>       producer_finished{false};
-            size_t                  buffer_capacity;
-            size_t                  buffer_low_water_mark;
+            std::size_t             buffer_capacity;
+            std::size_t             buffer_low_water_mark;
             bool                    isPreloadMode;
             
             // State variables
@@ -130,10 +130,10 @@ namespace NIBR
             char* readerBuffer  = nullptr;
             
             // File position tracking
-            std::atomic<size_t>     streamlines_read_from_file{0};
-            std::atomic<size_t>     consumed_streamline_count{0};
-            long                    firstStreamlinePos   = 0;
-            long                    currentStreamlinePos = 0;
+            std::atomic<std::size_t>    streamlines_read_from_file{0};
+            std::atomic<std::size_t>    consumed_streamline_count{0};
+            long                        firstStreamlinePos   = 0;
+            long                        currentStreamlinePos = 0;
 
             std::vector<uint64_t>   numberOfPoints; // Number of points
 
@@ -148,7 +148,7 @@ namespace NIBR
 
             // TCK specific
             std::vector<char>   tck_read_buffer;
-            size_t              tck_buffer_offset = 0;
+            std::size_t         tck_buffer_offset = 0;
 
             // TRK specific
             short           n_scalars_trk;          // TRK file format extension

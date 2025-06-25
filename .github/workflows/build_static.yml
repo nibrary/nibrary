@@ -173,19 +173,19 @@ jobs:
           tar -xzvf ${{ env.build-output-dir }}/arm64/nibrary_macOS_arm64_static.tar.gz
           cd ${{ env.build-output-dir }}/x86_64
           tar -xzvf ${{ env.build-output-dir }}/x86_64/nibrary_macOS_x86_64_static.tar.gz
-          lib1_arm=${{ env.build-output-dir }}/arm64/lib/nibrary_v0.4.0/libdcm2niix++.a
-          lib2_arm=${{ env.build-output-dir }}/arm64/lib/nibrary_v0.4.0/libgeogram.a
-          lib3_arm=${{ env.build-output-dir }}/arm64/lib/nibrary_v0.4.0/libNibrary.a
-          lib4_arm=${{ env.build-output-dir }}/arm64/lib/nibrary_v0.4.0/libz.a
-          lib1_x86_64=${{ env.build-output-dir }}/x86_64/lib/nibrary_v0.4.0/libdcm2niix++.a
-          lib2_x86_64=${{ env.build-output-dir }}/x86_64/lib/nibrary_v0.4.0/libgeogram.a
-          lib3_x86_64=${{ env.build-output-dir }}/x86_64/lib/nibrary_v0.4.0/libNibrary.a
-          lib4_x86_64=${{ env.build-output-dir }}/x86_64/lib/nibrary_v0.4.0/libz.a
-          mkdir -p ${{ env.build-output-dir }}/lib/nibrary_v0.4.0
-          lib1_comb=${{ env.build-output-dir }}/lib/nibrary_v0.4.0/libdcm2niix++.a
-          lib2_comb=${{ env.build-output-dir }}/lib/nibrary_v0.4.0/libgeogram.a
-          lib3_comb=${{ env.build-output-dir }}/lib/nibrary_v0.4.0/libNibrary.a
-          lib4_comb=${{ env.build-output-dir }}/lib/nibrary_v0.4.0/libz.a
+          lib1_arm=${{ env.build-output-dir }}/arm64/lib/nibrary_v0.4.1/libdcm2niix++.a
+          lib2_arm=${{ env.build-output-dir }}/arm64/lib/nibrary_v0.4.1/libgeogram.a
+          lib3_arm=${{ env.build-output-dir }}/arm64/lib/nibrary_v0.4.1/libNibrary.a
+          lib4_arm=${{ env.build-output-dir }}/arm64/lib/nibrary_v0.4.1/libz.a
+          lib1_x86_64=${{ env.build-output-dir }}/x86_64/lib/nibrary_v0.4.1/libdcm2niix++.a
+          lib2_x86_64=${{ env.build-output-dir }}/x86_64/lib/nibrary_v0.4.1/libgeogram.a
+          lib3_x86_64=${{ env.build-output-dir }}/x86_64/lib/nibrary_v0.4.1/libNibrary.a
+          lib4_x86_64=${{ env.build-output-dir }}/x86_64/lib/nibrary_v0.4.1/libz.a
+          mkdir -p ${{ env.build-output-dir }}/lib/nibrary_v0.4.1
+          lib1_comb=${{ env.build-output-dir }}/lib/nibrary_v0.4.1/libdcm2niix++.a
+          lib2_comb=${{ env.build-output-dir }}/lib/nibrary_v0.4.1/libgeogram.a
+          lib3_comb=${{ env.build-output-dir }}/lib/nibrary_v0.4.1/libNibrary.a
+          lib4_comb=${{ env.build-output-dir }}/lib/nibrary_v0.4.1/libz.a
           lipo -create ${lib1_arm} ${lib1_x86_64} -output ${lib1_comb}
           lipo -create ${lib2_arm} ${lib2_x86_64} -output ${lib2_comb}
           lipo -create ${lib3_arm} ${lib3_x86_64} -output ${lib3_comb}
@@ -214,6 +214,11 @@ jobs:
     - name: Install dependencies
       run: |
         apk add --no-cache cmake build-base git
+
+    - name: Set up build directory and environment
+      run: |
+        echo "build_type=Release" >> $GITHUB_ENV
+        echo "build-output-dir=./build_linux" >> $GITHUB_ENV
 
     - name: Configure CMake
       run: |

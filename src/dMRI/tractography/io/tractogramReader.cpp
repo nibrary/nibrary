@@ -293,8 +293,8 @@ bool NIBR::TractogramReader::initReader(std::string _fileName, bool _preload)
 
 
     if (isPreloadMode) {
+        buffer_low_water_mark = numberOfStreamlines - 1;
         buffer_capacity       = numberOfStreamlines;
-        buffer_low_water_mark = numberOfStreamlines;
     } else {
         buffer_low_water_mark = LOW_BUFFER_CAPACITY;
         buffer_capacity       = buffer_low_water_mark + DISC_IO_BATCH_SIZE + 1;
@@ -388,9 +388,11 @@ void NIBR::TractogramReader::producerLoop()
 
     while (!stop_producer) {
 
+        if (isPreloadMode) std::this_thread::yield(); // First give other threads a chance to come to wait
+
         disp(MSG_DEBUG, "Buffering...");
         
-        if (!isPreloadMode) {
+        {
             std::unique_lock<std::mutex> lock(buffer_mutex);
             buffer_cv.wait(lock, [this] {
                 return (streamline_buffer.size() <= buffer_low_water_mark) || stop_producer;
@@ -406,14 +408,6 @@ void NIBR::TractogramReader::producerLoop()
         {
             std::lock_guard<std::mutex> lock(buffer_mutex);
             batchReadSize = buffer_capacity - streamline_buffer.size();
-        }
-        
-        // If batchReadSize is 0, it means the buffer is full. 
-        // In preload mode, this could cause a busy-loop. We yield to prevent it.
-        if (batchReadSize == 0) {
-            // Give other threads a chance to run.
-            std::this_thread::yield();
-            continue; // Go back to the top of the while loop to re-check everything
         }
 
         StreamlineBatch batch = readBatchFromFile(std::min(batchReadSize, std::size_t(DISC_IO_BATCH_SIZE)));

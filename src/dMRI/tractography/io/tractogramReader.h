@@ -122,7 +122,6 @@ namespace NIBR
             std::atomic<bool>       stop_producer{false};
             std::atomic<bool>       producer_finished{false};
             std::size_t             buffer_capacity;
-            std::size_t             buffer_low_water_mark;
             bool                    isPreloadMode;
             
             // State variables

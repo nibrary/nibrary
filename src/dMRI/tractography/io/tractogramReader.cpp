@@ -5,7 +5,7 @@
 #include <iterator>
 
 // Default buffer size for streaming mode
-#define LOW_BUFFER_CAPACITY     1000000
+#define BUFFER_CAPACITY         1000000
 #define DISC_IO_BATCH_SIZE      100000
 #define READER_BUFFER_SIZE       4 * 1024 * 1024
 #define TCK_CHUNK_SIZE          16 * 1024 * 1024
@@ -289,21 +289,12 @@ bool NIBR::TractogramReader::initReader(std::string _fileName, bool _preload)
     currentStreamlinePos = firstStreamlinePos;
 
     // Configure the buffer and producer thread
-    isPreloadMode           = _preload;
-
-
-    if (isPreloadMode) {
-        buffer_capacity       = numberOfStreamlines;
-        buffer_low_water_mark = numberOfStreamlines;
-    } else {
-        buffer_low_water_mark = LOW_BUFFER_CAPACITY;
-        buffer_capacity       = buffer_low_water_mark + DISC_IO_BATCH_SIZE + 1;
-    }
-
+    isPreloadMode               = _preload;
     stop_producer               = false;
     streamlines_read_from_file  = 0;
     consumed_streamline_count   = 0;
     producer_finished           = false;
+    buffer_capacity             = (isPreloadMode) ? numberOfStreamlines : BUFFER_CAPACITY;
     producerThread              = std::thread(&TractogramReader::producerLoop, this);
     isInitialized               = true;
 
@@ -390,10 +381,10 @@ void NIBR::TractogramReader::producerLoop()
 
         disp(MSG_DEBUG, "Buffering...");
         
-        if (!isPreloadMode) {
+        {
             std::unique_lock<std::mutex> lock(buffer_mutex);
             buffer_cv.wait(lock, [this] {
-                return (streamline_buffer.size() <= buffer_low_water_mark) || stop_producer;
+                return (streamline_buffer.size() < buffer_capacity) || stop_producer;
             });
         }
 
@@ -407,14 +398,6 @@ void NIBR::TractogramReader::producerLoop()
             std::lock_guard<std::mutex> lock(buffer_mutex);
             batchReadSize = buffer_capacity - streamline_buffer.size();
         }
-        
-        // If batchReadSize is 0, it means the buffer is full. 
-        // In preload mode, this could cause a busy-loop. We yield to prevent it.
-        if (batchReadSize == 0) {
-            // Give other threads a chance to run.
-            std::this_thread::yield();
-            continue; // Go back to the top of the while loop to re-check everything
-        }
 
         StreamlineBatch batch = readBatchFromFile(std::min(batchReadSize, std::size_t(DISC_IO_BATCH_SIZE)));
         
@@ -427,6 +410,7 @@ void NIBR::TractogramReader::producerLoop()
             }
             disp(MSG_DEBUG, "%d streamlines buffered", batch.size());
         }
+
         buffer_cv.notify_all();
     }
 
@@ -451,10 +435,11 @@ std::tuple<bool, Streamline, std::size_t> NIBR::TractogramReader::getNextStreaml
         return {false, Streamline(), 0};
     }
 
-    std::size_t streamline_idx = consumed_streamline_count++;
+    std::size_t n = consumed_streamline_count++;
 
     if (isPreloadMode) {
-        return {true, streamline_buffer.at(streamline_idx), streamline_idx};
+        buffer_cv.wait(lock, [this, n]{ return n < streamline_buffer.size() || producer_finished; });
+        return {true, streamline_buffer.at(n), n};
     } else {
         Streamline s = std::move(streamline_buffer.front());
         streamline_buffer.pop_front();
@@ -462,31 +447,8 @@ std::tuple<bool, Streamline, std::size_t> NIBR::TractogramReader::getNextStreaml
         lock.unlock();
         buffer_cv.notify_one(); // Notify producer that space is available
 
-        return {true, std::move(s), streamline_idx};
+        return {true, std::move(s), n};
     }
-}
-
-
-StreamlineBatch NIBR::TractogramReader::getNextStreamlineBatch(std::size_t batchSize)
-{
-    StreamlineBatch batch_out;
-
-    if (batchSize == 0) return batch_out;
-
-    batch_out.reserve(batchSize);
-
-    for (std::size_t i = 0; i < batchSize; ++i) {
-        
-        auto [success, streamline, streamline_idx] = this->getNextStreamline();
-
-        if (success) {
-            batch_out.push_back(std::move(streamline));
-        } else {
-            break; 
-        }
-    }
-
-    return batch_out;
 }
 
 
@@ -510,6 +472,29 @@ const Streamline& NIBR::TractogramReader::getStreamline(std::size_t n)
     }
     
     return streamline_buffer.at(n);
+}
+
+
+StreamlineBatch NIBR::TractogramReader::getNextStreamlineBatch(std::size_t batchSize)
+{
+    StreamlineBatch batch_out;
+
+    if (batchSize == 0) return batch_out;
+
+    batch_out.reserve(batchSize);
+
+    for (std::size_t i = 0; i < batchSize; ++i) {
+        
+        auto [success, streamline, streamline_idx] = this->getNextStreamline();
+
+        if (success) {
+            batch_out.push_back(std::move(streamline));
+        } else {
+            break; 
+        }
+    }
+
+    return batch_out;
 }
 
 

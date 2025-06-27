@@ -435,10 +435,11 @@ std::tuple<bool, Streamline, std::size_t> NIBR::TractogramReader::getNextStreaml
         return {false, Streamline(), 0};
     }
 
-    std::size_t streamline_idx = consumed_streamline_count++;
+    std::size_t n = consumed_streamline_count++;
 
     if (isPreloadMode) {
-        return {true, streamline_buffer.at(streamline_idx), streamline_idx};
+        buffer_cv.wait(lock, [this, n]{ return n < streamline_buffer.size() || producer_finished; });
+        return {true, streamline_buffer.at(n), n};
     } else {
         Streamline s = std::move(streamline_buffer.front());
         streamline_buffer.pop_front();
@@ -446,7 +447,7 @@ std::tuple<bool, Streamline, std::size_t> NIBR::TractogramReader::getNextStreaml
         lock.unlock();
         buffer_cv.notify_one(); // Notify producer that space is available
 
-        return {true, std::move(s), streamline_idx};
+        return {true, std::move(s), n};
     }
 }
 

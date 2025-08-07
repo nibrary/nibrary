@@ -14,7 +14,7 @@ namespace NIBR
     
     void index2surface(TractogramReader& tractogram, Surface& surf, float sigma, std::string indexFilePrefix);
     
-    std::vector<std::vector<std::pair<int, float>>>         readSurfaceIndexing(TractogramReader& tractogram, const std::string& indexFilePrefix);
+    std::vector<std::vector<std::pair<int, float>>>         readSurfaceIndexing(const TractogramReader& tractogram, const std::string& indexFilePrefix);
     std::unordered_map<int,std::unordered_map<int, float>>  readSurfaceIndexingForSelection(const std::vector<int>& streamlineIndices, const std::string& indexFilePrefix, const std::vector<std::streampos>& positions);
 
 }

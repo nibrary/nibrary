@@ -188,6 +188,7 @@ std::unordered_map<int,std::unordered_map<int, float>> NIBR::readSurfaceIndexing
     return surfIdx;
 }
 
+/*
 std::vector<std::vector<std::pair<int, float>>> NIBR::readSurfaceIndexing(TractogramReader& tractogram, const std::string& indexFilePrefix)
 {
     // Initialize the output
@@ -287,6 +288,101 @@ std::vector<std::vector<std::pair<int, float>>> NIBR::readSurfaceIndexing(Tracto
             idxFileStreams[n].close();
         }
     }
+
+    return surfIdx;
+}
+*/
+
+
+
+std::vector<std::vector<std::pair<int, float>>> NIBR::readSurfaceIndexing(const NIBR::TractogramReader& tractogram, const std::string& indexFilePrefix)
+{
+    // Initialize the output vector with the correct number of streamlines
+    std::vector<std::vector<std::pair<int, float>>> surfIdx(tractogram.numberOfStreamlines);
+
+    if (tractogram.numberOfStreamlines == 0) {
+        return surfIdx;
+    }
+
+    // Read the entire surface indexing pos file into memory
+    std::vector<std::streampos> positions;
+    {
+        std::ifstream posFile(indexFilePrefix + "_pos.bin", std::ios::binary);
+        if (!posFile) {
+            disp(MSG_ERROR, "Can't open surface indexing position file: %s_pos.bin",indexFilePrefix.c_str());
+            return {};
+        }
+
+        // Reserve memory to avoid reallocations
+        positions.reserve(tractogram.numberOfStreamlines + 1);
+        
+        // Read all positions at once
+        std::streampos tmp;
+        while (posFile.read(reinterpret_cast<char*>(&tmp), sizeof(std::streampos))) {
+            positions.push_back(tmp);
+        }
+    }
+
+    if (positions.size() != tractogram.numberOfStreamlines + 1) {
+        disp(MSG_ERROR, "Error reading surface indexing _pos file. Mismatch between streamline count and position entries.");
+        return {};
+    }
+
+    // Open the main data file (_idx.bin) once and process it streamline by streamline.
+    std::ifstream idxFile(indexFilePrefix + "_idx.bin", std::ios::binary);
+    if (!idxFile) {
+        disp(MSG_ERROR, "Can't open surface indexing data file: %s_idx.bin",indexFilePrefix.c_str());
+        return {};
+    }
+    
+    const size_t pair_size = sizeof(std::pair<int, float>);
+    
+    // Iterate through each streamline, seek to its data, and read it in one chunk.
+    disp(MSG_PROGRESS_START,"Reading surface indexing: 0%%");
+    for (size_t i = 0; i < tractogram.numberOfStreamlines; ++i) {
+        
+        const std::streampos startPos = positions[i];
+        const std::streampos endPos   = positions[i+1];
+
+        if (startPos > endPos) {
+            disp(MSG_ERROR, "Invalid position entry for streamline %d", i);
+            return {};
+        }
+
+        const std::streamoff byteSize = endPos - startPos;
+
+        if (byteSize > 0) {
+
+            if (byteSize % pair_size != 0) {
+                disp(MSG_ERROR, "Data chunk for streamline %d has an unexpected size.", i);
+                return {};
+            }
+
+            const size_t num_pairs      = byteSize / pair_size;
+            auto& currentStreamlineData = surfIdx[i];
+
+            // Allocate memory in the final destination vector
+            currentStreamlineData.resize(num_pairs);
+            
+            // Seek to the start of the data for this streamline
+            idxFile.seekg(startPos);
+
+            // Read the entire block for this streamline directly into the vector
+            if (!idxFile.read(reinterpret_cast<char*>(currentStreamlineData.data()), byteSize)) {
+                disp(MSG_ERROR, "Error reading data for streamline %d", i);
+                return {};
+            }
+
+            // Sort the data just read
+            std::sort(currentStreamlineData.begin(), currentStreamlineData.end());
+        }
+
+        if (i % 10000 == 0) {
+            disp(MSG_PROGRESS_UPDATE,"Reading surface indexing: %.2f%%", float(i)/float(tractogram.numberOfStreamlines)*100.0f);
+        }
+
+    }
+    disp(MSG_PROGRESS_END,"Reading surface indexing: 100%%");
 
     return surfIdx;
 }

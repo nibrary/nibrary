@@ -175,6 +175,7 @@ if (BUILD_DCM2NIIX)
                     -DUSE_JNIFTI=OFF
                     -DZLIB_IMPLEMENTATION=Custom
                     -DZLIB_ROOT=${NIBRARY_EXTERNAL_CMAKE_INSTALL_PREFIX}
+                    -DCMAKE_INCLUDE_PATH=${NIBRARY_EXTERNAL_CMAKE_INSTALL_PREFIX}/include
                     -DBUILD_DCM2NIIX_LIB=ON
             )
 

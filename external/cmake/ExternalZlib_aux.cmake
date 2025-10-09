@@ -10,9 +10,6 @@ conditional_make_directory("${NIBRARY_CMAKE_INSTALL_PREFIX}/include/${nibrary}/z
 conditional_copy_file("${CMAKE_INSTALL_PREFIX}/include/zconf.h" "${NIBRARY_CMAKE_INSTALL_PREFIX}/include/${nibrary}/zlib/zconf.h")
 conditional_copy_file("${CMAKE_INSTALL_PREFIX}/include/zlib.h" "${NIBRARY_CMAKE_INSTALL_PREFIX}/include/${nibrary}/zlib/zlib.h")
 
-conditional_copy_file("${CMAKE_INSTALL_PREFIX}/include/zconf.h" "${CMAKE_INSTALL_PREFIX}/zconf.h")
-conditional_copy_file("${CMAKE_INSTALL_PREFIX}/include/zlib.h" "${CMAKE_INSTALL_PREFIX}/zlib.h")
-
 # Rename libraries
 if (NOT BUILD_SHARED_LIBS)
     conditional_copy_file("${CMAKE_INSTALL_PREFIX}/lib/libz.a" "${NIBRARY_CMAKE_INSTALL_PREFIX}/lib/${nibrary}/libz.a")

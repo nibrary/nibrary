@@ -169,6 +169,7 @@ if (BUILD_DCM2NIIX)
                 -DCMAKE_C_FLAGS=-fPIC
                 -DCMAKE_CXX_FLAGS=-fPIC
                 -DUSE_JNIFTI=OFF
+                -DZLIB_IMPLEMENTATION=System
                 -DBUILD_DCM2NIIX_LIB=ON
         )
 

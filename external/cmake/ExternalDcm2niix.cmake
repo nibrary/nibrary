@@ -153,25 +153,53 @@ if (BUILD_DCM2NIIX)
 
         include(ExternalProject)
 
-        ExternalProject_Add(build_dcm2niix
+        if(BUILDING_ZLIB_FROM_SOURCE)
 
-            SOURCE_DIR "${DCM2NIIX_SOURCE_DIR}"
+            ExternalProject_Add(build_dcm2niix
 
-            PREFIX ${CMAKE_BINARY_DIR}/external/dcm2niix
+                SOURCE_DIR "${DCM2NIIX_SOURCE_DIR}"
 
-            CMAKE_ARGS
-                -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
-                -DBUILD_SHARED_LIBS=${BUILD_SHARED_LIBS}
-                -DCMAKE_INSTALL_PREFIX=${NIBRARY_EXTERNAL_CMAKE_INSTALL_PREFIX}
-                -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
-                -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
-                -DUSE_STATIC_RUNTIME=$<$<BOOL:${BUILD_SHARED_LIBS}>:OFF;ON>
-                -DCMAKE_C_FLAGS=-fPIC
-                -DCMAKE_CXX_FLAGS=-fPIC
-                -DUSE_JNIFTI=OFF
-                -DZLIB_IMPLEMENTATION=System
-                -DBUILD_DCM2NIIX_LIB=ON
-        )
+                PREFIX ${CMAKE_BINARY_DIR}/external/dcm2niix
+
+                CMAKE_ARGS
+                    -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+                    -DBUILD_SHARED_LIBS=${BUILD_SHARED_LIBS}
+                    -DCMAKE_INSTALL_PREFIX=${NIBRARY_EXTERNAL_CMAKE_INSTALL_PREFIX}
+                    -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
+                    -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
+                    -DUSE_STATIC_RUNTIME=$<$<BOOL:${BUILD_SHARED_LIBS}>:OFF;ON>
+                    -DCMAKE_C_FLAGS=-fPIC
+                    -DCMAKE_CXX_FLAGS=-fPIC
+                    -DUSE_JNIFTI=OFF
+                    -DZLIB_IMPLEMENTATION=Custom
+                    -DZLIB_ROOT=${CMAKE_INSTALL_PREFIX}/lib/${nibrary}
+                    -DBUILD_DCM2NIIX_LIB=ON
+            )
+
+        else() 
+
+            ExternalProject_Add(build_dcm2niix
+
+                SOURCE_DIR "${DCM2NIIX_SOURCE_DIR}"
+
+                PREFIX ${CMAKE_BINARY_DIR}/external/dcm2niix
+
+                CMAKE_ARGS
+                    -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+                    -DBUILD_SHARED_LIBS=${BUILD_SHARED_LIBS}
+                    -DCMAKE_INSTALL_PREFIX=${NIBRARY_EXTERNAL_CMAKE_INSTALL_PREFIX}
+                    -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
+                    -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
+                    -DUSE_STATIC_RUNTIME=$<$<BOOL:${BUILD_SHARED_LIBS}>:OFF;ON>
+                    -DCMAKE_C_FLAGS=-fPIC
+                    -DCMAKE_CXX_FLAGS=-fPIC
+                    -DUSE_JNIFTI=OFF
+                    -DZLIB_IMPLEMENTATION=System
+                    -DBUILD_DCM2NIIX_LIB=ON
+            )
+
+        endif()
+
 
         ExternalProject_Add_Step(build_dcm2niix POST_BUILD
             COMMENT "Moving dcm2niix headers and libraries"

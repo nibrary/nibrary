@@ -153,7 +153,9 @@ if (BUILD_DCM2NIIX)
 
         include(ExternalProject)
 
-        if(BUILDING_ZLIB_FROM_SOURCE)
+        if(NOT ZLIB_FOUND)
+
+            message(STATUS "Building dcm2niix with nibrary's zlib")
 
             ExternalProject_Add(build_dcm2niix
 
@@ -172,11 +174,13 @@ if (BUILD_DCM2NIIX)
                     -DCMAKE_CXX_FLAGS=-fPIC
                     -DUSE_JNIFTI=OFF
                     -DZLIB_IMPLEMENTATION=Custom
-                    -DZLIB_ROOT=${CMAKE_INSTALL_PREFIX}/lib/${nibrary}
+                    -DZLIB_ROOT=${NIBRARY_CMAKE_INSTALL_PREFIX}/lib/${nibrary}
                     -DBUILD_DCM2NIIX_LIB=ON
             )
 
         else() 
+
+            message(STATUS "Building dcm2niix with system zlib")
 
             ExternalProject_Add(build_dcm2niix
 

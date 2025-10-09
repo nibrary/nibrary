@@ -99,6 +99,7 @@ endif()
 
 if(BUILDING_ZLIB_FROM_SOURCE)
     add_dependencies(OBJS build_zlib)
+    add_dependencies(build_dcm2niix build_zlib)
 endif()
 
 if(BUILDING_GEOGRAM_FROM_SOURCE)

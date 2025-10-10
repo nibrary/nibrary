@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.15.0)
 
 set(nibrary_VERSION_MAJOR 0)
 set(nibrary_VERSION_MINOR 4)
-set(nibrary_VERSION_PATCH 1)
+set(nibrary_VERSION_PATCH 2)
 
 project(nibrary VERSION ${nibrary_VERSION_MAJOR}.${nibrary_VERSION_MINOR}.${nibrary_VERSION_PATCH} LANGUAGES CXX C)
 
@@ -93,16 +93,20 @@ if (BUILD_DCM2NIIX)
     add_compile_definitions(HAS_DCM2NIIX)
     include_directories(${DCM2NIIX_INCLUDE_DIR})
     add_dependencies(OBJS build_dcm2niix)
+    if (BUILDING_GEOGRAM_FROM_SOURCE)
+        add_dependencies(build_geogram build_dcm2niix)
+    endif()
 else()
     message(STATUS ">> Nibrary::dcm2niix will not be built")
 endif()
 
 if(BUILDING_ZLIB_FROM_SOURCE)
     add_dependencies(OBJS build_zlib)
+    add_dependencies(build_dcm2niix build_zlib)
 endif()
 
 if(BUILDING_GEOGRAM_FROM_SOURCE)
-    add_dependencies(OBJS build_geogram)
+    add_dependencies(OBJS build_geogram)    
 endif()
 
 IF(BUILD_SHARED_LIBS)
@@ -125,7 +129,7 @@ endif()
 target_link_libraries(${libNibrary} PUBLIC ${ZLIB_LIBRARIES} ${GEOGRAM_LIBRARY})
 
 if (BUILD_DCM2NIIX)
-target_link_libraries(${libNibrary} PUBLIC ${DCM2NIIX_LIBRARY})
+    target_link_libraries(${libNibrary} PUBLIC ${DCM2NIIX_LIBRARY})
 endif()
 
 IF(ENABLE_CUDA)

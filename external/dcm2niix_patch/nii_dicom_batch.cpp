@@ -21,7 +21,7 @@
 #ifdef MiniZ
 #include "miniz.c" //single file clone of libz
 #else
-#include <zlib.h>
+#include "zlib.h"
 #endif
 #else
 #undef MiniZ

@@ -25,16 +25,19 @@ if(NOT ZLIB_FOUND)
         set(ZLIB_SOURCE_DIR "${CMAKE_SOURCE_DIR}/external/zlib")
 
         set(BUILDING_ZLIB_FROM_SOURCE TRUE CACHE INTERNAL "zlib will be built from local source")
+        message(STATUS "zlib will be built from local source")
 
     elseif (EXISTS "${CMAKE_SOURCE_DIR}/external/zlib-${ZLIB_MIN_VERSION}/CMakeLists.txt")
 
         set(ZLIB_SOURCE_DIR "${CMAKE_SOURCE_DIR}/external/zlib-${ZLIB_MIN_VERSION}")
 
         set(BUILDING_ZLIB_FROM_SOURCE TRUE CACHE INTERNAL "zlib will be built from local source")
+        message(STATUS "zlib will be built from local source")
 
     else()    
 
         set(BUILDING_ZLIB_FROM_SOURCE TRUE CACHE INTERNAL "zlib will be downloaded and built from source")
+        message(STATUS "zlib will be downloaded and built from source")
 
         set(ZLIB_SOURCE_DIR "${CMAKE_BINARY_DIR}/external/zlib-${ZLIB_MIN_VERSION}")
         

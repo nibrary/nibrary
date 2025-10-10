@@ -1316,7 +1316,9 @@ void NIBR::extractDisc(Surface* outSurf, Surface* surf, float x, float y, float 
 void NIBR::selectVertices(Surface* outSurf, Surface* surf, SurfaceField* mask, int label) {
     SurfaceField sel = surf->copyField(*mask);
     surfaceFieldThreshold(surf, &sel, label, label);
-    return selectVertices(outSurf, surf, &sel);
+    selectVertices(outSurf, surf, &sel);
+    surf->clearField(sel);
+    return;
 }
 
 // Modifies the input mask field

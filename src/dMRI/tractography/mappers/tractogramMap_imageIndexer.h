@@ -11,7 +11,7 @@ namespace NIBR
     bool index2image(
         TractogramReader& tractogram, 
         Image<T>& img, 
-        bool*** masker,
+        bool***& masker,
         std::vector<int64_t>& inds,
         std::function<void(Tractogram2ImageMapper<T>* tim, int* _gridPos, NIBR::Segment& _seg)> processor, 
         std::function<void(Tractogram2ImageMapper<T>* tim)> indexer, 
@@ -48,8 +48,9 @@ namespace NIBR
             std::get<3>(gridData) = &batchNo;
 
             Tractogram2ImageMapper<T> gridder(&tractogram,&img);
-            gridder.setData((void*)(&gridData));
+            gridder.optimizeForSmallMask(false);
             gridder.setMask(masker);
+            gridder.setData((void*)(&gridData));
             allocater(&gridder);
             gridder.run(processor,indexer,range.first,range.second);
             deallocater(&gridder);
@@ -193,38 +194,49 @@ namespace NIBR
         
         return true;
     }
-    
 
-    /*
-    // Return a void* with indexing information for each ind value in inds
     template<typename T>
-    std::vector<void*> index2image(
+    bool index2image(
         TractogramReader& tractogram, 
         Image<T>& img, 
-        bool*** masker,
+        bool***& mask,
         std::vector<int64_t>& inds,
         std::function<void(Tractogram2ImageMapper<T>* tim, int* _gridPos, NIBR::Segment& _seg)> processor, 
-        std::function<void(Tractogram2ImageMapper<T>* tim)> indexer, 
+        std::function<void(Tractogram2ImageMapper<T>* tim)> indexer,
         std::function<void(Tractogram2ImageMapper<T>* tim)> allocater,
-        std::function<void(Tractogram2ImageMapper<T>* tim)> deallocater)
+        std::function<void(Tractogram2ImageMapper<T>* tim)> deallocater,
+        void* G,
+        std::vector<std::pair<int,std::vector<std::pair<int,float>>>>* contributions
+    )
+
     {
-        std::vector<void*> indexing;
+        auto origVerbose = NIBR::VERBOSE();
 
-        std::tuple<std::vector<int64_t>*,std::vector<void*>*> gridData;
-
-        std::get<0>(gridData) = &inds;
-        std::get<1>(gridData) = &indexing;
+        NIBR::VERBOSE() = VERBOSE_QUIET;
+        
+        // Reserve space for contributions
+        contributions->clear();
+        contributions->reserve(inds.size());
+        
+        // gridData: <function* G, std::vector<std::pair<int,std::vector<std::pair<int,float>>>>* contributions>
+        std::tuple<void*,std::vector<std::pair<int,std::vector<std::pair<int,float>>>>*> gridData;
+        std::get<0>(gridData) = G;
+        std::get<1>(gridData) = contributions;
 
         Tractogram2ImageMapper<T> gridder(&tractogram,&img);
+        gridder.optimizeForSmallMask(true);
+        gridder.setMask(mask);
         gridder.setData((void*)(&gridData));
-        gridder.setMask(masker);
         allocater(&gridder);
+
         gridder.run(processor,indexer);
-        deallocater(&gridder);
         
-        return indexing;
+        deallocater(&gridder);
+
+        NIBR::VERBOSE() = origVerbose;
+        
+        return true;
     }
-    */
 
 }
 

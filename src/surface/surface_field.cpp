@@ -514,12 +514,14 @@ void NIBR::Surface::convert2FaceField(SurfaceField& field) {
     SurfaceField out = NIBR::convert2FaceField(this, &field);
     this->clearField(field);
     field = this->copyField(out);
+    this->clearField(out);
 }
 
 void NIBR::Surface::convert2VertField(SurfaceField& field) {
     SurfaceField out = NIBR::convert2VertField(this, &field);
     this->clearField(field);
     field = this->copyField(out);
+    this->clearField(out);
 }
 
 void NIBR::Surface::convert2IntField(SurfaceField& field) {

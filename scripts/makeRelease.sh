@@ -88,6 +88,10 @@ DCM2NIIX_GIT_FOLDER="${RELEASE_FOLDER}/external/dcm2niix/.git"
 echo "Removing dcm2niix .git folder: $DCM2NIIX_GIT_FOLDER"
 rm -rf $DCM2NIIX_GIT_FOLDER
 
+GEOGRAM_GIT_FOLDER="${RELEASE_FOLDER}/external/geogram/.git"
+echo "Removing geogram .git folder: $GEOGRAM_GIT_FOLDER"
+rm -rf $GEOGRAM_GIT_FOLDER
+
 
 
 # ======================================================

@@ -31,7 +31,7 @@ NIBR::TractogramReader::~TractogramReader()
 bool NIBR::TractogramReader::initReader(std::string _fileName, bool _preload) 
 {
 
-    CNumericLocaleGuard lockScopeForNumericReading();
+    CNumericLocaleGuard lockScopeForNumericReading;
 
     if (isInitialized) return true;
 
@@ -814,7 +814,7 @@ Tractogram NIBR::TractogramReader::getTractogram() {
 const std::vector<uint64_t>& NIBR::TractogramReader::getNumberOfPoints()
 {
 
-    CNumericLocaleGuard lockScopeForNumericReading();
+    CNumericLocaleGuard lockScopeForNumericReading;
 
     if (!numberOfPoints.empty()) return numberOfPoints;
 

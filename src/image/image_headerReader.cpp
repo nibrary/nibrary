@@ -195,7 +195,7 @@ bool NIBR::Image<T>::readHeader_nii() {
 template<typename T>
 bool NIBR::Image<T>::readHeader_mghz() {  
 
-    CNumericLocaleGuard lockScopeForNumericReading();
+    CNumericLocaleGuard lockScopeForNumericReading;
 
     int   version, type, dof, dim;
     short goodRASFlag;

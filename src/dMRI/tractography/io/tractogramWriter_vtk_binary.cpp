@@ -8,7 +8,7 @@ namespace NIBR {
 
 bool VTKBinaryWriter::appendFileContent(FILE* dest, const std::string& srcFilename) 
 {
-    CNumericLocaleGuard lockScopeForNumericReading();
+    CNumericLocaleGuard lockScopeForNumericReading;
 
     FILE* src = fopen(srcFilename.c_str(), "rb");
     if (!src) {

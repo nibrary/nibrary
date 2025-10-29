@@ -35,7 +35,7 @@ bool NIBR::Surface::readHeader(std::string _filePath)
 bool NIBR::Surface::readVTKMeshHeader()
 {
 
-    CNumericLocaleGuard lockScopeForNumericReading();
+    CNumericLocaleGuard lockScopeForNumericReading;
 
     FILE *input;
     input = fopen(filePath.c_str(), "rb");
@@ -119,7 +119,7 @@ bool NIBR::Surface::readGIIMeshHeader()
 bool NIBR::Surface::readFreesurferMeshHeader()
 {
 
-    CNumericLocaleGuard lockScopeForNumericReading();
+    CNumericLocaleGuard lockScopeForNumericReading;
 
     FILE *input;
     input = fopen(filePath.c_str(), "rb");
@@ -173,7 +173,7 @@ bool NIBR::Surface::readMesh() {
 
 bool NIBR::Surface::readVTKMesh()
 {
-    CNumericLocaleGuard lockScopeForNumericReading();
+    CNumericLocaleGuard lockScopeForNumericReading;
 
     FILE *input;
     input = fopen(filePath.c_str(), "rb");
@@ -337,7 +337,7 @@ bool NIBR::Surface::readGIIMesh()
 bool NIBR::Surface::readFreesurferMesh()
 {
 
-    CNumericLocaleGuard lockScopeForNumericReading();
+    CNumericLocaleGuard lockScopeForNumericReading;
 
     FILE *input;
     input = fopen(filePath.c_str(), "rb");

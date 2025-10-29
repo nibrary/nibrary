@@ -36,7 +36,7 @@ namespace NIBR
     template<class T>
     std::tuple<bool, std::vector<T>> readValuesFromFile(std::string fname) {
 
-        CNumericLocaleGuard lockScopeForNumericReading();
+        CNumericLocaleGuard lockScopeForNumericReading;
 
         auto f = fopen(fname.c_str(), "rb");
         if (f == NULL) {

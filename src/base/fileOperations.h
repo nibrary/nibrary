@@ -3,6 +3,7 @@
 #include <filesystem>
 #include "base/nibr.h"
 #include "math/core.h"
+#include "base/stringOperations.h"
 
 
 namespace NIBR 
@@ -34,6 +35,9 @@ namespace NIBR
 
     template<class T>
     std::tuple<bool, std::vector<T>> readValuesFromFile(std::string fname) {
+
+        CNumericLocaleGuard lockScopeForNumericReading();
+
         auto f = fopen(fname.c_str(), "rb");
         if (f == NULL) {
             return std::make_tuple(false, std::vector<T>());

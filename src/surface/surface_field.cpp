@@ -7,6 +7,8 @@ using namespace NIBR;
 std::vector<NIBR::SurfaceField> NIBR::Surface::findFields()
 {
 
+    CNumericLocaleGuard lockScopeForNumericReading();
+
 	FILE *input;
 	input = fopen(filePath.c_str(),"rb");
 
@@ -92,6 +94,8 @@ std::vector<NIBR::SurfaceField> NIBR::Surface::findFields()
 
 
 bool NIBR::Surface::readFields() {
+
+    CNumericLocaleGuard lockScopeForNumericReading();
 
 	FILE *input;
 	input = fopen(filePath.c_str(),"rb");
@@ -228,6 +232,8 @@ bool NIBR::Surface::readFields() {
 }
 
 NIBR::SurfaceField NIBR::Surface::readField(std::string fieldName) {
+
+    CNumericLocaleGuard lockScopeForNumericReading();
 
     float** fdata = NULL;
     int**   idata = NULL;

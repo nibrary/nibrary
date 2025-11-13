@@ -8,6 +8,8 @@ namespace NIBR {
 
 bool VTKBinaryWriter::appendFileContent(FILE* dest, const std::string& srcFilename) 
 {
+    CNumericLocaleGuard lockScopeForNumericReading;
+
     FILE* src = fopen(srcFilename.c_str(), "rb");
     if (!src) {
         disp(MSG_ERROR, "VTKBinaryWriter: Failed to open temporary source file %s for appending.", srcFilename.c_str());

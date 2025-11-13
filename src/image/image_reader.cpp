@@ -171,6 +171,8 @@ bool NIBR::Image<T>::read_nii() {
 template<typename T>
 bool NIBR::Image<T>::read_mghz() {
 
+    CNumericLocaleGuard lockScopeForNumericReading;
+
     std::function<size_t(void*, size_t, size_t)> readFunc;
 
     gzFile gzfp = NULL;

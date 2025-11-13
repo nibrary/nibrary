@@ -1,6 +1,8 @@
-#include "surface.h"
 #include <fstream>
 #include <stdio.h>
+
+#include "surface.h"
+#include "base/stringOperations.h"
 
 using namespace NIBR;
 
@@ -33,8 +35,14 @@ bool NIBR::Surface::readHeader(std::string _filePath)
 bool NIBR::Surface::readVTKMeshHeader()
 {
 
+    CNumericLocaleGuard lockScopeForNumericReading;
+
     FILE *input;
     input = fopen(filePath.c_str(), "rb");
+    if (!input) {
+        disp(MSG_ERROR,"Failed to open file: %s", filePath.c_str());
+        return false;
+    }
 
     const size_t strLength = 256;
     char dummy[strLength];
@@ -111,8 +119,14 @@ bool NIBR::Surface::readGIIMeshHeader()
 bool NIBR::Surface::readFreesurferMeshHeader()
 {
 
+    CNumericLocaleGuard lockScopeForNumericReading;
+
     FILE *input;
     input = fopen(filePath.c_str(), "rb");
+    if (!input) {
+        disp(MSG_ERROR,"Failed to open file: %s", filePath.c_str());
+        return false;
+    }
 
     // Check magic number
     unsigned char m1, m2, m3;
@@ -159,31 +173,70 @@ bool NIBR::Surface::readMesh() {
 
 bool NIBR::Surface::readVTKMesh()
 {
+    CNumericLocaleGuard lockScopeForNumericReading;
 
     FILE *input;
     input = fopen(filePath.c_str(), "rb");
+    if (!input) {
+        disp(MSG_ERROR,"Failed to open file: %s", filePath.c_str());
+        return false;
+    }
 
     const size_t strLength = 256;
     char dummy[strLength];
     char type[strLength];
 
-    fgets(dummy, strLength, input); // Skip "vtk DataFile Version 3.0" line
-    fgets(dummy, strLength, input); // Custom one line metadata
-    fgets(type, strLength, input);  // ASCII or BINARY
-    fgets(dummy, strLength, input); // Skip DATASET POLYDATA line
-    std::fscanf(input, "%*s %d %*s\n", &nv);
+    // Lambda function to skip whitespace characters to ensure correct reading
+    auto skipWhitespace = [&]() {
+        int ch;
+        do {
+            ch = std::fgetc(input);
+        } while (ch != EOF && std::isspace(static_cast<unsigned char>(ch)));
+        if (ch != EOF) std::ungetc(ch, input);
+    };
+
+    fgets(dummy, strLength, input); skipWhitespace(); // Skip "vtk DataFile Version 3.0" line
+    NIBR::disp(MSG_DEBUG,"Vtk version line: %s", dummy);
+
+    fgets(dummy, strLength, input); skipWhitespace(); // Custom one line metadata
+    NIBR::disp(MSG_DEBUG,"Vtk metadata line: %s", dummy);
+
+    fgets(type, strLength, input);  skipWhitespace(); // ASCII or BINARY
+    NIBR::disp(MSG_DEBUG,"Vtk data type: %s", type);
+
+    fgets(dummy, strLength, input); skipWhitespace(); // Skip DATASET POLYDATA line
+    NIBR::disp(MSG_DEBUG,"Vtk dataset line: %s", dummy);
+    
+    nv = 0;
+    while (fgets(dummy, strLength, input)) {
+        if (std::strncmp(dummy, "POINTS", 6) == 0) {
+            if (std::sscanf(dummy, "POINTS %d %*s", &nv) != 1) {
+                disp(MSG_ERROR,"Failed to parse POINTS header: %s", dummy);
+                fclose(input);
+                return false;
+            }
+            break;
+        }
+    }
+    NIBR::disp(MSG_DEBUG,"Number of vertices: %d", nv);
 
     vertices = new float *[nv];
     if (std::string(type) == "ASCII\n")
     {
+        skipWhitespace();
+        disp(MSG_DEBUG,"Reading ASCII VTK mesh with %d vertices and %d faces.", nv, nf);
         for (int n = 0; n < nv; n++)
         {
             vertices[n] = new float[3];
             std::fscanf(input, "%f %f %f\n", &vertices[n][0], &vertices[n][1], &vertices[n][2]);
+            skipWhitespace();
+            if ( n < 5 )
+                disp(MSG_DEBUG,"Vertex %d: %f %f %f", n, vertices[n][0], vertices[n][1], vertices[n][2]);
         }
     }
     else
     {
+        disp(MSG_DEBUG,"Reading BINARY VTK mesh with %d vertices and %d faces.", nv, nf);
         float tmpf;
         for (int n = 0; n < nv; n++)
         {
@@ -197,19 +250,37 @@ bool NIBR::Surface::readVTKMesh()
         }
     }
 
-    std::fscanf(input, "%*s %d %*s\n", &nf);
+    nf = 0;
+    while (fgets(dummy, strLength, input)) {
+        if (std::strncmp(dummy, "POLYGONS", 8) == 0) {
+            if (std::sscanf(dummy, "POLYGONS %d %*d", &nf) != 1) {
+                disp(MSG_ERROR,"Failed to parse POLYGONS header: %s", dummy);
+                fclose(input);
+                return false;
+            }
+            break;
+        }
+    }
+
+    NIBR::disp(MSG_DEBUG,"Number of faces: %d", nf);
 
     faces = new int *[nf];
     if (std::string(type) == "ASCII\n")
     {
+        skipWhitespace();
+        disp(MSG_DEBUG,"Reading ASCII VTK mesh with %d vertices and %d faces.", nv, nf);
         for (int n = 0; n < nf; n++)
         {
             faces[n] = new int[3];
             std::fscanf(input, "%*d %d %d %d\n", &faces[n][0], &faces[n][1], &faces[n][2]);
+            skipWhitespace();
+            if ( n < 5 )
+                disp(MSG_DEBUG,"Face %d: %d %d %d", n, faces[n][0], faces[n][1], faces[n][2]);
         }
     }
     else
     {
+        disp(MSG_DEBUG,"Reading BINARY VTK mesh with %d vertices and %d faces.", nv, nf);
         int tmpi;
         for (int n = 0; n < nf; n++)
         {
@@ -224,7 +295,10 @@ bool NIBR::Surface::readVTKMesh()
         }
     }
 
+
     fclose(input);
+    
+    NIBR::disp(MSG_DEBUG,"Finished reading VTK mesh.");
 
     return true;
 }
@@ -263,8 +337,14 @@ bool NIBR::Surface::readGIIMesh()
 bool NIBR::Surface::readFreesurferMesh()
 {
 
+    CNumericLocaleGuard lockScopeForNumericReading;
+
     FILE *input;
     input = fopen(filePath.c_str(), "rb");
+    if (!input) {
+        disp(MSG_ERROR,"Failed to open file: %s", filePath.c_str());
+        return false;
+    }
 
     // Skip header since all is checked by the point
     const size_t strLength = 256;

@@ -115,7 +115,9 @@ NIBR::Surface::Surface() {
 
 NIBR::Surface::Surface(std::string _filePath) {
 	init();
-    readHeader(_filePath);
+    if (!readHeader(_filePath)) {
+        disp(MSG_ERROR,"Failed to read surface header from file: %s", _filePath.c_str());
+    }
 }
 
 

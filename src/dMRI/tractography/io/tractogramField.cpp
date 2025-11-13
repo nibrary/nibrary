@@ -6,6 +6,8 @@ using namespace NIBR;
 
 FILE* initFieldReader(TractogramReader& tractogram) {
 
+    CNumericLocaleGuard lockScopeForNumericReading;
+
     if (tractogram.fileFormat != VTK_BINARY_3) {
         disp(MSG_ERROR,"Can only read binary vtk v3 fields.");
         return nullptr;
@@ -522,6 +524,8 @@ void NIBR::clearField(TractogramField& field, Tractogram& tractogram)
 }
 
 TractogramField NIBR::makeTractogramFieldFromFile(TractogramReader& tractogram, std::string filePath, std::string name, std::string owner, std::string dataType, int dimension, bool isASCII) {
+
+    CNumericLocaleGuard lockScopeForNumericReading;
 
     // Create fields for vtk output
     TractogramField field;

@@ -4,6 +4,8 @@ using namespace NIBR;
 
 std::tuple<NIBR::SurfaceField,std::vector<std::tuple<std::string,int,int,int,int>>> NIBR::Surface::readFreesurferAnnot(std::string filePath, std::string LUTfname) {
 
+    CNumericLocaleGuard lockScopeForNumericReading;
+
     std::string extension = filePath.substr(filePath.find_last_of(".") + 1);
 
     SurfaceField annotation;
@@ -158,6 +160,8 @@ std::tuple<NIBR::SurfaceField,std::vector<std::tuple<std::string,int,int,int,int
 
     if (!LUTfname.empty()) {
 
+        CNumericLocaleGuard lockScopeForNumericReading;
+
         FILE *fLUT;
 	    fLUT = fopen(LUTfname.c_str(),"rb");
 
@@ -196,6 +200,8 @@ std::tuple<NIBR::SurfaceField,std::vector<std::tuple<std::string,int,int,int,int
 }
 
 NIBR::SurfaceField NIBR::Surface::readFreesurferLabel(std::string filePath) {
+
+    CNumericLocaleGuard lockScopeForNumericReading;
 
     std::string extension = filePath.substr(filePath.find_last_of(".") + 1);
 
@@ -240,6 +246,8 @@ NIBR::SurfaceField NIBR::Surface::readFreesurferLabel(std::string filePath) {
 }
 
 NIBR::SurfaceField NIBR::Surface::makeFieldFromFile(std::string filePath, std::string name, std::string owner, std::string dataType, int dimension, std::string LUTfname, bool isASCII) {
+
+    CNumericLocaleGuard lockScopeForNumericReading;
 
     // Create fields for vtk output
     SurfaceField field;
@@ -310,6 +318,8 @@ NIBR::SurfaceField NIBR::Surface::makeFieldFromFile(std::string filePath, std::s
     fclose(input);
 
     if (!LUTfname.empty()) {
+
+        CNumericLocaleGuard lockScopeForNumericReading;
 
         FILE *fLUT;
 	    fLUT = fopen(LUTfname.c_str(),"rb");

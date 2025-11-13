@@ -176,6 +176,8 @@ void NIBR::Tractogram2ImageMapper<T>::setMask(bool*** _mask) {
 template<typename T>
 void NIBR::Tractogram2ImageMapper<T>::setWeights(std::string _weightFile, WEIGHTTYPE _weightType) {
 
+    CNumericLocaleGuard lockScopeForNumericReading;
+
     weightType = _weightType;
 
     // Initialize weights and make copies for multithreader

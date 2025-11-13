@@ -48,7 +48,7 @@ void NIBR::Image<T>::printInfo() {
 
     switch (inputDataType) {
 
-        case BOOL_DT:          std::cout << "BOOL";      break;
+        case BOOL_DT:          std::cout << "BOOL";       break;
         case UINT8_DT:         std::cout << "UINT8";      break;
         case INT8_DT:          std::cout << "INT8";       break;
         case UINT16_DT:        std::cout << "UINT16";     break;

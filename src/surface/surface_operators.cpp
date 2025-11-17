@@ -981,7 +981,7 @@ std::tuple<Surface,Surface> NIBR::splitWithPlane(const Surface& surf, const floa
         float numerator   = -dot(planeNormal, v1) - D;
         float denominator =  dot(planeNormal, edge);
 
-        if (denominator == 0) return false; // Edge is parallel to the plane, no intersection
+        if (std::fabs(denominator) < EPS10) return false;
 
         float t = numerator / denominator;
         if (t >= 0.0f && t < 1.0f) { // Intersection is within the edge segment
@@ -1200,6 +1200,115 @@ std::tuple<Surface,Surface> NIBR::splitWithPlane(const Surface& surf, const floa
 
     return out;
 
+}
+
+
+Surface NIBR::surfacePlaneIntersection(const Surface& surf, const float planePoint[3], const float planeNormal[3])
+{
+    disp(MSG_DEBUG,"surfacePlaneIntersection");
+
+    if (surf.nv == 0) return Surface();
+    
+    float D = -dot(planePoint, planeNormal); // Plane equation constant in Ax+By+Cz+D=0
+
+    std::vector<std::array<float, 3>> newVertices;
+    std::vector<std::array<int, 2>>   newEdges;
+    std::map<std::array<int, 2>, int> edgeToNewVertexIndex;
+
+    auto calculateEdgePlaneIntersection = [&](const float* v1, const float* v2, std::array<float, 3>& intersection)->bool {
+
+        float edge[3]     = {v2[0] - v1[0], v2[1] - v1[1], v2[2] - v1[2]};
+        float numerator   = -dot(planeNormal, v1) - D;
+        float denominator =  dot(planeNormal, edge);
+
+        if (std::fabs(denominator) < EPS10) return false;
+
+        float t = numerator / denominator;
+        if (t >= 0.0f && t <= 1.0f) { // Intersection is within the edge segment
+            for (int i = 0; i < 3; i++) {
+                intersection[i] = v1[i] + t * edge[i];
+            }
+            return true;
+        }
+        return false;
+
+    };
+
+    // Find the faces that intersect the plane
+    for (int n = 0; n < surf.nf; n++) {
+
+        // Check if face intersects the plane
+        float side[3];
+        for (int i = 0; i < 3; i++) {
+            side[i] = dot(surf.vertices[surf.faces[n][i]], planeNormal) + D;
+        }
+
+        if ((side[0] > 0 && side[1] > 0 && side[2] > 0) || (side[0] < 0 && side[1] < 0 && side[2] < 0)) {
+            continue; // Face is entirely on one side of the plane
+        }
+
+        std::vector<int> intersectionVertexIndices;
+
+        for (int i = 0; i < 3; i++) { // Check each edge of the face
+        
+            int v_idx1 = surf.faces[n][i];
+            int v_idx2 = surf.faces[n][(i + 1) % 3];
+
+            std::array<float, 3> intersection;
+
+            if (calculateEdgePlaneIntersection(surf.vertices[v_idx1], surf.vertices[v_idx2], intersection)) {
+                
+                std::array<int, 2> edgeKey = {std::min(v_idx1, v_idx2), std::max(v_idx1, v_idx2)};
+                int newVertexIndex;
+
+                auto it = edgeToNewVertexIndex.find(edgeKey);
+                if (it == edgeToNewVertexIndex.end()) {
+                    newVertices.push_back(intersection);
+                    newVertexIndex = newVertices.size() - 1;
+                    edgeToNewVertexIndex[edgeKey] = newVertexIndex;
+                } else {
+                    newVertexIndex = it->second;
+                }
+                
+                // Avoid adding duplicate vertex index for the same face
+                if (std::find(intersectionVertexIndices.begin(), intersectionVertexIndices.end(), newVertexIndex) == intersectionVertexIndices.end()) {
+                    intersectionVertexIndices.push_back(newVertexIndex);
+                }
+            }
+        }
+
+        if (intersectionVertexIndices.size() == 2) {
+            newEdges.push_back({intersectionVertexIndices[0], intersectionVertexIndices[1]});
+        }
+    }
+    disp(MSG_DEBUG,"Found all intersection points and edges");
+
+    // Create output surface
+    Surface outSurf;
+    if (newVertices.empty() || newEdges.empty()) {
+        return outSurf;
+    }
+
+    outSurf.nv = newVertices.size();
+    outSurf.vertices = new float*[outSurf.nv];
+    for (int n = 0; n < outSurf.nv; n++) {
+        outSurf.vertices[n] = new float[3];
+        outSurf.vertices[n][0] = newVertices[n][0];
+        outSurf.vertices[n][1] = newVertices[n][1];
+        outSurf.vertices[n][2] = newVertices[n][2];
+    }
+
+    outSurf.nf = newEdges.size();
+    outSurf.faces = new int*[outSurf.nf];
+    for (size_t i = 0; i < newEdges.size(); i++) {
+        outSurf.faces[i] = new int[3];
+        outSurf.faces[i][0] = newEdges[i][0];
+        outSurf.faces[i][1] = newEdges[i][1];
+        outSurf.faces[i][2] = newEdges[i][0];
+    }
+    
+    disp(MSG_DEBUG,"Created output surface");
+    return outSurf;
 }
 
 

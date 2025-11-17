@@ -48,6 +48,9 @@ namespace NIBR {
     // Front of plane, behind the plane surface
     std::tuple<Surface,Surface> splitWithPlane(const Surface& surf, const float planePoint[3], const float planeNormal[3]);
 
+    // Surface plane intersection
+    Surface surfacePlaneIntersection(const Surface& surf, const float planePoint[3], const float planeNormal[3]);
+
     void surfaceFieldThreshold(Surface *surf, SurfaceField* field, int   loVal, int   hiVal);
     void surfaceFieldThreshold(Surface *surf, SurfaceField* field, float loVal, float hiVal);
 

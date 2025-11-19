@@ -744,24 +744,24 @@ void Trekker::run(void* writer) {
             lineCount = success = discard = fail = 0;
 
             std::cout << preamble << "Success report" << "\033[0m" << std::endl; lineCount++;
-            dispCount(success,  TRACKER::log_success_REACHED_MAXLENGTH_LIMIT.load(),              "Reached max length");
-            dispCount(success,  TRACKER::log_success_REACHED_MINDATASUPPORT_LIMIT.load(),         "Reached min data support");
-            dispCount(success,  TRACKER::log_success_SATISFIED_PATHWAY_RULES.load(),              "Satisfied pathway rules");
+            dispCount(success,  TRACKER::trackerLogger.log_success_REACHED_MAXLENGTH_LIMIT.load(),              "Reached max length");
+            dispCount(success,  TRACKER::trackerLogger.log_success_REACHED_MINDATASUPPORT_LIMIT.load(),         "Reached min data support");
+            dispCount(success,  TRACKER::trackerLogger.log_success_SATISFIED_PATHWAY_RULES.load(),              "Satisfied pathway rules");
 
             std::cout << preamble << "Discard report" << "\033[0m" << std::endl; lineCount++;
-            dispCount(discard,  TRACKER::log_discard_TOO_SHORT.load(),                            "Too short");
-            dispCount(discard,  TRACKER::log_discard_TOO_LONG.load(),                             "Too long");
-            dispCount(discard,  TRACKER::log_discard_DISCARD_ROI_REACHED.load(),                  "Reached discard region");
-            dispCount(discard,  TRACKER::log_discard_REQUIRED_ROI_NOT_MET.load(),                 "Required region not found");
-            dispCount(discard,  TRACKER::log_discard_REQUIRED_ROI_ORDER_NOT_MET.load(),           "Required order not satisfied");
-            dispCount(discard,  TRACKER::log_discard_CANT_MEET_STOP_CONDITION.load(),             "Can't meet stop condition");
-            dispCount(discard,  TRACKER::log_discard_ENDED_INSIDE_DISCARD_ROI.load(),             "Ended inside discard region");
-            dispCount(discard,  TRACKER::log_discard_REACHED_TIME_LIMIT.load(),                   "Reached time limit");
+            dispCount(discard,  TRACKER::trackerLogger.log_discard_TOO_SHORT.load(),                            "Too short");
+            dispCount(discard,  TRACKER::trackerLogger.log_discard_TOO_LONG.load(),                             "Too long");
+            dispCount(discard,  TRACKER::trackerLogger.log_discard_DISCARD_ROI_REACHED.load(),                  "Reached discard region");
+            dispCount(discard,  TRACKER::trackerLogger.log_discard_REQUIRED_ROI_NOT_MET.load(),                 "Required region not found");
+            dispCount(discard,  TRACKER::trackerLogger.log_discard_REQUIRED_ROI_ORDER_NOT_MET.load(),           "Required order not satisfied");
+            dispCount(discard,  TRACKER::trackerLogger.log_discard_CANT_MEET_STOP_CONDITION.load(),             "Can't meet stop condition");
+            dispCount(discard,  TRACKER::trackerLogger.log_discard_ENDED_INSIDE_DISCARD_ROI.load(),             "Ended inside discard region");
+            dispCount(discard,  TRACKER::trackerLogger.log_discard_REACHED_TIME_LIMIT.load(),                   "Reached time limit");
 
             std::cout << preamble << "Fail report" << "\033[0m" << std::endl; lineCount++;
-            dispCount(fail,     TRACKER::log_failed_BY_THE_ALGORITHM_AT_INITIALIZATION.load(),    "Initialization at the seed failed");
-            dispCount(fail,     TRACKER::log_failed_BY_THE_ALGORITHM.load(),                      "Algorithm failed to propagate");
-            dispCount(fail,     TRACKER::log_failed_UNKNOWN_REASON.load(),                        "Unknown reason");
+            dispCount(fail,     TRACKER::trackerLogger.log_failed_BY_THE_ALGORITHM_AT_INITIALIZATION.load(),    "Initialization at the seed failed");
+            dispCount(fail,     TRACKER::trackerLogger.log_failed_BY_THE_ALGORITHM.load(),                      "Algorithm failed to propagate");
+            dispCount(fail,     TRACKER::trackerLogger.log_failed_UNKNOWN_REASON.load(),                        "Unknown reason");
 
             std::cout << std::endl << preamble;
             std::cout << "Success: "  << success              << "      ";

@@ -3,104 +3,6 @@
 
 using namespace NIBR;
 
-// This is used for mask and label images, not for pvf images
-template <typename T>
-std::tuple<bool,float> checkExitUsingRayTracing(float& crossDist, const LineSegment& segment, Image<T>* img, T label) {
-
-    // segment.beg is outside the image
-    if ((*img)(segment.beg)!=label) {
-        crossDist = 0.0f;
-        disp(MSG_DEBUG,"   exited at crossDist %.12f mm", crossDist);
-        return std::make_tuple(true,crossDist);
-    }
-
-    double p0[3]; // segment beg in image space
-    img->to_ijk(segment.beg,p0);
-
-    int32_t  A[3]; // voxel where segment beg is
-    A[0] = std::round(p0[0]);
-    A[1] = std::round(p0[1]);
-    A[2] = std::round(p0[2]);
-
-    double p1[3]; // segment end in image space
-    img->to_ijk(segment.end,p1);
-
-    // If beg and end are in the same voxel, there is nothing to do
-    if ( (A[0]==std::round(p1[0])) && (A[1]==std::round(p1[1])) && (A[2]==std::round(p1[2])) ) {
-        return std::make_tuple(false,NAN);
-    }
-
-    double dir[3], length;
-
-    vec3sub(dir,p1,p0);   // ray direction in image space (not normalized)
-    length  = norm(dir);  // length of line segment
-    dir[0] /= length;     // ray direction
-    dir[1] /= length;
-    dir[2] /= length;
-   
-    double t = 0.0;
-
-    while (length > 0.0) {
-
-        // Check if and how long does it take for the segment to leave the current voxel
-        if (rayTraceVoxel(A,p0,dir,t)) {
-
-            // This part is written to be consistent with tractogram2imageMapper
-            // Ray-tracing will cut t exactly at the current voxels edge, whose 3 faces are inside and 3 faces are outside
-            // tractogram2imageMapper does the mapping based on what ray-tracing returns
-            // i.e. if true, there is intersection, and the part until t is inside the current voxel
-            // Therefore, if the intersection happened, then t*dir[m] will still be inside the current voxel.
-            // So we add EPS4 to t to push it inside the next voxel if the segment is long enough
-
-            if (length >= EPS4) {
-                t += EPS4;
-            } else {
-                return std::make_tuple(false,NAN); // reached end of segment, there was no entry
-            }
-
-            // Cut t at length
-            t = std::min(t,length);
-
-            for (int m=0;m<3;m++) {
-                p0[m] += t*dir[m];
-                A[m]   = std::round(p0[m]);
-            }
-
-
-            if (img->isInside(A)) {
-                img->to_xyz(p0,p1); // p0 is in image space and p1 is now the same point in real-space
-                if ((*img)(p1)!=label) {
-                    vec3sub(dir,p1,segment.beg); // dir is now in real-space
-                    crossDist = norm(dir);
-                    crossDist = std::clamp(crossDist,0.0f,segment.len);
-                    disp(MSG_DEBUG,"   exited at crossDist %.12f mm", crossDist);
-                    return std::make_tuple(true,crossDist);
-                }
-            }
-
-        } else {
-            break;
-        }
-
-        length -= t;
-
-    }
-
-    // segment.end is inside the image
-    if ((*img)(segment.end)!=label) {
-        crossDist = segment.len;
-        disp(MSG_DEBUG,"   exited at crossDist %.12f mm", crossDist);
-        return std::make_tuple(true,crossDist);
-    }
-
-    return std::make_tuple(false,NAN);
-
-}
-
-// Explicit instantiation for mask (int8_t) and label (int) images
-template std::tuple<bool,float> checkExitUsingRayTracing<int8_t>(float& crossDist, const LineSegment& segment, Image<int8_t>* img, int8_t label); // For img_mask
-template std::tuple<bool,float> checkExitUsingRayTracing<int>   (float& crossDist, const LineSegment& segment, Image<int>* img,    int    label); // For img_label
-
 // If a segment is exiting a pathway rule, this function returns true
 // crossDist shows the fraction of segment length to exit the pathway rule
 std::tuple<bool,float> NIBR::Pathway::isSegmentExiting(const LineSegment& segment, int ruleNo) {
@@ -146,7 +48,7 @@ std::tuple<bool,float> NIBR::Pathway::isSegmentExiting(const LineSegment& segmen
 
             // segment is exiting the sphere
             float proj_h = dot(p2c, segment.dir);
-            float dd     = p2c_norm*p2c_norm - proj_h*proj_h;
+            float dd     = std::max(0.0f, p2c_norm*p2c_norm - proj_h*proj_h);
             float dist   = proj_h + std::sqrt(sphRadiusSquared[ruleNo] - dd);
 
             // segment intersects the sphere
@@ -156,63 +58,74 @@ std::tuple<bool,float> NIBR::Pathway::isSegmentExiting(const LineSegment& segmen
 
         }
 
-        // Image - mask
-        case img_mask_src: {
-
-            return checkExitUsingRayTracing<int8_t>(crossDist, segment, img_mask[ruleNo], 1);
-
-        }
-
-        // Image - label
-        case img_label_src: {
-
-            return checkExitUsingRayTracing<int>(crossDist, segment, img_label[ruleNo], img_label_val[ruleNo]);
-
-        }
-
-        // Image - partial volume
+        // Images
+        case img_mask_src:
+        case img_label_src:
         case img_pvf_src: {
 
-            auto isOutsidePvf=[&](float* p)->bool {
-                if (img_pvf[ruleNo]->getDimension() == 4) { // PVF is 4D
-                    return ((*img_pvf[ruleNo])(p,pvf_vol[ruleNo]) < pvfThresh) ? true : false;
-                } else { // PVF is 3D
-                    return ((*img_pvf[ruleNo])(p) <= 0.0f) ? true : false;
-                }
-            };
-
-
-            if (isOutsidePvf(segment.beg)) {
+            // 1. Check beginning point
+            if (!isPointInsideRule(segment.beg, ruleNo)) {
                 crossDist = 0.0f;
-                return std::make_tuple(true,crossDist);
+                return std::make_tuple(true, crossDist);
             }
 
+            // 2. Step through the segment
+            float t_prev = 0.0f;
+            float current_step = miniSegment[ruleNo];
 
-            if (segment.len > miniSegment[ruleNo])
-            {
-                float end[3];
+            while (current_step < segment.len) {
+                
+                float p_curr[3];
+                p_curr[0] = segment.beg[0] + segment.dir[0] * current_step;
+                p_curr[1] = segment.beg[1] + segment.dir[1] * current_step;
+                p_curr[2] = segment.beg[2] + segment.dir[2] * current_step;
 
-                for (float t = miniSegment[ruleNo]; t < segment.len; t = t + miniSegment[ruleNo])
-                {
-                    end[0] = segment.beg[0] + segment.dir[0] * t;
-                    end[1] = segment.beg[1] + segment.dir[1] * t;
-                    end[2] = segment.beg[2] + segment.dir[2] * t;
-                    
-                    if (isOutsidePvf(end)) {
-                        crossDist = t;
-                        return std::make_tuple(true,crossDist);
-                    }
+                if (!isPointInsideRule(p_curr, ruleNo)) {
+                    // We were inside at t_prev, but outside at current_step.
+                    // The boundary is in between. Refine using bisection.
+
+                    auto findEdge = [&](float low, float high) {
+                        for(int k=0; k<12; k++) {
+                            float mid = (low+high)*0.5f;
+                            float pm[3] = {
+                                segment.beg[0] + segment.dir[0] * mid,
+                                segment.beg[1] + segment.dir[1] * mid,
+                                segment.beg[2] + segment.dir[2] * mid
+                            };
+                            if(!isPointInsideRule(pm, ruleNo)) high = mid; else low = mid;
+                        }
+                        return high;
+                    };
+
+                    crossDist = findEdge(t_prev, current_step);
+                    return std::make_tuple(true, crossDist);
                 }
-            }
-            
-            
-            if (isOutsidePvf(segment.end)) {
-                crossDist = segment.len;
-                return std::make_tuple(true,crossDist);
+
+                t_prev = current_step;
+                current_step += miniSegment[ruleNo];
             }
 
-            return std::make_tuple(false,NAN);
+            // 3. Check end point
+            if (!isPointInsideRule(segment.end, ruleNo)) {
+                // Transition happened between t_prev and segment.len
+                auto findEdge = [&](float low, float high) {
+                    for(int k=0; k<12; k++) {
+                        float mid = (low+high)*0.5f;
+                        float pm[3] = {
+                            segment.beg[0] + segment.dir[0] * mid,
+                            segment.beg[1] + segment.dir[1] * mid,
+                            segment.beg[2] + segment.dir[2] * mid
+                        };
+                        if(!isPointInsideRule(pm, ruleNo)) high = mid; else low = mid;
+                    }
+                    return high;
+                };
+                
+                crossDist = findEdge(t_prev, segment.len);
+                return std::make_tuple(true, crossDist);
+            }
 
+            return std::make_tuple(false, NAN);
         }
 
         // Surf

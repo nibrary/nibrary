@@ -310,35 +310,35 @@ bool TrackingThread::track(TractogramWriter* writer)
 			switch (walker->discardingReason) {
 			case TOO_SHORT:
 				disp(MSG_DEBUG, "TOO_SHORT");
-				TRACKER::log_discard_TOO_SHORT.fetch_add(1);
+				TRACKER::trackerLogger.log_discard_TOO_SHORT.fetch_add(1);
 				break;
 			case TOO_LONG:
 				disp(MSG_DEBUG, "TOO_LONG");
-				TRACKER::log_discard_TOO_LONG.fetch_add(1);
+				TRACKER::trackerLogger.log_discard_TOO_LONG.fetch_add(1);
 				break;
 			case DISCARD_REGION_REACHED:
 				disp(MSG_DEBUG, "DISCARD_REGION_REACHED");
-				TRACKER::log_discard_DISCARD_ROI_REACHED.fetch_add(1);
+				TRACKER::trackerLogger.log_discard_DISCARD_ROI_REACHED.fetch_add(1);
 				break;
 			case REQUIRED_ROI_NOT_MET:
 				disp(MSG_DEBUG, "REQUIRED_ROI_NOT_MET");
-				TRACKER::log_discard_REQUIRED_ROI_NOT_MET.fetch_add(1);
+				TRACKER::trackerLogger.log_discard_REQUIRED_ROI_NOT_MET.fetch_add(1);
 				break;
 			case REQUIRED_ORDER_NOT_MET:
 				disp(MSG_DEBUG, "REQUIRED_ROI_ORDER_NOT_MET");
-				TRACKER::log_discard_REQUIRED_ROI_ORDER_NOT_MET.fetch_add(1);
+				TRACKER::trackerLogger.log_discard_REQUIRED_ROI_ORDER_NOT_MET.fetch_add(1);
 				break;
 			case CANT_MEET_STOP_CONDITION:
 				disp(MSG_DEBUG, "CANT_MEET_STOP_CONDITION");
-				TRACKER::log_discard_CANT_MEET_STOP_CONDITION.fetch_add(1);
+				TRACKER::trackerLogger.log_discard_CANT_MEET_STOP_CONDITION.fetch_add(1);
 				break;
 			case ENDED_INSIDE_DISCARD_ROI:
 				disp(MSG_DEBUG, "ENDED_INSIDE_DISCARD_ROI");
-				TRACKER::log_discard_ENDED_INSIDE_DISCARD_ROI.fetch_add(1);
+				TRACKER::trackerLogger.log_discard_ENDED_INSIDE_DISCARD_ROI.fetch_add(1);
 				break;
 			case REACHED_TIME_LIMIT:
 				disp(MSG_DEBUG, "REACHED_TIME_LIMIT");
-				TRACKER::log_discard_REACHED_TIME_LIMIT.fetch_add(1);
+				TRACKER::trackerLogger.log_discard_REACHED_TIME_LIMIT.fetch_add(1);
 				break;
 			default:
 				break;
@@ -351,11 +351,11 @@ bool TrackingThread::track(TractogramWriter* writer)
 			switch (walker->failingReason) {
 			case FAILED_BY_THE_ALGORITHM_AT_INITIALIZATION:
 				disp(MSG_DEBUG, "FAILED_BY_THE_ALGORITHM_AT_INITIALIZATION");
-				TRACKER::log_failed_BY_THE_ALGORITHM_AT_INITIALIZATION.fetch_add(1);
+				TRACKER::trackerLogger.log_failed_BY_THE_ALGORITHM_AT_INITIALIZATION.fetch_add(1);
 				break;
 			case FAILED_BY_THE_ALGORITHM:
 				disp(MSG_DEBUG, "FAILED_BY_THE_ALGORITHM");
-				TRACKER::log_failed_BY_THE_ALGORITHM.fetch_add(1);
+				TRACKER::trackerLogger.log_failed_BY_THE_ALGORITHM.fetch_add(1);
 				break;
 			default:
 				break;
@@ -399,11 +399,11 @@ bool TrackingThread::track(TractogramWriter* writer)
 				TRACKER::lastTime = std::chrono::steady_clock::now();
 			
 				if      ((walker->terminationReasonSideA==MAX_LENGTH_REACHED)      || (walker->terminationReasonSideB==MAX_LENGTH_REACHED)     )
-					TRACKER::log_success_REACHED_MAXLENGTH_LIMIT.fetch_add(1);
+					TRACKER::trackerLogger.log_success_REACHED_MAXLENGTH_LIMIT.fetch_add(1);
 				else if ((walker->terminationReasonSideA==MIN_DATASUPPORT_REACHED) || (walker->terminationReasonSideB==MIN_DATASUPPORT_REACHED))
-					TRACKER::log_success_REACHED_MINDATASUPPORT_LIMIT.fetch_add(1);
+					TRACKER::trackerLogger.log_success_REACHED_MINDATASUPPORT_LIMIT.fetch_add(1);
 				else
-					TRACKER::log_success_SATISFIED_PATHWAY_RULES.fetch_add(1);
+					TRACKER::trackerLogger.log_success_SATISFIED_PATHWAY_RULES.fetch_add(1);
 
 			}
 

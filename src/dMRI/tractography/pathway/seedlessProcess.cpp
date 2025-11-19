@@ -59,50 +59,41 @@ void NIBR::Pathway::seedlessProcess(NIBR::Walker* w) {
     lastPoint[1]  = w->streamline->back()[1];
     lastPoint[2]  = w->streamline->back()[2];
 
-    bool discard = false;
-    bool keep    = true;
+    // Check for discard_if_ends_inside: If either endpoint is inside, discard.
+    for (size_t n = 0; n < prules.size(); n++) {
 
-    auto checkEnds = [&](float* A_end, float* B_end)->void {
+        if (prules[n].type != discard_if_ends_inside) continue;
 
-        discard = false;
-        keep    = true;
+        bool end0_in = isPointInsideRule(firstPoint, n);
+        bool end1_in = isPointInsideRule(lastPoint,  n);
 
-        for (size_t n=0; n<prules.size(); n++) {
-
-            bool inside_A_end = isPointInsideRule(A_end,n);
-            bool inside_B_end = isPointInsideRule(B_end,n);
-        
-            if ((inside_A_end && (prules[n].side == side_A)) ||
-                (inside_B_end && (prules[n].side == side_B)) ) 
-            {
-                if (prules[n].type == discard_if_ends_inside)   {discard = true; return;}
-            }
-
-            if ((!inside_A_end && (prules[n].side == side_A)) ||
-                (!inside_B_end && (prules[n].side == side_B)) ) 
-            {
-                if (prules[n].type == req_end_inside)           {keep = false; return;}
-            }
-
+        if (end0_in || end1_in) {
+            w->action           = DISCARD;
+            w->discardingReason = ENDED_INSIDE_DISCARD_ROI;
+            return;
         }
 
-    };
-
-    // Check whether setting first point is in side_A and last point is in side_B works
-    checkEnds(firstPoint,lastPoint); 
-
-    // We try the other way around, with last point on side_B and first point on side_B
-    if (discard || !keep) {       
-        checkEnds(lastPoint,firstPoint); 
     }
 
-    if (discard) {
-        w->action           = DISCARD;
-        w->discardingReason = ENDED_INSIDE_DISCARD_ROI;
-        return;
-    }
+    // Check for req_end_inside: Must be satisfied by side assignment.
+    bool keep_map1 = true;
+    bool keep_map2 = true;
 
-    if (!keep) {
+    for (size_t n = 0; n < prules.size(); n++) {
+
+        if (prules[n].type != req_end_inside) continue;
+
+        if (prules[n].side == side_A) {
+            keep_map1 &= isPointInsideRule(firstPoint, n);
+            keep_map2 &= isPointInsideRule(lastPoint,  n);
+        } else if (prules[n].side == side_B) {
+            keep_map1 &= isPointInsideRule(lastPoint,  n);
+            keep_map2 &= isPointInsideRule(firstPoint, n);
+        }
+
+    }
+    
+    if (!(keep_map1 || keep_map2)) {
         w->action           = DISCARD;
         w->discardingReason = REQUIRED_ROI_NOT_MET;
         return;
@@ -230,12 +221,12 @@ void NIBR::Pathway::seedlessProcess(NIBR::Walker* w) {
             // Segment either entered or exited
             if (w->entry_status[n] == entered) {
 
-                disp(MSG_DEBUG,"Rule %d. Segment %d - %d. Entered", ruleCnt, b, e);
+                disp(MSG_DEBUG,"Rule %d. Segment %d - %d. Entered", n, b, e);
 
                 if (prules[n].type == discard_if_enters) {
                     w->action 			= DISCARD;
                     w->discardingReason = DISCARD_REGION_REACHED;
-                    disp(MSG_DEBUG,"Rule %d. Segment %d - %d. DISCARD - DISCARD_REGION_REACHED", ruleCnt, b, e);
+                    disp(MSG_DEBUG,"Rule %d. Segment %d - %d. DISCARD - DISCARD_REGION_REACHED", n, b, e);
                     return DISCARD;
                 }
 
@@ -256,7 +247,7 @@ void NIBR::Pathway::seedlessProcess(NIBR::Walker* w) {
 
             if (w->entry_status[n] == exited) {
 
-                disp(MSG_DEBUG,"Rule %d. Segment %d - %d. Exited", ruleCnt, b, e);
+                disp(MSG_DEBUG,"Rule %d. Segment %d - %d. Exited", n, b, e);
 
                 if (prules[n].type == req_exit) {
                     if (setReqExit(n) == DISCARD) 
@@ -266,7 +257,7 @@ void NIBR::Pathway::seedlessProcess(NIBR::Walker* w) {
                 if (prules[n].type == discard_if_exits) {
                     w->action 			= DISCARD;
                     w->discardingReason = DISCARD_REGION_REACHED;
-                    disp(MSG_DEBUG,"Rule %d. Segment %d - %d. DISCARD - DISCARD_REGION_REACHED", ruleCnt, b, e);
+                    disp(MSG_DEBUG,"Rule %d. Segment %d - %d. DISCARD - DISCARD_REGION_REACHED", n, b, e);
                     return DISCARD;
                 }
 				
@@ -293,6 +284,8 @@ void NIBR::Pathway::seedlessProcess(NIBR::Walker* w) {
     
     // Walk the other way if DISCARD due to REQUIRED_ORDER_NOT_MET
     if ((w->action == DISCARD) && (w->discardingReason == REQUIRED_ORDER_NOT_MET)) {
+
+        w->action = CONTINUE;
 
         for (size_t n = 0; n < prules.size(); n++) {
             w->entry_status[n] = notEnteredYet;

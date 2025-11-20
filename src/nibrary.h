@@ -47,6 +47,7 @@
 #include "dMRI/tractography/tracker/trackerThread.h"
 
 #include "dMRI/tractography/utility/parallelStreamlineGenerator.h"
+#include "dMRI/tractography/utility/purifibre.h"
 #include "dMRI/tractography/utility/resampleStreamline.h"
 #include "dMRI/tractography/utility/segmentOperators.h"
 #include "dMRI/tractography/utility/streamline_operators.h"

@@ -38,6 +38,7 @@ public:
     // Pathway options
     bool        pathway_addSeed(std::vector<std::string> rule);
     bool        pathway_addRule(std::vector<std::string> rule);
+    bool        pathway_xact(std::string xact_fname, bool xact_stop_after_entry);
     bool        pathway_remove(int ruleInd);
     
     bool        pathway_minLength(double len);

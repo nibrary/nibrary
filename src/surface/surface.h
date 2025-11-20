@@ -89,14 +89,6 @@ namespace NIBR
     #define OUTSIDE          0
     #define INSIDE           1
     #define BOUNDARY         2
-
-    // The following are the voxel values when white matter is mapped to image
-    #define WM_DEEP          1  // deep white matter
-    #define WM_SUPERFICIAL   2  // superficial white matter
-    #define WM_SULCAL_FUNDUS 3
-    #define WM_SULCAL_WALL   4
-    #define WM_GYRAL_CROWN   5
-    #define WM_BOUNDARY      6
     
     typedef enum
     {

@@ -5,6 +5,10 @@
 #include "base/stringOperations.h"
 #include "base/vectorOperations.h"
 
+// anat
+#include "anat/anatSurf.h"
+#include "anat/xact/prepXact.h"
+
 // dMRI
 #include "dMRI/gradient/dMRI_grad.h"
 #include "dMRI/imageTypes/fod_image.h"

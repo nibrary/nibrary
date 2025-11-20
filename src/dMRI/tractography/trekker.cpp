@@ -84,6 +84,36 @@ bool Trekker::pathway_addRule(std::vector<std::string> rule) {
     return true;
 }
 
+
+bool Trekker::pathway_xact(std::string xact_fname, bool xact_stop_after_entry) {
+
+    if (xact_fname.empty()) return true;
+    
+    // First delete the existing seed rule if defined
+    if (TRACKER::pw.hasSeed()) {
+        TRACKER::pw.remove(TRACKER::pw.getSeedRuleInd());
+    } 
+    
+    auto [success,seed,rules] = parseXactInput(xact_fname,xact_stop_after_entry); 
+    
+    if (!success) 
+        return false; 
+        
+    if (!TRACKER::seed.setSeed(seed)) 
+        return false; 
+        
+    for (auto r : rules) { 
+        if(!TRACKER::pw.add(r)) 
+            return false;
+    } 
+
+    disp(MSG_DETAIL,"All xact rules are included.");
+    
+    return true;
+    
+}
+
+
 bool Trekker::pathway_remove(int ruleInd)                   {return TRACKER::pw.remove(ruleInd);}
 bool Trekker::pathway_minLength(double len)                 {return TRACKER::pw.setMinLength(len);}
 bool Trekker::pathway_maxLength(double len)                 {return TRACKER::pw.setMaxLength(len);}

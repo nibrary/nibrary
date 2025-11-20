@@ -515,3 +515,239 @@ PathwayRule NIBR::parseSeedInput (std::vector<std::string> inp) {
     return rule;
 
 }
+
+
+// xact field labels
+//
+// Note: WM covers SUB
+//
+// 1. seed:              L_WM + R_WM + CER_WM + BS
+// 2. discard_seed:      L_GM + R_GM + CER_GM + SPINE + CRAN
+// 3. req_end_inside:    L_GM + R_GM + L_SUB + R_SUB + CER_GM + BS + SPINE + CRAN
+// 4. discard_if_enters: CSF
+// 5. stop_before_exit:  CRAN
+// 6. stop_after_entry:  L_GM + R_GM + CER_GM + SPINE
+// 7. stop_before_exit:  L_GM + R_GM + CER_GM + SPINE
+// 8. stop_before_exit:  L_SUB + R_SUB
+//
+//
+// Standard settings
+//
+// -s ${xact} 1
+// -d ${xact} 2
+// -p req_end_inside_A ${xact} 3
+// -p req_end_inside_B ${xact} 3
+// -p discard_if_enters_A ${xact} 4
+// -p discard_if_enters_B ${xact} 4
+// -p stop_before_exit_A ${xact} 5
+// -p stop_before_exit_B ${xact} 5
+//
+//
+// For cortical ending, choose 1 or 2
+//
+// Cortical ending option 1
+// -p stop_after_exit_A ${xact} 6
+// -p stop_after_exit_A ${xact} 6
+// 
+// Cortical ending option 2
+// -p stop_before_exit_A ${xact} 7
+// -p stop_before_exit_B ${xact} 7
+//
+//
+// For optional subcortical ending, stop only one side. The other side can leave the subcortex or not, so side B is not set
+//
+// -p stop_before_exit_A ${xact} 8
+//
+
+// Labels
+#define COMBINED   0
+#define L_WM       1
+#define R_WM       2
+#define L_GM       3
+#define R_GM       4
+#define L_SUB      5
+#define R_SUB      6
+#define CSF        7
+#define CER_WM     8
+#define CER_GM     9
+#define BS        10
+#define SPINE     11
+#define CRAN      12
+
+std::tuple<bool,PathwayRule,std::vector<PathwayRule>> NIBR::parseXactInput(std::string xact_fname, bool xact_stop_after_entry)
+{
+
+    disp(MSG_INFO,"Parsing xact file: %s", xact_fname.c_str());
+
+    Surface combined(xact_fname);
+
+    if (combined.extension != "vtk") { 
+        disp(MSG_FATAL,"This function only works with .vtk, .gii, .orig, .pial, .white, .inflated, .sphere and .smoothwm files");
+        return std::tuple<bool,PathwayRule,std::vector<PathwayRule>>();
+    } 
+
+    combined.readMesh();
+    disp(MSG_DETAIL,"xact mesh read");
+
+    auto xact = combined.readField("xact");
+    disp(MSG_DETAIL,"xact field read");
+
+    std::vector<bool> mask_seed(combined.nv,false);
+    std::vector<bool> mask_discard_seed(combined.nv,false);
+    std::vector<bool> mask_req_end_inside(combined.nv,false);
+    std::vector<bool> mask_discard_if_enters(combined.nv,false);
+    std::vector<bool> mask_stop_after_entry(combined.nv,false);
+    std::vector<bool> mask_stop_before_exit(combined.nv,false);
+
+    for (int n = 0; n < combined.nv; n++) {
+
+        switch (xact.idata[n][0]) {
+
+            case L_WM:
+            case R_WM:
+            case CER_WM:
+            {
+                mask_seed[n] = true;
+                break;
+            }
+
+            case L_GM:
+            case R_GM:
+            case CER_GM:
+            case CRAN:
+            {
+                mask_discard_seed[n] = true;
+                mask_req_end_inside[n] = true;
+                mask_stop_after_entry[n] = true;
+                mask_stop_before_exit[n] = true;
+                break;
+            }
+
+            case L_SUB:
+            case R_SUB:
+            case BS:
+            {
+                mask_seed[n] = true;
+                mask_req_end_inside[n] = true;
+                break;
+            }
+
+            case CSF:
+            {
+                mask_discard_if_enters[n] = true;
+                break;
+            }
+
+            default:
+                break;
+        }
+
+    }
+    disp(MSG_DETAIL,"xact masks prepared");
+
+    Surface* surf_seed = new Surface();
+    
+    Surface* surf_discard_seed      = new Surface();
+    Surface* surf_req_end_inside    = new Surface();
+    Surface* surf_discard_if_enters = new Surface();
+    Surface* surf_stop_after_entry  = new Surface();
+    Surface* surf_stop_before_exit  = new Surface();
+
+
+    disp(MSG_DETAIL,"Applying masks");
+    *surf_seed              = applyMask(combined,mask_seed);
+    *surf_discard_seed      = applyMask(combined,mask_discard_seed);
+    *surf_req_end_inside    = applyMask(combined,mask_req_end_inside);
+    *surf_discard_if_enters = applyMask(combined,mask_discard_if_enters);
+
+    if(xact_stop_after_entry) {
+        *surf_stop_after_entry  = applyMask(combined,mask_stop_after_entry);
+    } else {
+        *surf_stop_before_exit  = applyMask(combined,mask_stop_before_exit);
+    }
+    disp(MSG_DETAIL,"Decomposed xact surfaces");
+
+    // seed
+    PathwayRule rule_seed;
+    rule_seed.surfaceSource = xact_fname;
+    rule_seed.type = seed;
+    rule_seed.surfaceUseDim = surf_useDim_3D;
+    rule_seed.src  = NIBR::surf_src;
+    rule_seed.surfaceDiscretizationRes = 1;
+    rule_seed.surfSrc = surf_seed;
+
+    // discard_seed
+    PathwayRule rule_discard_seed;
+    rule_discard_seed.surfaceSource = xact_fname;
+    rule_discard_seed.type = discard_seed;
+    rule_seed.surfaceUseDim = surf_useDim_3D;
+    rule_discard_seed.src  = NIBR::surf_src;
+    rule_discard_seed.surfaceDiscretizationRes = 1;
+    rule_discard_seed.surfSrc = surf_discard_seed;
+
+    // req_end_inside
+    PathwayRule rule_req_end_inside;
+    rule_req_end_inside.surfaceSource = xact_fname;
+    rule_req_end_inside.type = req_end_inside;
+    rule_seed.surfaceUseDim = surf_useDim_3D;
+    rule_req_end_inside.src  = NIBR::surf_src;
+    rule_req_end_inside.surfaceDiscretizationRes = 1;
+    rule_req_end_inside.surfSrc = surf_req_end_inside;
+
+    // discard_if_enters
+    PathwayRule rule_discard_if_enters;
+    rule_discard_if_enters.surfaceSource = xact_fname;
+    rule_discard_if_enters.type = discard_if_enters;
+    rule_seed.surfaceUseDim = surf_useDim_3D;
+    rule_discard_if_enters.src  = NIBR::surf_src;
+    rule_discard_if_enters.surfaceDiscretizationRes = 1;
+    rule_discard_if_enters.surfSrc = surf_discard_if_enters;
+
+    // stop_after_entry
+    PathwayRule rule_stop_after_entry;
+    if(xact_stop_after_entry) {
+        rule_stop_after_entry.surfaceSource = xact_fname;
+        rule_stop_after_entry.type = stop_after_entry;
+        rule_seed.surfaceUseDim = surf_useDim_3D;
+        rule_stop_after_entry.src  = NIBR::surf_src;
+        rule_stop_after_entry.surfaceDiscretizationRes = 1;
+        rule_stop_after_entry.surfSrc = surf_stop_after_entry;
+    }
+
+    // stop_before_exit
+    PathwayRule rule_stop_before_exit;
+    if(!xact_stop_after_entry) {
+        rule_stop_before_exit.surfaceSource = xact_fname;
+        rule_stop_before_exit.type = stop_before_exit;
+        rule_seed.surfaceUseDim = surf_useDim_3D;
+        rule_stop_before_exit.src  = NIBR::surf_src;
+        rule_stop_before_exit.surfaceDiscretizationRes = 1;
+        rule_stop_before_exit.surfSrc = surf_stop_before_exit;
+    }
+
+    std::vector<PathwayRule> rules;
+    rules.push_back(rule_discard_seed);
+    
+    rule_req_end_inside.side = side_A;      rules.push_back(rule_req_end_inside);
+    rule_req_end_inside.side = side_B;      rules.push_back(rule_req_end_inside);
+
+    rule_discard_if_enters.side = side_A;   rules.push_back(rule_discard_if_enters);
+    rule_discard_if_enters.side = side_B;   rules.push_back(rule_discard_if_enters);
+
+    if(xact_stop_after_entry) {
+        rule_stop_after_entry.side = side_A;    rules.push_back(rule_stop_after_entry);
+        rule_stop_after_entry.side = side_B;    rules.push_back(rule_stop_after_entry);
+        delete surf_stop_before_exit;
+    }
+
+    if(!xact_stop_after_entry) {
+        rule_stop_before_exit.side = side_A;    rules.push_back(rule_stop_before_exit);
+        rule_stop_before_exit.side = side_B;    rules.push_back(rule_stop_before_exit);
+        delete surf_stop_after_entry;
+    }
+
+    combined.clearField(xact);
+    disp(MSG_DETAIL,"xact preperation finished");
+    return std::make_tuple(true,rule_seed,rules);
+
+}

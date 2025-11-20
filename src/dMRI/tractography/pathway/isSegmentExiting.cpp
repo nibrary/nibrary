@@ -94,7 +94,7 @@ std::tuple<bool,float> NIBR::Pathway::isSegmentExiting(const LineSegment& segmen
                             };
                             if(!isPointInsideRule(pm, ruleNo)) high = mid; else low = mid;
                         }
-                        return high;
+                        return low;
                     };
 
                     crossDist = findEdge(t_prev, current_step);
@@ -118,7 +118,7 @@ std::tuple<bool,float> NIBR::Pathway::isSegmentExiting(const LineSegment& segmen
                         };
                         if(!isPointInsideRule(pm, ruleNo)) high = mid; else low = mid;
                     }
-                    return high;
+                    return low;
                 };
                 
                 crossDist = findEdge(t_prev, segment.len);

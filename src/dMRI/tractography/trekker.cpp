@@ -85,7 +85,7 @@ bool Trekker::pathway_addRule(std::vector<std::string> rule) {
 }
 
 
-bool Trekker::pathway_xact(std::string xact_fname, bool xact_stop_after_entry) {
+bool Trekker::pathway_xact(std::string xact_fname, int xact_options) {
 
     if (xact_fname.empty()) return true;
     
@@ -94,7 +94,7 @@ bool Trekker::pathway_xact(std::string xact_fname, bool xact_stop_after_entry) {
         TRACKER::pw.remove(TRACKER::pw.getSeedRuleInd());
     } 
     
-    auto [success,seed,rules] = parseXactInput(xact_fname,xact_stop_after_entry); 
+    auto [success,seed,rules] = parseXactInput(xact_fname, XactTractographyOption(xact_options)); 
     
     if (!success) 
         return false; 

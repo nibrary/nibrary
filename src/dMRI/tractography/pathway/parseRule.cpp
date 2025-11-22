@@ -131,8 +131,9 @@ std::tuple<bool, std::string, std::string, std::string, double> surfArgHasMaskFi
 {
     auto parseStringAndInteger = [](const std::string& str) -> std::tuple<bool, std::string, std::string, std::string, double> {
         
-        const std::regex pattern1("^([a-zA-Z]+),(-?[0-9]+)$");
-        const std::regex pattern2("^([a-zA-Z]+),(VERT|FACE),(INT|FLOAT),(-?[0-9.]+)$");
+        // Allow alphanumeric, underscore, dot, and hyphen in names
+        const std::regex pattern1("^([a-zA-Z0-9_\\.-]+),(-?[0-9]+)$");
+        const std::regex pattern2("^([a-zA-Z0-9_\\.-]+),(VERT|FACE),(INT|FLOAT),(-?[0-9.]+)$");
         std::smatch match;
 
         // Check if the string matches pattern1
@@ -381,17 +382,12 @@ std::tuple<PathwayRule,bool> parseSurface(std::vector<std::string> inp, std::siz
             foundArg++;
         }
 
-        if (foundArg == 0) {
+        if (foundArg == k) {
             i += k;
             isValid = true;
         } else {
-            if (foundArg == k) {
-                i += k;
-                isValid = true;
-            } else {
-                NIBR::disp(MSG_ERROR,"Unknown surface arguments - found %d, parsed %d", k, foundArg);
-                return std::make_tuple(rule,false);
-            }
+            NIBR::disp(MSG_ERROR,"Unknown surface arguments - found %d, parsed %d", k, foundArg);
+            return std::make_tuple(rule,false);
         }
 
     }    
@@ -520,35 +516,27 @@ PathwayRule NIBR::parseSeedInput (std::vector<std::string> inp) {
 //
 // Common rules:
 //  1. seed:                 (Seeds are randomly generated in this region)  L_WM + R_WM + CER_WM + BS
-//  2. discard_seed:         (No seeds allowed here)                        L_GM + R_GM + CER_GM + CSF + BG
-//  3. req_end_inside:       (Ends are allowed here)                        L_GM + R_GM + CER_GM + L_SUB + R_SUB + BS + BG
+//  2. discard_seed:         (No seeds allowed here)                        CSF
+//  3. req_end_inside:       (Ends are allowed here)                        L_GM + R_GM + CER_GM + L_SUB + R_SUB + BS + ABN + BG
 //  4. discard_if_enters:    (No entry)                                     CSF
 //
 // Optional rules:
-//  5. xact_opt_seed_sub              (Default: ON) :  (Seeds are generated in subcortex too)      L_SUB + R_SUB
-//  6. xact_opt_stop_before_exit_sub  (Default: OFF):  (Propagation stops right before exit)       L_SUB + R_SUB
-//  7. xact_opt_stop_after_entry_bg   (Default: ON) :  (Propagation stops immediately after entry) BG
-//  8. xact_opt_stop_before_exit_bg   (Default: OFF):  (Propagation stops right before exit)       BG
-//  9. xact_opt_stop_after_entry_gm   (Default: OFF):  (Propagation stops immediately after entry) L_GM + R_GM + CER_GM
-// 10. xact_opt_stop_before_exit_gm   (Default: ON) :  (Propagation stops right before exit)       L_GM + R_GM + CER_GM
+//  1. XACT_TRACK_OPT_SEED_GM               (Default: OFF):  (Seeds are generated in cortex)              L_GM + R_GM + CER_GM
+//  2. XACT_TRACK_OPT_STOP_AFTER_ENTRY_GM   (Default: ON):   (Propagation stops immediately after entry)  L_GM + R_GM + CER_GM
+//  3. XACT_TRACK_OPT_STOP_BEFORE_EXIT_GM   (Default: OFF):  (Propagation stops right before exit)        L_GM + R_GM + CER_GM
+//  4. XACT_TRACK_OPT_SEED_SUB              (Default: ON) :  (Seeds are generated in subcortex too)       L_SUB + R_SUB
+//  5. XACT_TRACK_OPT_STOP_AFTER_ENTRY_SUB  (Default: OFF):  (Propagation stops immediately after entry)  L_SUB + R_SUB
+//  6. XACT_TRACK_OPT_STOP_BEFORE_EXIT_SUB  (Default: OFF):  (Propagation stops right before exit)        L_SUB + R_SUB
+//  7. XACT_TRACK_OPT_SEED_ABN              (Default: OFF):  (Seeds are generated in abnormality)         ABN
+//  8. XACT_TRACK_OPT_STOP_AFTER_ENTRY_ABN  (Default: OFF):  (Propagation stops immediately after entry)  ABN
+//  9. XACT_TRACK_OPT_STOP_BEFORE_EXIT_ABN  (Default: OFF):  (Propagation stops right before exit)        ABN
+// 10. XACT_TRACK_OPT_SEED_BG               (Default: OFF):  (Seeds are generated in BG too)              BG
+// 11. XACT_TRACK_OPT_STOP_AFTER_ENTRY_BG   (Default: ON) :  (Propagation stops immediately after entry)  BG
+// 12. XACT_TRACK_OPT_STOP_BEFORE_EXIT_BG   (Default: OFF):  (Propagation stops right before exit)        BG
 //
 // Note: I_BS is a part of BS and is not currently used during tractography as a separate label.
 
-// Labels used in XACT
-#define L_WM       1
-#define R_WM       2
-#define L_GM       3
-#define R_GM       4
-#define L_SUB      5
-#define R_SUB      6
-#define CSF        7
-#define CER_WM     8
-#define CER_GM     9
-#define BS        10
-#define I_BS      11
-#define BG        12
-
-std::tuple<bool,PathwayRule,std::vector<PathwayRule>> NIBR::parseXactInput(std::string xact_fname, XactTractographyOption options)
+std::tuple<bool,PathwayRule,std::vector<PathwayRule>> NIBR::parseXactInput(std::string xact_fname, XactTrackOption options)
 {
 
     disp(MSG_INFO,"Parsing xact file: %s", xact_fname.c_str());
@@ -567,12 +555,24 @@ std::tuple<bool,PathwayRule,std::vector<PathwayRule>> NIBR::parseXactInput(std::
     disp(MSG_DETAIL,"xact field read");
 
     // Parse options
-    bool xact_opt_seed_sub              = (options & XACT_TRACTOGRAPHY_OPT_SEED_SUB)                != 0;
-    bool xact_opt_stop_before_exit_sub  = (options & XACT_TRACTOGRAPHY_OPT_STOP_BEFORE_EXIT_SUB)    != 0;
-    bool xact_opt_stop_after_entry_bg   = (options & XACT_TRACTOGRAPHY_OPT_STOP_AFTER_ENTRY_BG)     != 0;
-    bool xact_opt_stop_before_exit_bg   = (options & XACT_TRACTOGRAPHY_OPT_STOP_BEFORE_EXIT_BG)     != 0;
-    bool xact_opt_stop_after_entry_gm   = (options & XACT_TRACTOGRAPHY_OPT_STOP_AFTER_ENTRY_GM)     != 0;
-    bool xact_opt_stop_before_exit_gm   = (options & XACT_TRACTOGRAPHY_OPT_STOP_BEFORE_EXIT_GM)     != 0;
+
+    if (options == XACT_TRACK_OPT_UNSET) {
+        disp(MSG_DETAIL,"Using default xact tracking options");
+        options = static_cast<XactTrackOption>(XACT_TRACK_OPT_STOP_AFTER_ENTRY_GM | XACT_TRACK_OPT_SEED_SUB | XACT_TRACK_OPT_STOP_AFTER_ENTRY_BG);
+    }
+
+    bool xact_opt_seed_gm               = (options & XACT_TRACK_OPT_SEED_GM)                 != 0;
+    bool xact_opt_stop_after_entry_gm   = (options & XACT_TRACK_OPT_STOP_AFTER_ENTRY_GM)     != 0;
+    bool xact_opt_stop_before_exit_gm   = (options & XACT_TRACK_OPT_STOP_BEFORE_EXIT_GM)     != 0;
+    bool xact_opt_seed_sub              = (options & XACT_TRACK_OPT_SEED_SUB)                != 0;
+    bool xact_opt_stop_after_entry_sub  = (options & XACT_TRACK_OPT_STOP_AFTER_ENTRY_SUB)    != 0;
+    bool xact_opt_stop_before_exit_sub  = (options & XACT_TRACK_OPT_STOP_BEFORE_EXIT_SUB)    != 0;
+    bool xact_opt_seed_abn              = (options & XACT_TRACK_OPT_SEED_ABN)                != 0;
+    bool xact_opt_stop_after_entry_abn  = (options & XACT_TRACK_OPT_STOP_AFTER_ENTRY_ABN)    != 0;
+    bool xact_opt_stop_before_exit_abn  = (options & XACT_TRACK_OPT_STOP_BEFORE_EXIT_ABN)    != 0;
+    bool xact_opt_seed_bg               = (options & XACT_TRACK_OPT_SEED_BG)                 != 0;
+    bool xact_opt_stop_after_entry_bg   = (options & XACT_TRACK_OPT_STOP_AFTER_ENTRY_BG)     != 0;
+    bool xact_opt_stop_before_exit_bg   = (options & XACT_TRACK_OPT_STOP_BEFORE_EXIT_BG)     != 0;
 
     // Masks for common rules
     std::vector<bool> mask_seed(combined.nv,false);
@@ -589,51 +589,65 @@ std::tuple<bool,PathwayRule,std::vector<PathwayRule>> NIBR::parseXactInput(std::
 
         switch (xact.idata[n][0]) {
 
-            case L_WM:
-            case R_WM:
-            case CER_WM:
+            case XactLabel::L_WM:
+            case XactLabel::R_WM:
+            case XactLabel::CER_WM:
             {
                 mask_seed[n]                = true;
                 break;
             }
 
-            case L_GM:
-            case R_GM:
-            case CER_GM:
+            case XactLabel::L_GM:
+            case XactLabel::R_GM:
+            case XactLabel::CER_GM:
             {
-                mask_discard_seed[n]        = true;
+                mask_seed[n]                = xact_opt_seed_gm;
+                mask_discard_seed[n]        = !xact_opt_seed_gm;
                 mask_req_end_inside[n]      = true;
                 mask_stop_after_entry[n]    = xact_opt_stop_after_entry_gm;
                 mask_stop_before_exit[n]    = xact_opt_stop_before_exit_gm;
                 break;
             }
 
-            case L_SUB:
-            case R_SUB:
+            case XactLabel::L_SUB:
+            case XactLabel::R_SUB:
             {
                 mask_seed[n]                = xact_opt_seed_sub;
+                mask_discard_seed[n]        = !xact_opt_seed_sub;
                 mask_req_end_inside[n]      = true;
+                mask_stop_after_entry[n]    = xact_opt_stop_after_entry_sub;
                 mask_stop_before_exit[n]    = xact_opt_stop_before_exit_sub;
                 break;
             }
 
-            case BS:
+            case XactLabel::BS:
             {
                 mask_seed[n]                = true;
                 mask_req_end_inside[n]      = true;
                 break;
             }
 
-            case CSF:
+            case XactLabel::CSF:
             {
                 mask_discard_seed[n]        = true;
                 mask_discard_if_enters[n]   = true;
                 break;
             }
 
-            case BG:
+            case XactLabel::ABN:
             {
-                mask_discard_seed[n]        = true;
+                mask_seed[n]                = xact_opt_seed_abn;
+                mask_discard_seed[n]        = !xact_opt_seed_abn;
+                mask_req_end_inside[n]      = true;
+                mask_stop_after_entry[n]    = xact_opt_stop_after_entry_abn;
+                mask_stop_before_exit[n]    = xact_opt_stop_before_exit_abn;
+                break;
+            }
+
+            case XactLabel::BG:
+            {
+                mask_seed[n]                = xact_opt_seed_bg;
+                mask_discard_seed[n]        = !xact_opt_seed_bg;
                 mask_req_end_inside[n]      = true;
                 mask_stop_after_entry[n]    = xact_opt_stop_after_entry_bg;
                 mask_stop_before_exit[n]    = xact_opt_stop_before_exit_bg;

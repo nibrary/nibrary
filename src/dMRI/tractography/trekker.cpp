@@ -94,7 +94,7 @@ bool Trekker::pathway_xact(std::string xact_fname, int xact_options) {
         TRACKER::pw.remove(TRACKER::pw.getSeedRuleInd());
     } 
     
-    auto [success,seed,rules] = parseXactInput(xact_fname, XactTractographyOption(xact_options)); 
+    auto [success,seed,rules] = parseXactInput(xact_fname, XactTrackOption(xact_options)); 
     
     if (!success) 
         return false; 

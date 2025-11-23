@@ -211,11 +211,11 @@ std::vector<Surface> NIBR::prepXact(
 
     // XactLabel::ABN
     if (opt & (XACT_PREP_OPT_COMBINED | XACT_PREP_OPT_ABN)) {
-        if (abnormality != nullptr) {
+        if ((abnormality != nullptr) && (abnormality->nv > 0)) {
             out[XactLabel::ABN] = *abnormality;
             finalize(XactLabel::ABN);
         } else {
-            disp(MSG_WARN, "Abnormality surface pointer is null, skipping abnormality surface generation.");
+            disp(MSG_DETAIL, "Abnormality surface pointer is empty, skipping abnormality surface generation.");
         }
     }
 

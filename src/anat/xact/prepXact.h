@@ -52,7 +52,11 @@ enum XactTrackOption {
     XACT_TRACK_OPT_STOP_BEFORE_EXIT_ABN  = 256,
     XACT_TRACK_OPT_SEED_BG               = 512,
     XACT_TRACK_OPT_STOP_AFTER_ENTRY_BG   = 1024,
-    XACT_TRACK_OPT_STOP_BEFORE_EXIT_BG   = 2048
+    XACT_TRACK_OPT_STOP_BEFORE_EXIT_BG   = 2048,
+    XACT_INTRACORTICAL                   = 4096,
+    XACT_CRANIAL                         = 8192,
+    XACT_SUBCORTICAL_DEADEND             = 16384,
+    XACT_ABNORMALITY_DEADEND             = 32768
 };
 
 // cereDistThresh: The distance threshold from the brain stem to separate cerebellar white matter [mm]

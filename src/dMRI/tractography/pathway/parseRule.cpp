@@ -561,9 +561,13 @@ std::tuple<bool,PathwayRule,std::vector<PathwayRule>> NIBR::parseXactInput(std::
     disp(MSG_DETAIL,"xact field read");
 
     // Default options
+    XactTrackOption defaults = static_cast<XactTrackOption>(XACT_TRACK_OPT_STOP_AFTER_ENTRY_GM | XACT_TRACK_OPT_STOP_AFTER_ENTRY_BG | XACT_TRACK_OPT_SEED_SUB | XACT_TRACK_OPT_SEED_ABN);
+
     if (options == XACT_TRACK_OPT_UNSET) {
         disp(MSG_DETAIL,"Using default xact tracking options");
-        options = static_cast<XactTrackOption>(XACT_TRACK_OPT_STOP_AFTER_ENTRY_GM | XACT_TRACK_OPT_STOP_AFTER_ENTRY_BG | XACT_TRACK_OPT_SEED_SUB | XACT_TRACK_OPT_SEED_ABN);
+        options = defaults;
+    } else {
+        options = static_cast<XactTrackOption>(options | defaults);
     }
 
     // Preset modes

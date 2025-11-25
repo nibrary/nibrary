@@ -7,7 +7,7 @@ using namespace NIBR;
 
 #define FS_OPTIC_CHIASM 85
 
-Surface NIBR::fsAseg2CranSurf(Image<int>& asegImg, Surface& brainStem, float meanFaceArea)
+Surface NIBR::fsAseg2BgSurf(Image<int>& asegImg, Surface& brainStem, float meanFaceArea)
 {
 
     Image<int> tmp;
@@ -50,7 +50,7 @@ Surface NIBR::fsAseg2CranSurf(Image<int>& asegImg, Surface& brainStem, float mea
 
 }
 
-Surface NIBR::fsAseg2CranSurf(std::string asegFile, std::string fslFirstFolder, float meanFaceArea)
+Surface NIBR::fsAseg2BgSurf(std::string asegFile, std::string fslFirstFolder, float meanFaceArea)
 {
     // Read aseg file
     if (!existsFile(asegFile)) {
@@ -65,6 +65,6 @@ Surface NIBR::fsAseg2CranSurf(std::string asegFile, std::string fslFirstFolder, 
 
     if (fslFirstFolder != "") brainStem = fslFirst2BrainstemSurf(fslFirstFolder, meanFaceArea);
 
-    return fsAseg2CranSurf(asegImg,brainStem,meanFaceArea);
+    return fsAseg2BgSurf(asegImg,brainStem,meanFaceArea);
 
 }

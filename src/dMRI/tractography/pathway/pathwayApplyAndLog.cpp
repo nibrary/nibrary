@@ -226,7 +226,6 @@ std::tuple<bool,NIBR::Streamline> NIBR::Pathway::apply(NIBR::Streamline& streaml
                 pathwayLog.log_success_REACHED_MINDATASUPPORT_LIMIT.fetch_add(1);
             else
                 pathwayLog.log_success_SATISFIED_PATHWAY_RULES.fetch_add(1);
-
             disp(MSG_DEBUG,"[begInd,endInd]: %.2f-%.2f",walker->begInd,walker->endInd);
             disp(MSG_DEBUG,"KEPT");
         } else {   

@@ -29,23 +29,11 @@ int                                     TRACKER::ready_thread_id;
 std::mutex                              TRACKER::trackKeeper;
 
 // Loggers
-std::atomic<size_t> TRACKER::log_success_REACHED_MAXLENGTH_LIMIT;
-std::atomic<size_t> TRACKER::log_success_REACHED_MINDATASUPPORT_LIMIT;
-std::atomic<size_t> TRACKER::log_success_SATISFIED_PATHWAY_RULES;
-std::atomic<size_t> TRACKER::log_discard_TOO_SHORT;
-std::atomic<size_t> TRACKER::log_discard_TOO_LONG;
-std::atomic<size_t> TRACKER::log_discard_DISCARD_ROI_REACHED;
-std::atomic<size_t> TRACKER::log_discard_REQUIRED_ROI_NOT_MET;
-std::atomic<size_t> TRACKER::log_discard_REQUIRED_ROI_ORDER_NOT_MET;
-std::atomic<size_t> TRACKER::log_discard_CANT_MEET_STOP_CONDITION;
-std::atomic<size_t> TRACKER::log_discard_ENDED_INSIDE_DISCARD_ROI;
-std::atomic<size_t> TRACKER::log_discard_REACHED_TIME_LIMIT;
-std::atomic<size_t> TRACKER::log_failed_UNKNOWN_REASON;
-std::atomic<size_t> TRACKER::log_failed_BY_THE_ALGORITHM_AT_INITIALIZATION;
-std::atomic<size_t> TRACKER::log_failed_BY_THE_ALGORITHM;
-std::atomic<size_t> TRACKER::log_unexpected_TRACKING_STATUS;
+TRACKER::Logger  TRACKER::trackerLogger;
 
-Tractogram& TRACKER::getTractogram() {return TRACKER::tractogram;}
+Tractogram&      TRACKER::getTractogram()   {return TRACKER::tractogram;   }
+
+TRACKER::Logger& TRACKER::getLogger()       {return TRACKER::trackerLogger;}
 
 TractogramField& TRACKER::getSeedIndexField() {
 
@@ -112,22 +100,26 @@ void TRACKER::reset() {
     countIsReached         = false;
     ready_thread_id        = 0;
 
-    // Reset loggers
-    log_success_REACHED_MAXLENGTH_LIMIT             = 0;
-    log_success_REACHED_MINDATASUPPORT_LIMIT        = 0;
-    log_success_SATISFIED_PATHWAY_RULES             = 0;
-    log_discard_TOO_SHORT                           = 0;
-    log_discard_TOO_LONG                            = 0;
-    log_discard_DISCARD_ROI_REACHED                 = 0;
-    log_discard_REQUIRED_ROI_NOT_MET                = 0;
-    log_discard_REQUIRED_ROI_ORDER_NOT_MET          = 0;
-    log_discard_CANT_MEET_STOP_CONDITION            = 0;
-    log_discard_ENDED_INSIDE_DISCARD_ROI            = 0;
-    log_discard_REACHED_TIME_LIMIT                  = 0;
-    log_failed_UNKNOWN_REASON                       = 0;
-    log_failed_BY_THE_ALGORITHM_AT_INITIALIZATION   = 0;
-    log_failed_BY_THE_ALGORITHM                     = 0;
-    log_unexpected_TRACKING_STATUS                  = 0;
+    // Reset logger
+    trackerLogger.log_success_REACHED_MAXLENGTH_LIMIT           = 0;
+    trackerLogger.log_success_REACHED_MINDATASUPPORT_LIMIT      = 0;
+    trackerLogger.log_success_SATISFIED_PATHWAY_RULES           = 0;
+
+    trackerLogger.log_discard_TOO_SHORT                         = 0;
+    trackerLogger.log_discard_TOO_LONG                          = 0;
+    trackerLogger.log_discard_DISCARD_ROI_REACHED               = 0;
+    trackerLogger.log_discard_REQUIRED_ROI_NOT_MET              = 0;
+    trackerLogger.log_discard_REQUIRED_ROI_ORDER_NOT_MET        = 0;
+    trackerLogger.log_discard_CANT_MEET_STOP_CONDITION          = 0;
+    trackerLogger.log_discard_ENDED_INSIDE_DISCARD_ROI          = 0;
+    trackerLogger.log_discard_REACHED_TIME_LIMIT                = 0;
+
+    trackerLogger.log_failed_UNKNOWN_REASON                     = 0;
+    trackerLogger.log_failed_BY_THE_ALGORITHM_AT_INITIALIZATION = 0;
+    trackerLogger.log_failed_BY_THE_ALGORITHM                   = 0;
+
+    trackerLogger.log_unexpected_TRACKING_STATUS                = 0;
+
 }
 
 void TRACKER::print() {

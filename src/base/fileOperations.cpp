@@ -120,39 +120,50 @@ std::string NIBR::getFileExtension(std::string filePath)
 
 std::string NIBR::removeFileExtension(std::string filePath)
 {
-
-    // Convert string to path
     std::filesystem::path p(filePath);
-    std::string str = p.filename().string();
+    
+    // Work on the filename part only to determine the stem
+    std::string filename = p.filename().string();
+    std::string stem = filename;
 
-    // Find the last occurrence of '.' in the given string
-    std::size_t pos = str.find_last_of(".");
-
-    // If a period is found 
-    if (pos != std::string::npos)
-    {
-        // Extract the extension after '.'
-        std::string extension = str.substr(pos+1);
-        
-        // If the extension is 'gz', we need to check if there's another . preceding it
-        if (extension == "gz")
-        {
-            // Find the second to last '.'
-            std::size_t second_to_last_pos = str.substr(0, pos).find_last_of(".");
-            if (second_to_last_pos != std::string::npos)
-            {
-                // The extension is till second '.' for '.gz' files;
-                // so return the filename till the second last '.'
-                return str.substr(0, second_to_last_pos);
-            }
-        }
-        // Regular case - return the part of the string before the last '.'
-        return str.substr(0, pos);
+    if (stem.empty()) {
+        disp(MSG_ERROR, "Filename is empty in removeFileExtension");
+        return stem;
     }
 
-    // If no period is found, return the entire filename
-    return str;
+    std::size_t pos = filename.find_last_of(".");
 
+    if (pos != std::string::npos)
+    {
+        std::string extension = filename.substr(pos+1);
+        
+        // Special handling for .gz (e.g., file.nii.gz -> file)
+        if (extension == "gz")
+        {
+            std::size_t second_to_last_pos = filename.substr(0, pos).find_last_of(".");
+            if (second_to_last_pos != std::string::npos)
+            {
+                stem = filename.substr(0, second_to_last_pos);
+            } else {
+                stem = filename.substr(0, pos);
+            }
+        } else {
+            stem = filename.substr(0, pos);
+        }
+    }
+
+    // Recombine with the parent path if it exists.
+    if (p.has_parent_path()) {
+        return (p.parent_path() / stem).string();
+    }
+
+    return stem;
+}
+
+std::string NIBR::replaceFileExtension(std::string filePath, std::string newExtension)
+{
+    std::string baseName = removeFileExtension(filePath);
+    return baseName + newExtension;
 }
 
 

@@ -131,8 +131,9 @@ std::tuple<bool, std::string, std::string, std::string, double> surfArgHasMaskFi
 {
     auto parseStringAndInteger = [](const std::string& str) -> std::tuple<bool, std::string, std::string, std::string, double> {
         
-        const std::regex pattern1("^([a-zA-Z]+),(-?[0-9]+)$");
-        const std::regex pattern2("^([a-zA-Z]+),(VERT|FACE),(INT|FLOAT),(-?[0-9.]+)$");
+        // Allow alphanumeric, underscore, dot, and hyphen in names
+        const std::regex pattern1("^([a-zA-Z0-9_\\.-]+),(-?[0-9]+)$");
+        const std::regex pattern2("^([a-zA-Z0-9_\\.-]+),(VERT|FACE),(INT|FLOAT),(-?[0-9.]+)$");
         std::smatch match;
 
         // Check if the string matches pattern1
@@ -327,8 +328,8 @@ std::tuple<PathwayRule,bool> parseSurface(std::vector<std::string> inp, std::siz
         }
 
         // Handle discretization res
-        bool hasDiscRes;
-        bool resVal;
+        bool  hasDiscRes;
+        float resVal;
         std::tie(hasDiscRes,resVal)   = surfArgHasDiscRes(inp,i);
         if (hasDiscRes) {
             if (!isnan(resVal)) {
@@ -345,7 +346,6 @@ std::tuple<PathwayRule,bool> parseSurface(std::vector<std::string> inp, std::siz
         float x,y,z,r;
         std::tie(hasSphere,x,y,z,r)   = surfArgHasSphere(inp,i);
         if (hasSphere) {
-            rule.surfaceDiscretizationRes = resVal;
             rule.center[0] = x;
             rule.center[1] = y;
             rule.center[2] = z;
@@ -382,17 +382,12 @@ std::tuple<PathwayRule,bool> parseSurface(std::vector<std::string> inp, std::siz
             foundArg++;
         }
 
-        if (foundArg == 0) {
+        if (foundArg == k) {
             i += k;
             isValid = true;
         } else {
-            if (foundArg == k) {
-                i += k;
-                isValid = true;
-            } else {
-                NIBR::disp(MSG_ERROR,"Unknown surface arguments - found %d, parsed %d", k, foundArg);
-                return std::make_tuple(rule,false);
-            }
+            NIBR::disp(MSG_ERROR,"Unknown surface arguments - found %d, parsed %d", k, foundArg);
+            return std::make_tuple(rule,false);
         }
 
     }    
@@ -513,5 +508,307 @@ PathwayRule NIBR::parseSeedInput (std::vector<std::string> inp) {
     if (isValid) {setRule();  return rule;} 
     
     return rule;
+
+}
+
+
+// Description of the labels (see prepXact) used in XACT for tractography:
+//
+// Common rules:
+//  1. seed:                 (Seeds are randomly generated in this region)  L_WM + R_WM + CER_WM + BS (includes I_BS)
+//  2. req_end_inside:       (Ends are allowed here)                        L_GM + R_GM + CER_GM + L_SUB + R_SUB + BS + ABN + BG (includes I_BS)
+//  3. discard_if_enters:    (No entry)                                     CSF
+//
+// Optional rules:
+//  1. XACT_TRACK_OPT_SEED_GM               (Default: OFF):  (Seeds are generated in cortex)              L_GM + R_GM + CER_GM
+//  2. XACT_TRACK_OPT_STOP_AFTER_ENTRY_GM   (Default: ON):   (Propagation stops immediately after entry)  L_GM + R_GM + CER_GM
+//  3. XACT_TRACK_OPT_STOP_BEFORE_EXIT_GM   (Default: OFF):  (Propagation stops right before exit)        L_GM + R_GM + CER_GM
+//  4. XACT_TRACK_OPT_SEED_BG               (Default: OFF):  (Seeds are generated in BG too)              BG
+//  5. XACT_TRACK_OPT_STOP_AFTER_ENTRY_BG   (Default: ON) :  (Propagation stops immediately after entry)  BG
+//  6. XACT_TRACK_OPT_STOP_BEFORE_EXIT_BG   (Default: OFF):  (Propagation stops right before exit)        BG
+//  7. XACT_TRACK_OPT_SEED_SUB              (Default: ON) :  (Seeds are generated in subcortex too)       L_SUB + R_SUB
+//  8. XACT_TRACK_OPT_STOP_AFTER_ENTRY_SUB  (Default: OFF):  (Propagation stops immediately after entry)  L_SUB + R_SUB
+//  9. XACT_TRACK_OPT_STOP_BEFORE_EXIT_SUB  (Default: OFF):  (Propagation stops right before exit)        L_SUB + R_SUB
+// 10. XACT_TRACK_OPT_SEED_ABN              (Default: ON):   (Seeds are generated in abnormality)         ABN
+// 11. XACT_TRACK_OPT_STOP_AFTER_ENTRY_ABN  (Default: OFF):  (Propagation stops immediately after entry)  ABN
+// 12. XACT_TRACK_OPT_STOP_BEFORE_EXIT_ABN  (Default: OFF):  (Propagation stops right before exit)        ABN
+//
+// Preset modes:
+//  1. XACT_INTRACORTICAL       = (XACT_TRACK_OPT_SEED_GM  | !XACT_TRACK_OPT_STOP_AFTER_ENTRY_GM  | XACT_TRACK_OPT_STOP_BEFORE_EXIT_GM )
+//  2. XACT_CRANIAL             = (XACT_TRACK_OPT_SEED_BG  | !XACT_TRACK_OPT_STOP_AFTER_ENTRY_BG  | XACT_TRACK_OPT_STOP_BEFORE_EXIT_BG )
+//  3. XACT_SUBCORTICAL_DEADEND = (XACT_TRACK_OPT_SEED_SUB | !XACT_TRACK_OPT_STOP_AFTER_ENTRY_SUB | XACT_TRACK_OPT_STOP_BEFORE_EXIT_SUB)
+//  4. XACT_ABNORMALITY_DEADEND = (XACT_TRACK_OPT_SEED_ABN | !XACT_TRACK_OPT_STOP_AFTER_ENTRY_ABN | XACT_TRACK_OPT_STOP_BEFORE_EXIT_ABN)
+//
+// Note: I_BS is a part of BS and is not currently used during tractography as a separate label.
+
+
+std::tuple<bool,PathwayRule,std::vector<PathwayRule>> NIBR::parseXactInput(std::string xact_fname, XactTrackOption options)
+{
+
+    disp(MSG_INFO,"Parsing xact file: %s", xact_fname.c_str());
+
+    Surface combined(xact_fname);
+
+    if (combined.extension != "vtk") { 
+        disp(MSG_FATAL,"This function only works with .vtk, .gii, .orig, .pial, .white, .inflated, .sphere and .smoothwm files");
+        return std::tuple<bool,PathwayRule,std::vector<PathwayRule>>();
+    } 
+
+    combined.readMesh();
+    disp(MSG_DETAIL,"xact mesh read");
+
+    auto xact = combined.readField("xact");
+    disp(MSG_DETAIL,"xact field read");
+
+    // Default options
+    XactTrackOption defaults = static_cast<XactTrackOption>(XACT_TRACK_OPT_STOP_AFTER_ENTRY_GM | XACT_TRACK_OPT_STOP_AFTER_ENTRY_BG | XACT_TRACK_OPT_SEED_SUB | XACT_TRACK_OPT_SEED_ABN);
+
+    if (options == XACT_TRACK_OPT_UNSET) {
+        disp(MSG_DETAIL,"Using default xact tracking options");
+        options = defaults;
+    } else {
+        options = static_cast<XactTrackOption>(options | defaults);
+    }
+
+    // Preset modes
+    if (options & XACT_INTRACORTICAL) {
+        disp(MSG_DETAIL,"Using xact intracortical preset");
+        options = static_cast<XactTrackOption>(options |  XACT_TRACK_OPT_SEED_GM);
+        options = static_cast<XactTrackOption>(options & ~XACT_TRACK_OPT_STOP_AFTER_ENTRY_GM);
+        options = static_cast<XactTrackOption>(options |  XACT_TRACK_OPT_STOP_BEFORE_EXIT_GM);
+    }
+
+    if (options & XACT_CRANIAL) {
+        disp(MSG_DETAIL,"Using xact cranial preset");
+        options = static_cast<XactTrackOption>(options |  XACT_TRACK_OPT_SEED_BG);
+        options = static_cast<XactTrackOption>(options & ~XACT_TRACK_OPT_STOP_AFTER_ENTRY_BG);
+        options = static_cast<XactTrackOption>(options |  XACT_TRACK_OPT_STOP_BEFORE_EXIT_BG);
+    }
+
+    if (options & XACT_SUBCORTICAL_DEADEND) {
+        disp(MSG_DETAIL,"Using xact force subcortical end preset");
+        options = static_cast<XactTrackOption>(options |  XACT_TRACK_OPT_SEED_SUB);
+        options = static_cast<XactTrackOption>(options & ~XACT_TRACK_OPT_STOP_AFTER_ENTRY_SUB);
+        options = static_cast<XactTrackOption>(options |  XACT_TRACK_OPT_STOP_BEFORE_EXIT_SUB);
+    }
+
+    if (options & XACT_ABNORMALITY_DEADEND) {
+        disp(MSG_DETAIL,"Using xact force abnormality end preset");
+        options = static_cast<XactTrackOption>(options |  XACT_TRACK_OPT_SEED_ABN);
+        options = static_cast<XactTrackOption>(options & ~XACT_TRACK_OPT_STOP_AFTER_ENTRY_ABN);
+        options = static_cast<XactTrackOption>(options |  XACT_TRACK_OPT_STOP_BEFORE_EXIT_ABN);
+    }
+
+    // Individual options
+    bool xact_opt_seed_gm               = (options & XACT_TRACK_OPT_SEED_GM)                 != 0;
+    bool xact_opt_stop_after_entry_gm   = (options & XACT_TRACK_OPT_STOP_AFTER_ENTRY_GM)     != 0;
+    bool xact_opt_stop_before_exit_gm   = (options & XACT_TRACK_OPT_STOP_BEFORE_EXIT_GM)     != 0;
+    bool xact_opt_seed_bg               = (options & XACT_TRACK_OPT_SEED_BG)                 != 0;
+    bool xact_opt_stop_after_entry_bg   = (options & XACT_TRACK_OPT_STOP_AFTER_ENTRY_BG)     != 0;
+    bool xact_opt_stop_before_exit_bg   = (options & XACT_TRACK_OPT_STOP_BEFORE_EXIT_BG)     != 0;
+    bool xact_opt_seed_sub              = (options & XACT_TRACK_OPT_SEED_SUB)                != 0;
+    bool xact_opt_stop_after_entry_sub  = (options & XACT_TRACK_OPT_STOP_AFTER_ENTRY_SUB)    != 0;
+    bool xact_opt_stop_before_exit_sub  = (options & XACT_TRACK_OPT_STOP_BEFORE_EXIT_SUB)    != 0;
+    bool xact_opt_seed_abn              = (options & XACT_TRACK_OPT_SEED_ABN)                != 0;
+    bool xact_opt_stop_after_entry_abn  = (options & XACT_TRACK_OPT_STOP_AFTER_ENTRY_ABN)    != 0;
+    bool xact_opt_stop_before_exit_abn  = (options & XACT_TRACK_OPT_STOP_BEFORE_EXIT_ABN)    != 0;
+
+    // Masks for common rules
+    std::vector<bool> mask_seed(combined.nv,false);
+    std::vector<bool> mask_discard_seed(combined.nv,false);
+    std::vector<bool> mask_req_end_inside(combined.nv,false);
+    std::vector<bool> mask_discard_if_enters(combined.nv,false);
+
+    // Masks for optional rules
+    std::vector<bool> mask_stop_before_exit(combined.nv,false);
+    std::vector<bool> mask_stop_after_entry(combined.nv,false);
+
+
+    for (int n = 0; n < combined.nv; n++) {
+
+        switch (xact.idata[n][0]) {
+
+            case XactLabel::L_WM:
+            case XactLabel::R_WM:
+            case XactLabel::CER_WM:
+            {
+                mask_seed[n]                = true;
+                break;
+            }
+
+            case XactLabel::L_GM:
+            case XactLabel::R_GM:
+            case XactLabel::CER_GM:
+            {
+                mask_seed[n]                = xact_opt_seed_gm;
+                mask_discard_seed[n]        = !xact_opt_seed_gm;
+                mask_req_end_inside[n]      = true;
+                mask_stop_after_entry[n]    = xact_opt_stop_after_entry_gm;
+                mask_stop_before_exit[n]    = xact_opt_stop_before_exit_gm;
+                break;
+            }
+
+            case XactLabel::L_SUB:
+            case XactLabel::R_SUB:
+            {
+                mask_seed[n]                = xact_opt_seed_sub;
+                mask_discard_seed[n]        = !xact_opt_seed_sub;
+                mask_req_end_inside[n]      = true;
+                mask_stop_after_entry[n]    = xact_opt_stop_after_entry_sub;
+                mask_stop_before_exit[n]    = xact_opt_stop_before_exit_sub;
+                break;
+            }
+
+            case XactLabel::BS:
+            {
+                mask_seed[n]                = true;
+                mask_req_end_inside[n]      = true;
+                break;
+            }
+
+            case XactLabel::CSF:
+            {
+                mask_discard_if_enters[n]   = true;
+                break;
+            }
+
+            case XactLabel::ABN:
+            {
+                mask_seed[n]                = xact_opt_seed_abn;
+                mask_discard_seed[n]        = !xact_opt_seed_abn;
+                mask_req_end_inside[n]      = true;
+                mask_stop_after_entry[n]    = xact_opt_stop_after_entry_abn;
+                mask_stop_before_exit[n]    = xact_opt_stop_before_exit_abn;
+                break;
+            }
+
+            case XactLabel::BG:
+            {
+                mask_seed[n]                = xact_opt_seed_bg;
+                mask_discard_seed[n]        = !xact_opt_seed_bg;
+                mask_req_end_inside[n]      = true;
+                mask_stop_after_entry[n]    = xact_opt_stop_after_entry_bg;
+                mask_stop_before_exit[n]    = xact_opt_stop_before_exit_bg;
+                break;
+            }
+
+            default:
+                break;
+        }
+
+    }
+    disp(MSG_DETAIL,"xact masks prepared");
+
+    // Create common surfaces
+    Surface* surf_seed              = new Surface();
+    Surface* surf_discard_seed      = new Surface();
+    Surface* surf_req_end_inside    = new Surface();
+    Surface* surf_discard_if_enters = new Surface();
+
+    disp(MSG_DETAIL,"Applying masks");
+    *surf_seed              = applyMask(combined,mask_seed);
+    *surf_discard_seed      = applyMask(combined,mask_discard_seed);
+    *surf_req_end_inside    = applyMask(combined,mask_req_end_inside);
+    *surf_discard_if_enters = applyMask(combined,mask_discard_if_enters);
+
+    // Create optional surfaces
+    Surface* surf_stop_after_entry  = new Surface();
+    Surface* surf_stop_before_exit  = new Surface();
+
+    if (xact_opt_stop_after_entry_bg  || xact_opt_stop_after_entry_gm || xact_opt_stop_after_entry_sub || xact_opt_stop_after_entry_abn) {
+        *surf_stop_after_entry  = applyMask(combined,mask_stop_after_entry);
+    } 
+
+    if (xact_opt_stop_before_exit_sub || xact_opt_stop_before_exit_bg || xact_opt_stop_before_exit_gm || xact_opt_stop_before_exit_abn) {
+        *surf_stop_before_exit  = applyMask(combined,mask_stop_before_exit);
+    }
+    disp(MSG_DETAIL,"Decomposed xact surfaces");
+
+    // seed
+    PathwayRule rule_seed;
+    rule_seed.surfaceSource             = xact_fname;
+    rule_seed.type                      = seed;
+    rule_seed.surfaceUseDim             = surf_useDim_3D;
+    rule_seed.src                       = NIBR::surf_src;
+    rule_seed.surfaceDiscretizationRes  = 1;
+    rule_seed.surfSrc                   = surf_seed;
+
+    // discard_seed
+    PathwayRule rule_discard_seed;
+    rule_discard_seed.surfaceSource             = xact_fname;
+    rule_discard_seed.type                      = discard_seed;
+    rule_discard_seed.surfaceUseDim             = surf_useDim_3D;
+    rule_discard_seed.src                       = NIBR::surf_src;
+    rule_discard_seed.surfaceDiscretizationRes  = 1;
+    rule_discard_seed.surfSrc                   = surf_discard_seed;
+
+    // req_end_inside
+    PathwayRule rule_req_end_inside;
+    rule_req_end_inside.surfaceSource             = xact_fname;
+    rule_req_end_inside.type                      = req_end_inside;
+    rule_req_end_inside.surfaceUseDim             = surf_useDim_3D;
+    rule_req_end_inside.src                       = NIBR::surf_src;
+    rule_req_end_inside.surfaceDiscretizationRes  = 1;
+    rule_req_end_inside.surfSrc                   = surf_req_end_inside;
+
+    // discard_if_enters
+    PathwayRule rule_discard_if_enters;
+    rule_discard_if_enters.surfaceSource             = xact_fname;
+    rule_discard_if_enters.type                      = discard_if_enters;
+    rule_discard_if_enters.surfaceUseDim             = surf_useDim_3D;
+    rule_discard_if_enters.src                       = NIBR::surf_src;
+    rule_discard_if_enters.surfaceDiscretizationRes  = 1;
+    rule_discard_if_enters.surfSrc                   = surf_discard_if_enters;
+
+    // stop_after_entry
+    PathwayRule rule_stop_after_entry;
+    if (xact_opt_stop_after_entry_bg  || xact_opt_stop_after_entry_gm || xact_opt_stop_after_entry_sub || xact_opt_stop_after_entry_abn) {
+        rule_stop_after_entry.surfaceSource             = xact_fname;
+        rule_stop_after_entry.type                      = stop_after_entry;
+        rule_stop_after_entry.surfaceUseDim             = surf_useDim_3D;
+        rule_stop_after_entry.src                       = NIBR::surf_src;
+        rule_stop_after_entry.surfaceDiscretizationRes  = 1;
+        rule_stop_after_entry.surfSrc                   = surf_stop_after_entry;
+    }
+
+    // stop_before_exit
+    PathwayRule rule_stop_before_exit;
+    if (xact_opt_stop_before_exit_sub || xact_opt_stop_before_exit_bg || xact_opt_stop_before_exit_gm || xact_opt_stop_before_exit_abn) {
+        rule_stop_before_exit.surfaceSource             = xact_fname;
+        rule_stop_before_exit.type                      = stop_before_exit;
+        rule_stop_before_exit.surfaceUseDim             = surf_useDim_3D;
+        rule_stop_before_exit.src                       = NIBR::surf_src;
+        rule_stop_before_exit.surfaceDiscretizationRes  = 1;
+        rule_stop_before_exit.surfSrc                   = surf_stop_before_exit;
+    }
+
+    // Combine rules
+    std::vector<PathwayRule> rules;
+
+    rules.push_back(rule_discard_seed);
+    
+    rule_req_end_inside.side = side_A;      rules.push_back(rule_req_end_inside);
+    rule_req_end_inside.side = side_B;      rules.push_back(rule_req_end_inside);
+
+    rule_discard_if_enters.side = side_A;   rules.push_back(rule_discard_if_enters);
+    rule_discard_if_enters.side = side_B;   rules.push_back(rule_discard_if_enters);
+
+    if (xact_opt_stop_after_entry_bg  || xact_opt_stop_after_entry_gm || xact_opt_stop_after_entry_sub || xact_opt_stop_after_entry_abn) {
+        rule_stop_after_entry.side = side_A;    rules.push_back(rule_stop_after_entry);
+        rule_stop_after_entry.side = side_B;    rules.push_back(rule_stop_after_entry);
+    } else {
+        delete surf_stop_after_entry;
+    }
+
+    if (xact_opt_stop_before_exit_sub || xact_opt_stop_before_exit_bg || xact_opt_stop_before_exit_gm || xact_opt_stop_before_exit_abn) {
+        rule_stop_before_exit.side = side_A;    rules.push_back(rule_stop_before_exit);
+        rule_stop_before_exit.side = side_B;    rules.push_back(rule_stop_before_exit);
+    } else {
+        delete surf_stop_before_exit;
+    }
+
+    combined.clearField(xact);
+    disp(MSG_DETAIL,"xact preperation finished");
+    return std::make_tuple(true,rule_seed,rules);
 
 }

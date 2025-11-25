@@ -5,6 +5,10 @@
 #include "base/stringOperations.h"
 #include "base/vectorOperations.h"
 
+// anat
+#include "anat/anatSurf.h"
+#include "anat/xact/prepXact.h"
+
 // dMRI
 #include "dMRI/gradient/dMRI_grad.h"
 #include "dMRI/imageTypes/fod_image.h"
@@ -47,6 +51,7 @@
 #include "dMRI/tractography/tracker/trackerThread.h"
 
 #include "dMRI/tractography/utility/parallelStreamlineGenerator.h"
+#include "dMRI/tractography/utility/purifibre.h"
 #include "dMRI/tractography/utility/resampleStreamline.h"
 #include "dMRI/tractography/utility/segmentOperators.h"
 #include "dMRI/tractography/utility/streamline_operators.h"

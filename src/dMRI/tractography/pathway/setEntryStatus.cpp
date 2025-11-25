@@ -48,6 +48,9 @@ bool NIBR::Pathway::setEntryStatus(NIBR::Walker* w, int ruleNo) {
         }
 
         auto [isCrossing, atLength] = testType ? isSegmentExiting(checkSeg, ruleNo) : isSegmentEntering(checkSeg, ruleNo);
+
+        delete[] checkSeg.beg;
+        delete[] checkSeg.end;
         
         return isCrossing;
     };
@@ -67,24 +70,15 @@ bool NIBR::Pathway::setEntryStatus(NIBR::Walker* w, int ruleNo) {
                 return true;
             }
 
-            // Surface case
             // Move 1 micrometer before the stop rule
             case sph_src: 
             case surf_src: 
             case img_mask_src:
-            case img_label_src: {
+            case img_label_src: 
+            case img_pvf_src: {
                 disp(MSG_DEBUG,"  Stopping before exit/entry (by %.12f)", crossLen);
                 w->segStopLength = crossLen - EPS3;
                 break;
-            }
-
-            // Image pvf case
-            // Move one downsampleFactor before the stop rule
-            case img_pvf_src: {
-                disp(MSG_DEBUG,"  Stopping before exit/entry (by %.12f)", crossLen);
-                w->segStopLength = crossLen - miniSegment[ruleNo];
-                break;
-          
             }
 
         }
@@ -120,23 +114,14 @@ bool NIBR::Pathway::setEntryStatus(NIBR::Walker* w, int ruleNo) {
                 return true;
             }
 
-            // Surface case
             // Move 1 micrometer after the stop rule
             case sph_src: 
             case surf_src: 
             case img_mask_src:
-            case img_label_src: {
-                disp(MSG_DEBUG,"  Stopping after exit/entry (by %.12f)", crossLen);
-                w->segStopLength = crossLen + EPS3;
-                break;
-            }
-
-            // Image pvf case
-            // Nothing needed since the end point is very likely to be not exactly on the border but already beyond the stop rule
-            // i.e. when the last point is checked, it will always show to be beyond the stopping rule - it will not appear 50% inside/outside
+            case img_label_src: 
             case img_pvf_src: {
                 disp(MSG_DEBUG,"  Stopping after exit/entry (by %.12f)", crossLen);
-                w->segStopLength = crossLen + miniSegment[ruleNo];
+                w->segStopLength = crossLen + EPS3;
                 break;
             }
 

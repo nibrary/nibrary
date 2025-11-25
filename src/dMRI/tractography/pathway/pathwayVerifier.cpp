@@ -217,8 +217,8 @@ bool NIBR::Pathway::verify() {
                 return false;
             }
 
-            if ((prules[i].type==discard_if_ends_inside) && (prules[i].side == either) ) {
-                disp(MSG_ERROR,"\"discard_if_ends_inside\" must have a side definition when used without a seed");
+            if ((prules[i].type==discard_if_ends_inside) && (prules[i].side != either) ) {
+                disp(MSG_ERROR,"\"discard_if_ends_inside\" can't have a side definition without a seed");
                 return false;
             }
 

@@ -42,6 +42,9 @@ bool NIBR::TractogramReader::initReader(std::string _fileName, bool _preload)
         prepSequentialRead(_fileName);
     } else if (extension == "vtk") {
         prepRandomRead(_fileName);
+    } else {
+        disp(MSG_ERROR,"Unsupported file format: %s", extension.c_str());
+        return false;
     }
 
 

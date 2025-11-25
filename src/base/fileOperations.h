@@ -17,6 +17,7 @@ namespace NIBR
 
     std::string getFileExtension(std::string filePath);
     std::string removeFileExtension(std::string filePath);
+    std::string replaceFileExtension(std::string filePath, std::string newExtension);
     std::string getFolderPath(std::string filePath);
     bool        makeFolder(std::string filePath);
 

@@ -3,6 +3,7 @@
 #include "base/nibr.h"
 #include "pathway.h"
 #include "pathwayRule.h"
+#include "anat/xact/prepXact.h"
 
 
 // Handles following cases, otherwise returns false.
@@ -30,5 +31,8 @@ namespace NIBR {
 
 std::vector<PathwayRule> parsePathwayInput(std::vector<std::string> inp);
 PathwayRule              parseSeedInput   (std::vector<std::string> inp);
+
+// [success,seed,rules]
+std::tuple<bool,PathwayRule,std::vector<PathwayRule>> parseXactInput(std::string xact_fname, XactTrackOption options);
 
 }

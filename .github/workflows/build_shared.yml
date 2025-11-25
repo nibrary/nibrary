@@ -181,19 +181,19 @@ jobs:
           tar -xzvf ${{ env.build-output-dir }}/arm64/nibrary_macOS_arm64_shared.tar.gz
           cd ${{ env.build-output-dir }}/x86_64
           tar -xzvf ${{ env.build-output-dir }}/x86_64/nibrary_macOS_x86_64_shared.tar.gz
-          lib1_arm=${{ env.build-output-dir }}/arm64/lib/nibrary_v0.4.3/libdcm2niix++.a
-          lib2_arm=${{ env.build-output-dir }}/arm64/lib/nibrary_v0.4.3/libgeogram.dylib
-          lib3_arm=${{ env.build-output-dir }}/arm64/lib/nibrary_v0.4.3/libNibrary.dylib
-          lib4_arm=${{ env.build-output-dir }}/arm64/lib/nibrary_v0.4.3/libz.dylib
-          lib1_x86_64=${{ env.build-output-dir }}/x86_64/lib/nibrary_v0.4.3/libdcm2niix++.a
-          lib2_x86_64=${{ env.build-output-dir }}/x86_64/lib/nibrary_v0.4.3/libgeogram.dylib
-          lib3_x86_64=${{ env.build-output-dir }}/x86_64/lib/nibrary_v0.4.3/libNibrary.dylib
-          lib4_x86_64=${{ env.build-output-dir }}/x86_64/lib/nibrary_v0.4.3/libz.dylib
-          mkdir -p ${{ env.build-output-dir }}/lib/nibrary_v0.4.3
-          lib1_comb=${{ env.build-output-dir }}/lib/nibrary_v0.4.3/libdcm2niix++.a
-          lib2_comb=${{ env.build-output-dir }}/lib/nibrary_v0.4.3/libgeogram.dylib
-          lib3_comb=${{ env.build-output-dir }}/lib/nibrary_v0.4.3/libNibrary.dylib
-          lib4_comb=${{ env.build-output-dir }}/lib/nibrary_v0.4.3/libz.dylib
+          lib1_arm=${{ env.build-output-dir }}/arm64/lib/nibrary_v0.4.4/libdcm2niix++.a
+          lib2_arm=${{ env.build-output-dir }}/arm64/lib/nibrary_v0.4.4/libgeogram.dylib
+          lib3_arm=${{ env.build-output-dir }}/arm64/lib/nibrary_v0.4.4/libNibrary.dylib
+          lib4_arm=${{ env.build-output-dir }}/arm64/lib/nibrary_v0.4.4/libz.dylib
+          lib1_x86_64=${{ env.build-output-dir }}/x86_64/lib/nibrary_v0.4.4/libdcm2niix++.a
+          lib2_x86_64=${{ env.build-output-dir }}/x86_64/lib/nibrary_v0.4.4/libgeogram.dylib
+          lib3_x86_64=${{ env.build-output-dir }}/x86_64/lib/nibrary_v0.4.4/libNibrary.dylib
+          lib4_x86_64=${{ env.build-output-dir }}/x86_64/lib/nibrary_v0.4.4/libz.dylib
+          mkdir -p ${{ env.build-output-dir }}/lib/nibrary_v0.4.4
+          lib1_comb=${{ env.build-output-dir }}/lib/nibrary_v0.4.4/libdcm2niix++.a
+          lib2_comb=${{ env.build-output-dir }}/lib/nibrary_v0.4.4/libgeogram.dylib
+          lib3_comb=${{ env.build-output-dir }}/lib/nibrary_v0.4.4/libNibrary.dylib
+          lib4_comb=${{ env.build-output-dir }}/lib/nibrary_v0.4.4/libz.dylib
           lipo -create ${lib1_arm} ${lib1_x86_64} -output ${lib1_comb}
           lipo -create ${lib2_arm} ${lib2_x86_64} -output ${lib2_comb}
           lipo -create ${lib3_arm} ${lib3_x86_64} -output ${lib3_comb}

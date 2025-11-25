@@ -38,27 +38,35 @@ extern bool                                         countIsReached;
 extern int                                          ready_thread_id;
 extern std::mutex                                   trackKeeper;
 
-// Loggers
-extern std::atomic<std::size_t> log_success_REACHED_MAXLENGTH_LIMIT;
-extern std::atomic<std::size_t> log_success_REACHED_MINDATASUPPORT_LIMIT;
-extern std::atomic<std::size_t> log_success_SATISFIED_PATHWAY_RULES;
+// Logger
+struct Logger {
 
-extern std::atomic<std::size_t> log_discard_TOO_SHORT;
-extern std::atomic<std::size_t> log_discard_TOO_LONG;
-extern std::atomic<std::size_t> log_discard_DISCARD_ROI_REACHED;
-extern std::atomic<std::size_t> log_discard_REQUIRED_ROI_NOT_MET;
-extern std::atomic<std::size_t> log_discard_REQUIRED_ROI_ORDER_NOT_MET;
-extern std::atomic<std::size_t> log_discard_CANT_MEET_STOP_CONDITION;
-extern std::atomic<std::size_t> log_discard_ENDED_INSIDE_DISCARD_ROI;
-extern std::atomic<std::size_t> log_discard_REACHED_TIME_LIMIT;
+    std::atomic<std::size_t> log_success_REACHED_MAXLENGTH_LIMIT{0};
+    std::atomic<std::size_t> log_success_REACHED_MINDATASUPPORT_LIMIT{0};
+    std::atomic<std::size_t> log_success_SATISFIED_PATHWAY_RULES{0};
 
-extern std::atomic<std::size_t> log_failed_UNKNOWN_REASON;
-extern std::atomic<std::size_t> log_failed_BY_THE_ALGORITHM_AT_INITIALIZATION;
-extern std::atomic<std::size_t> log_failed_BY_THE_ALGORITHM;
+    std::atomic<std::size_t> log_discard_TOO_SHORT{0};
+    std::atomic<std::size_t> log_discard_TOO_LONG{0};
+    std::atomic<std::size_t> log_discard_DISCARD_ROI_REACHED{0};
+    std::atomic<std::size_t> log_discard_REQUIRED_ROI_NOT_MET{0};
+    std::atomic<std::size_t> log_discard_REQUIRED_ROI_ORDER_NOT_MET{0};
+    std::atomic<std::size_t> log_discard_CANT_MEET_STOP_CONDITION{0};
+    std::atomic<std::size_t> log_discard_ENDED_INSIDE_DISCARD_ROI{0};
+    std::atomic<std::size_t> log_discard_REACHED_TIME_LIMIT{0};
 
-extern std::atomic<std::size_t> log_unexpected_TRACKING_STATUS;
+    std::atomic<std::size_t> log_failed_UNKNOWN_REASON{0};
+    std::atomic<std::size_t> log_failed_BY_THE_ALGORITHM_AT_INITIALIZATION{0};
+    std::atomic<std::size_t> log_failed_BY_THE_ALGORITHM{0};
+
+    std::atomic<std::size_t> log_unexpected_TRACKING_STATUS{0};
+};
+
+extern Logger trackerLogger;
+
+
 
 Tractogram&         getTractogram();
+Logger&             getLogger();
 TractogramField&    getSeedIndexField();
 
 int  runTime();

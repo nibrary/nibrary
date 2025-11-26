@@ -2,34 +2,41 @@
 #include <climits>
 #include <cstdint>
 
+namespace NIBR {
+    namespace TRACKER 
+    {
+        // User parameters
+        Algorithm_Type  algorithm;
+        int             nThreads;
+        int             runTimeLimit;
+        int             idleTimeLimit;
+        Seed            seed;
+        bool            saveSeedIndex;
+        Pathway         pw;
+        Params_PTT      params_ptt;
+
+        // Derived parameters
+        Tractogram                              tractogram;
+        std::vector<int>                        streamlineLength;
+        std::vector<int>                        seedIndex;
+        TractogramField                         seedIndexField;
+        std::chrono::steady_clock::time_point   initTime;
+        std::chrono::steady_clock::time_point   lastTime;
+        bool                                    runtimeLimitReached;
+        bool                                    idletimeLimitReached;
+        std::size_t                             currentCount;
+        bool                                    countIsReached;
+        int                                     ready_thread_id;
+        std::mutex                              trackKeeper;
+        Logger                                  trackerLogger;
+
+    }
+}
+
 using namespace NIBR;
 
-// User parameters
-Algorithm_Type  TRACKER::algorithm;
-int             TRACKER::nThreads;
-int             TRACKER::runTimeLimit;
-int             TRACKER::idleTimeLimit;
-Seed            TRACKER::seed;
-bool            TRACKER::saveSeedIndex;
-Pathway         TRACKER::pw;
-Params_PTT      TRACKER::params_ptt;
-
-// Derived parameters
-Tractogram                              TRACKER::tractogram;
-std::vector<int>                        TRACKER::streamlineLength;
-std::vector<int>                        TRACKER::seedIndex;
-TractogramField                         TRACKER::seedIndexField;
-std::chrono::steady_clock::time_point   TRACKER::initTime;
-std::chrono::steady_clock::time_point   TRACKER::lastTime;
-bool                                    TRACKER::runtimeLimitReached;
-bool                                    TRACKER::idletimeLimitReached;
-std::size_t                             TRACKER::currentCount;
-bool                                    TRACKER::countIsReached;
-int                                     TRACKER::ready_thread_id;
-std::mutex                              TRACKER::trackKeeper;
 
 // Loggers
-TRACKER::Logger  TRACKER::trackerLogger;
 
 Tractogram&      TRACKER::getTractogram()   {return TRACKER::tractogram;   }
 
@@ -68,6 +75,11 @@ TractogramField& TRACKER::getSeedIndexField() {
 
     return seedIndexField;
 }
+
+Seed&       TRACKER::getSeed()      {return TRACKER::seed;}
+Pathway&    TRACKER::getPathway()   {return TRACKER::pw;}
+Params_PTT& TRACKER::getParamsPTT() {return TRACKER::params_ptt;}
+
 
 void TRACKER::reset() {
 

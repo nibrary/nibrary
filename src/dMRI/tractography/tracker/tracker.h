@@ -68,6 +68,9 @@ extern Logger trackerLogger;
 Tractogram&         getTractogram();
 Logger&             getLogger();
 TractogramField&    getSeedIndexField();
+Seed&               getSeed();
+Pathway&            getPathway();
+Params_PTT&         getParamsPTT();
 
 int  runTime();
 int  idleTime();

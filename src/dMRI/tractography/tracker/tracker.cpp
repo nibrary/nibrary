@@ -76,6 +76,11 @@ TractogramField& TRACKER::getSeedIndexField() {
     return seedIndexField;
 }
 
+Seed&       TRACKER::getSeed()      {return TRACKER::seed;}
+Pathway&    TRACKER::getPathway()   {return TRACKER::pw;}
+Params_PTT& TRACKER::getParamsPTT() {return TRACKER::params_ptt;}
+
+
 void TRACKER::reset() {
 
     // Reset seed

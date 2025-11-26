@@ -43,6 +43,12 @@ if(NOT GEOGRAM_FOUND)
         conditional_move("${CMAKE_SOURCE_DIR}/external/geogram/CMakeOptions.txt" "${CMAKE_SOURCE_DIR}/external/geogram/CMakeOptions_bak")
         conditional_copy_file("${CMAKE_SOURCE_DIR}/external/geogram_patch/CMakeOptions.txt" "${CMAKE_SOURCE_DIR}/external/geogram/CMakeOptions.txt")
 
+        conditional_move("${CMAKE_SOURCE_DIR}/external/geogram/CMakeLists.txt" "${CMAKE_SOURCE_DIR}/external/geogram/CMakeLists_bak")
+        conditional_copy_file("${CMAKE_SOURCE_DIR}/external/geogram_patch/CMakeLists.txt" "${CMAKE_SOURCE_DIR}/external/geogram/CMakeLists.txt")
+
+        # conditional_move("${CMAKE_SOURCE_DIR}/external/geogram/src/lib/third_party/glfw/CMakeLists.txt" "${CMAKE_SOURCE_DIR}/external/geogram/src/lib/third_party/glfw/CMakeLists_bak")
+        # conditional_copy_file("${CMAKE_SOURCE_DIR}/external/geogram_patch/CMakeLists.txt" "${CMAKE_SOURCE_DIR}/external/geogram/src/lib/third_party/glfw/CMakeLists.txt")
+
         message(STATUS "Geogram will be built from local source")
 
     elseif (EXISTS "${CMAKE_SOURCE_DIR}/external/geogram_${GEOGRAM_MIN_VERSION}/CMakeLists.txt")
@@ -59,6 +65,12 @@ if(NOT GEOGRAM_FOUND)
 
         conditional_move("${CMAKE_SOURCE_DIR}/external/geogram/CMakeOptions.txt" "${CMAKE_SOURCE_DIR}/external/geogram/CMakeOptions_bak")
         conditional_copy_file("${CMAKE_SOURCE_DIR}/external/geogram_patch/CMakeOptions.txt" "${CMAKE_SOURCE_DIR}/external/geogram/CMakeOptions.txt")
+
+        conditional_move("${CMAKE_SOURCE_DIR}/external/geogram/CMakeLists.txt" "${CMAKE_SOURCE_DIR}/external/geogram/CMakeLists_bak")
+        conditional_copy_file("${CMAKE_SOURCE_DIR}/external/geogram_patch/CMakeLists.txt" "${CMAKE_SOURCE_DIR}/external/geogram/CMakeLists.txt")
+
+        # conditional_move("${CMAKE_SOURCE_DIR}/external/geogram/src/lib/third_party/glfw/CMakeLists.txt" "${CMAKE_SOURCE_DIR}/external/geogram/src/lib/third_party/glfw/CMakeLists_bak")
+        # conditional_copy_file("${CMAKE_SOURCE_DIR}/external/geogram_patch/CMakeLists.txt" "${CMAKE_SOURCE_DIR}/external/geogram/src/lib/third_party/glfw/CMakeLists.txt")
 
         message(STATUS "Geogram will be built from local source")
 
@@ -102,6 +114,13 @@ if(NOT GEOGRAM_FOUND)
 
         conditional_move("${GEOGRAM_SOURCE_DIR}/CMakeOptions.txt" "${GEOGRAM_SOURCE_DIR}/CMakeOptions_bak")
         conditional_copy_file("${CMAKE_SOURCE_DIR}/external/geogram_patch/CMakeOptions.txt" "${GEOGRAM_SOURCE_DIR}/CMakeOptions.txt")
+
+        conditional_move("${GEOGRAM_SOURCE_DIR}/CMakeLists.txt" "${GEOGRAM_SOURCE_DIR}/CMakeLists_bak")
+        conditional_copy_file("${CMAKE_SOURCE_DIR}/external/geogram_patch/CMakeLists.txt" "${GEOGRAM_SOURCE_DIR}/CMakeLists.txt")
+
+        # conditional_move("${GEOGRAM_SOURCE_DIR}/src/lib/third_party/glfw/CMakeLists.txt" "${GEOGRAM_SOURCE_DIR}/src/lib/third_party/glfw/CMakeLists_bak")
+        # conditional_copy_file("${CMAKE_SOURCE_DIR}/external/geogram_patch/CMakeLists.txt" "${GEOGRAM_SOURCE_DIR}/src/lib/third_party/glfw/CMakeLists.txt")
+
 
     endif()
 

@@ -81,7 +81,6 @@ Surface NIBR::surfRemoveOverconnectedVertices(Surface& surf)
     // disp(MSG_DEBUG,"Done..calling surfRemoveOverconnectedVertices");
 
     return (!surf.overconnectedVertices.empty()) ? applyMask(surf, vertexMask) : surf;
-
 }
 
 Surface NIBR::surfRemoveBadBoundaryVertices(Surface& surf)
@@ -1716,7 +1715,6 @@ Surface NIBR::applyMask(const Surface& surf, std::vector<bool>& mask) {
     // disp(MSG_DEBUG,"Done");
 
     return outSurf;
-
 }
 
 // shifts the vertices of s1 towards s2. shift is between 0 and 1. 0 is on s1, 1 is on s2.
@@ -2024,3 +2022,249 @@ std::unordered_map<int,float> NIBR::getVertexNeigborhoodOfAPoint(Surface* surf, 
 
 }
 
+Surface NIBR::surfDecimate(const Surface& surf, float binSize) 
+{
+
+    disp(MSG_DEBUG,"surfDecimate");
+
+    if (surf.nv == 0) { return Surface(); }
+
+    if (binSize <= EPS6) {
+        disp(MSG_WARN, "Bin size too small for decimation, returning copy.");
+        return Surface(surf, true);
+    }
+
+    // 1. Calculate Bounding Box
+    std::vector<float> bbox = surfBbox(surf);
+    float minX = bbox[0];
+    float maxX = bbox[1];
+    float minY = bbox[2];
+    float maxY = bbox[3];
+    float minZ = bbox[4];
+    // float maxZ = bbox[5];
+
+    // 2. Determine Grid Dimensions
+    // We expand the range slightly (1%) to ensure points exactly on the max boundary 
+    // fall into a valid bin index and don't cause overflow or separate clusters.
+    float width  = (maxX - minX) * 1.01f;
+    float height = (maxY - minY) * 1.01f;
+    
+    int dimX = static_cast<int>(width / binSize) + 1;
+    int dimY = static_cast<int>(height / binSize) + 1;
+    
+    // Helper to get grid index from vertex
+    auto getGridKey = [&](float* v) -> int64_t {
+        int64_t ix = static_cast<int64_t>((v[0] - minX) / binSize);
+        int64_t iy = static_cast<int64_t>((v[1] - minY) / binSize);
+        int64_t iz = static_cast<int64_t>((v[2] - minZ) / binSize);
+        
+        // Flatten 3D index to 1D key
+        // Key = x + y*dimX + z*dimX*dimY
+        return ix + iy * (int64_t)dimX + iz * (int64_t)dimX * (int64_t)dimY;
+    };
+
+    // 3. Accumulate Vertices in Grid Cells
+    struct CellData {
+        double sumX = 0;
+        double sumY = 0;
+        double sumZ = 0;
+        int    count = 0;
+        int    newIndex = -1;
+    };
+
+    std::unordered_map<int64_t, CellData> grid;
+    grid.reserve(surf.nv / 2); 
+
+    // To ensure deterministic output, we track the order in which grid cells are created
+    std::vector<int64_t> orderedKeys;
+    orderedKeys.reserve(surf.nv / 2);
+
+    // Store the key for each original vertex to avoid re-calculating during face reconstruction
+    std::vector<int64_t> vertexToKey(surf.nv);
+
+    for (int i = 0; i < surf.nv; ++i) {
+        int64_t key = getGridKey(surf.vertices[i]);
+        vertexToKey[i] = key;
+
+        if (grid.find(key) == grid.end()) {
+            orderedKeys.push_back(key);
+        }
+
+        CellData& cell = grid[key];
+        cell.sumX += surf.vertices[i][0];
+        cell.sumY += surf.vertices[i][1];
+        cell.sumZ += surf.vertices[i][2];
+        cell.count++;
+    }
+
+    // 4. Create New Vertices (Centroids)
+    Surface outSurf;
+    outSurf.nv = orderedKeys.size();
+    outSurf.vertices = new float*[outSurf.nv];
+
+    for (int i = 0; i < int(orderedKeys.size()); ++i) {
+        int64_t key = orderedKeys[i];
+        CellData& cell = grid[key];
+        
+        // Assign the new index to this cell
+        cell.newIndex = i;
+
+        // Calculate centroid
+        outSurf.vertices[i] = new float[3];
+        outSurf.vertices[i][0] = static_cast<float>(cell.sumX / cell.count);
+        outSurf.vertices[i][1] = static_cast<float>(cell.sumY / cell.count);
+        outSurf.vertices[i][2] = static_cast<float>(cell.sumZ / cell.count);
+    }
+
+    // 5. Reconstruct Faces
+    // We use a temporary structure to filter duplicate faces
+    struct Tri {
+        int v0, v1, v2;
+        bool operator<(const Tri& other) const {
+            if (v0 != other.v0) return v0 < other.v0;
+            if (v1 != other.v1) return v1 < other.v1;
+            return v2 < other.v2;
+        }
+        bool operator==(const Tri& other) const {
+            return v0 == other.v0 && v1 == other.v1 && v2 == other.v2;
+        }
+    };
+
+    std::vector<Tri> tempFaces;
+    tempFaces.reserve(surf.nf);
+
+    for (int i = 0; i < surf.nf; ++i) {
+        int oldIdx0 = surf.faces[i][0];
+        int oldIdx1 = surf.faces[i][1];
+        int oldIdx2 = surf.faces[i][2];
+
+        int newIdx0 = grid[vertexToKey[oldIdx0]].newIndex;
+        int newIdx1 = grid[vertexToKey[oldIdx1]].newIndex;
+        int newIdx2 = grid[vertexToKey[oldIdx2]].newIndex;
+
+        // Check for degeneracy: if any two vertices are the same, the triangle has collapsed
+        if (newIdx0 != newIdx1 && newIdx0 != newIdx2 && newIdx1 != newIdx2) {
+            
+            // We shift the indices cyclically so that the smallest index is at v0.
+            int v0 = newIdx0;
+            int v1 = newIdx1;
+            int v2 = newIdx2;
+
+            if (v1 < v0 && v1 < v2) {
+                // v1 is smallest: (v0, v1, v2) -> (v1, v2, v0)
+                v0 = newIdx1; v1 = newIdx2; v2 = newIdx0;
+            } else if (v2 < v0 && v2 < v1) {
+                // v2 is smallest: (v0, v1, v2) -> (v2, v0, v1)
+                v0 = newIdx2; v1 = newIdx0; v2 = newIdx1;
+            }
+
+            tempFaces.push_back({v0, v1, v2});
+        }
+    }
+
+    // Remove duplicate faces (common in vertex clustering)
+    std::sort(tempFaces.begin(), tempFaces.end());
+    auto last = std::unique(tempFaces.begin(), tempFaces.end());
+    tempFaces.erase(last, tempFaces.end());
+
+    // 6. Finalize Output
+    outSurf.nf = tempFaces.size();
+    outSurf.faces = new int*[outSurf.nf];
+    for (size_t i = 0; i < tempFaces.size(); ++i) {
+        outSurf.faces[i] = new int[3];
+        outSurf.faces[i][0] = tempFaces[i].v0;
+        outSurf.faces[i][1] = tempFaces[i].v1;
+        outSurf.faces[i][2] = tempFaces[i].v2;
+    }
+
+    return surfFixNormals(outSurf);
+}
+
+Surface NIBR::surfFixNormals(const Surface& surf)
+{
+    disp(MSG_DEBUG,"surfFixNormals");
+
+    if (surf.nv == 0) { return Surface(); }
+
+    Surface outSurf(surf, true);
+    
+    // This computes Vertex-to-Face adjacency
+    // neighboringFaces[v] contains a list of face indices that use vertex v
+    outSurf.getNeighboringFaces(); 
+
+    std::vector<bool> visited(outSurf.nf, false);
+    std::queue<int> q;
+
+    // Iterate over all faces to handle disconnected components
+    for (int startFace = 0; startFace < outSurf.nf; startFace++) {
+        if (visited[startFace]) continue;
+
+        // Start BFS for this connected component
+        q.push(startFace);
+        visited[startFace] = true;
+
+        while(!q.empty()) {
+            int curr = q.front();
+            q.pop();
+
+            // To find face neighbors, we must look at faces sharing vertices with the current face
+            for (int i = 0; i < 3; i++) {
+                int vIdx = outSurf.faces[curr][i];
+
+                // Iterate over all faces connected to this vertex
+                for (int neighbor : outSurf.neighboringFaces[vIdx]) {
+                    
+                    if (neighbor == curr) continue;
+                    if (visited[neighbor]) continue;
+
+                    // We need to check the shared edge between 'curr' and 'neighbor'
+                    int* f_curr = outSurf.faces[curr];
+                    int* f_next = outSurf.faces[neighbor];
+
+                    // Find the two shared vertices (the shared edge)
+                    int v1 = -1, v2 = -1;
+                    
+                    for(int k=0; k<3; k++) {
+                        for(int j=0; j<3; j++) {
+                            if (f_curr[k] == f_next[j]) {
+                                if (v1 == -1) v1 = f_curr[k];
+                                else if (v2 == -1) v2 = f_curr[k];
+                            }
+                        }
+                    }
+
+                    // If they share an edge (2 vertices found)
+                    if (v1 != -1 && v2 != -1) {
+                        
+                        // Check direction of edge v1->v2 in current face
+                        bool curr_dir_v1_v2 = false; 
+                        if ((f_curr[0]==v1 && f_curr[1]==v2) || (f_curr[1]==v1 && f_curr[2]==v2) || (f_curr[2]==v1 && f_curr[0]==v2)) {
+                            curr_dir_v1_v2 = true;
+                        }
+
+                        // Check direction of edge v1->v2 in neighbor face
+                        bool next_dir_v1_v2 = false;
+                        if ((f_next[0]==v1 && f_next[1]==v2) || (f_next[1]==v1 && f_next[2]==v2) || (f_next[2]==v1 && f_next[0]==v2)) {
+                            next_dir_v1_v2 = true;
+                        }
+
+                        // CONSISTENCY CHECK:
+                        // In a consistent mesh, shared edges must be traversed in OPPOSITE directions.
+                        if (curr_dir_v1_v2 == next_dir_v1_v2) {
+                            // Flip the neighbor to match 'curr'
+                            int tmp = outSurf.faces[neighbor][1];
+                            outSurf.faces[neighbor][1] = outSurf.faces[neighbor][2];
+                            outSurf.faces[neighbor][2] = tmp;
+                        }
+                        
+                        // Mark as visited and add to queue to propagate
+                        visited[neighbor] = true;
+                        q.push(neighbor);
+                    }
+                }
+            }
+        }
+    }
+    
+    return outSurf;
+}

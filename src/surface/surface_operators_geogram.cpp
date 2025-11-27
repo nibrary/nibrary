@@ -61,6 +61,7 @@
 #include <geogram/mesh/mesh_fill_holes.h>
 #include <geogram/mesh/mesh_fill_holes.cpp>
 #include <geogram/mesh/mesh_repair.h>
+#include <geogram/mesh/mesh_decimate.h>
 
 #include "surface_operators.h"
 // This file contains all the geogram function.

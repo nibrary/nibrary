@@ -29,6 +29,26 @@ bool NIBR::existsFolder(const std::string& name)
     return (std::filesystem::exists(p) && std::filesystem::is_directory(p));  
 }
 
+bool NIBR::deleteFolder(const std::string& name) 
+{
+    std::filesystem::path p(name);
+
+    // Checks if the path exists and is a directory
+    if (std::filesystem::exists(p) && std::filesystem::is_directory(p)) {
+        try {
+            std::filesystem::remove_all(p);
+            return true;
+        } catch (const std::filesystem::filesystem_error& e) {
+            disp(MSG_ERROR, ("Error deleting the directory: " + std::string(e.what())).c_str() );
+            return false;
+        }
+    } else {
+        disp(MSG_WARN, ("Directory does not exist: " + name).c_str() );
+    }
+
+    return true;
+}   
+
 bool NIBR::deleteFile(const std::string& fileName) 
 {
 

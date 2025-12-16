@@ -21,6 +21,7 @@ option(USE_SYSTEM_PROXSUITE     "Use system proxsuite if exists"        OFF)
 option(ENABLE_CUDA              "Enable CUDA functions"                 OFF)
 option(BUILD_DCM2NIIX           "Build dcm2niix"                        ON)
 option(BUILD_NATIVE             "Build with -march=native optimization" ON)
+option(ENABLE_AUTOENCODER       "Enable autoencoder features. Requires Torch" OFF)
 
 # Using C++17 standard
 set(CMAKE_CXX_STANDARD 17)
@@ -54,6 +55,16 @@ file(GLOB_RECURSE CUDA_SRCS CONFIGURE_DEPENDS RELATIVE ${CMAKE_SOURCE_DIR} "src/
 foreach(FILE ${CUDA_SRCS})
     list(REMOVE_ITEM SRCS ${FILE})
 endforeach()
+
+# Remove autoencoder sources if ae is not enabled
+if (NOT ENABLE_AUTOENCODER)
+    file(GLOB_RECURSE AE_SOURCES RELATIVE ${CMAKE_SOURCE_DIR}
+        "src/dMRI/tractography/autoencoder/*.c*"
+    )
+    list(REMOVE_ITEM SRCS ${AE_SOURCES})
+    message(STATUS "Autoencoder features are disabled.")
+endif()
+
 
 # Compiler definitions
 add_compile_definitions(EIGEN_MPL2_ONLY)
@@ -130,6 +141,14 @@ target_link_libraries(${libNibrary} PUBLIC ${ZLIB_LIBRARIES} ${GEOGRAM_LIBRARY})
 
 if (BUILD_DCM2NIIX)
     target_link_libraries(${libNibrary} PUBLIC ${DCM2NIIX_LIBRARY})
+endif()
+
+if (ENABLE_AUTOENCODER)
+    find_package(Torch REQUIRED)
+    target_include_directories(OBJS PUBLIC ${TORCH_INCLUDE_DIRS})
+    target_link_libraries(OBJS PUBLIC ${TORCH_LIBRARIES})
+    target_link_libraries(${libNibrary} PUBLIC ${TORCH_LIBRARIES})
+    target_include_directories(${libNibrary} PUBLIC ${TORCH_INCLUDE_DIRS})
 endif()
 
 IF(ENABLE_CUDA)

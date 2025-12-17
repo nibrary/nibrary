@@ -3,6 +3,8 @@
 #include <torch/script.h>
 #include "StreamlineAutoencoder.h"
 
+namespace NIBR {
+
 // inp:   path to input file containing latent representations of streamlines
 // out:   path to output tractogram file to save
 // force: if true, overwrites out if it already exists
@@ -37,3 +39,5 @@ struct PointCloud {
     template <class BBOX>
     bool kdtree_get_bbox(BBOX&) const { return false; }
 };
+
+}

@@ -21,7 +21,7 @@ namespace NIBR
             torch::Device device = torch::kCPU;     // CPU / GPU
             bool useCPU{false};
             bool ready{false};
-            size_t newGenSize = 0;                  // when using the newgen models this is set to the split position. Assume newgen model if >0.
+            size_t newGenSize = 0;
 
             StreamlineAutoencoder(const std::tuple<std::string,int,int,std::string>&        _moduleSpec, bool _useCPU);
             StreamlineAutoencoder(const std::tuple<std::string,int,int,std::string>&        _moduleSpec, bool _useCPU, size_t _newGenSize);
@@ -116,7 +116,7 @@ namespace NIBR
         // Flatten the streamlines for this batch
         std::vector<T> flattened_data;
         if (model.newGenSize > 0) {
-            disp(MSG_DETAIL,"Newgen model detected. Skipping flipping of input");
+            disp(MSG_DETAIL,"Newgen model detected.");
             flattened_data = flatten_streamlines<T>(streamlines);
         } else {
             flattened_data = flatten_and_flip_streamlines<T>(streamlines);
@@ -198,10 +198,6 @@ namespace NIBR
 
         int batchCnt = (N < batchSize) ? 1 : (N + batchSize - 1) / batchSize;
 
-        // A streamline is representated in a latDim-dimension latent space
-        // We also flip the streamline and save the flipped representation
-        // Therefore, for a single streamline we keep 2*latDim values
-        // newGenModels have flipped included in the latent therefore there is no need to encode twice
         int latDimMultiplier = 2;
         if(model.newGenSize > 0) {
             latDimMultiplier = 1;

@@ -1,4 +1,4 @@
-#include "utils.h"
+#include "autoEncoderUtils.h"
 #include "base/fileOperations.h"
 #include "base/verbose.h"
 #include "dMRI/tractography/tractogram.h"
@@ -9,7 +9,7 @@
 
 using namespace NIBR;
 
-bool encodeAndSave(std::string inp, std::string out, bool force, StreamlineAutoencoder& model, int batchSize)
+bool NIBR::encodeAndSave(std::string inp, std::string out, bool force, StreamlineAutoencoder& model, int batchSize)
 {
     if (existsFile(out) && !force) return true;
 

@@ -22,3 +22,4 @@ Below is the complete list of the external tools used in nibrary. Please also se
 | **zlib**                   | [zlib License](https://github.com/madler/zlib?tab=License-1-ov-file) | [zlib website](http://zlib.net/)           |
 | **dcm2niix**               | [dcm2niix License](https://github.com/rordenlab/dcm2niix?tab=License-1-ov-file#readme) | [dcm2niix website](https://www.nitrc.org/plugins/mwiki/index.php/dcm2nii:MainPage)           |
 | **unordered_dense**               | [MIT License](https://github.com/martinus/unordered_dense/blob/main/LICENSE) | [unordered_dense website](https://github.com/martinus/unordered_dense)           |
+| **nanoflann**               | [BSD License](https://github.com/jlblancoc/nanoflann?tab=License-1-ov-file#readme) | [nanoflann website](https://github.com/jlblancoc/nanoflann)           |

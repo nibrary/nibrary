@@ -11,17 +11,17 @@ message(STATUS ">> Nibrary::Building ${nibrary}")
 
 set(CMAKE_INSTALL_PREFIX "${CMAKE_BINARY_DIR}/install")
 
-option(BUILD_SHARED_LIBS        "Build shared libraries"                ON)
-option(USE_SYSTEM_EIGEN         "Use system eigen if exists"            OFF)
-option(USE_SYSTEM_ZLIB          "Use system zlib if exists"             OFF)
+option(BUILD_SHARED_LIBS        "Build shared libraries"                        ON)
+option(USE_SYSTEM_EIGEN         "Use system eigen if exists"                    OFF)
+option(USE_SYSTEM_ZLIB          "Use system zlib if exists"                     OFF)
 # option(USE_SYSTEM_GEOGRAM       "Use system geogram if exists"          OFF) - Remove support for this until the dependency of mesh_fill_holes.cpp is resolved
-option(USE_SYSTEM_LIBIGL        "Use system libigl if exists"           OFF)
-option(USE_SYSTEM_SIMDE         "Use system simde if exists"            OFF)
-option(USE_SYSTEM_PROXSUITE     "Use system proxsuite if exists"        OFF)
-option(ENABLE_CUDA              "Enable CUDA functions"                 OFF)
-option(BUILD_DCM2NIIX           "Build dcm2niix"                        ON)
-option(BUILD_NATIVE             "Build with -march=native optimization" ON)
-option(ENABLE_AUTOENCODER       "Enable autoencoder features. Requires Torch" OFF)
+option(USE_SYSTEM_LIBIGL        "Use system libigl if exists"                   OFF)
+option(USE_SYSTEM_SIMDE         "Use system simde if exists"                    OFF)
+option(USE_SYSTEM_PROXSUITE     "Use system proxsuite if exists"                OFF)
+option(ENABLE_CUDA              "Enable CUDA functions"                         OFF)
+option(BUILD_DCM2NIIX           "Build dcm2niix"                                ON)
+option(BUILD_NATIVE             "Build with -march=native optimization"         ON)
+option(ENABLE_AUTOENCODER       "Enable autoencoder features. Requires Torch"   ON)
 
 # Using C++17 standard
 set(CMAKE_CXX_STANDARD 17)
@@ -58,9 +58,7 @@ endforeach()
 
 # Remove autoencoder sources if ae is not enabled
 if (NOT ENABLE_AUTOENCODER)
-    file(GLOB_RECURSE AE_SOURCES RELATIVE ${CMAKE_SOURCE_DIR}
-        "src/dMRI/tractography/autoencoder/*.c*"
-    )
+    file(GLOB_RECURSE AE_SOURCES RELATIVE ${CMAKE_SOURCE_DIR} "src/dMRI/tractography/autoencoder/*.c*")
     list(REMOVE_ITEM SRCS ${AE_SOURCES})
     message(STATUS "Autoencoder features are disabled.")
 endif()

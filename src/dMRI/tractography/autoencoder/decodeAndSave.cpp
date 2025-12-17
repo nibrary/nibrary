@@ -1,4 +1,4 @@
-#include "utils.h"
+#include "autoEncoderUtils.h"
 #include <type_traits>
 #include "base/fileOperations.h"
 #include "base/verbose.h"
@@ -10,7 +10,7 @@
 
 using namespace NIBR;
 
-bool decodeAndSave(std::string inp, std::string out, bool force, StreamlineAutoencoder& model, int batchSize)
+bool NIBR::decodeAndSave(std::string inp, std::string out, bool force, StreamlineAutoencoder& model, int batchSize)
 {
     if (existsFile(out) && !force) return true;
 
@@ -19,8 +19,6 @@ bool decodeAndSave(std::string inp, std::string out, bool force, StreamlineAutoe
 
         using T = decltype(type_placeholder);
 
-        // Oldgen did encoding twice and saved encoded as 2 * latDim
-        // Newgen doesn't need 2x so we can assume the input bin doesn't have 2x
         int latDimMultiplier = 2;
         if(model.newGenSize > 0) {
             latDimMultiplier = 1;

@@ -179,7 +179,13 @@ bool NIBR::Image<T>::readHeader_nii() {
 
     nifti_image* nim = nifti_image_read(filePath.c_str(),0);
 
+    if (nim == NULL) {
+        disp(MSG_ERROR, "nifti_image_read failed for %s", filePath.c_str());
+        return false;
+    }
+
     if(!readHeader_nii_wrapper(nim)) {
+        disp(MSG_ERROR, "readHeader_nii_wrapper failed");
         nifti_image_free(nim);
         return false;
     }

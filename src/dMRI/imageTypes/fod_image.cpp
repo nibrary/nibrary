@@ -6,7 +6,9 @@
 using namespace NIBR;
 
 NIBR::FOD_Image::FOD_Image() {
-	iseven                      = true;
+    sh                          = NULL;
+    isAsym                      = false;
+    hasNoOddCoeffs              = true;
     discretizationFlag          = false;
     isspheresliced              = false;
     sphereFileName              = "";
@@ -23,7 +25,9 @@ NIBR::FOD_Image::FOD_Image() {
 }
 
 NIBR::FOD_Image::FOD_Image(std::string _filePath) {
-    iseven                      = true;
+    sh                          = NULL;
+    isAsym                      = false;
+    hasNoOddCoeffs              = true;
     discretizationFlag          = false;
     isspheresliced              = false;
     sphereFileName              = "";
@@ -42,7 +46,9 @@ NIBR::FOD_Image::FOD_Image(std::string _filePath) {
 }
 
 NIBR::FOD_Image::FOD_Image(std::string _filePath,std::string _sphereFileName) {
-    iseven                      = true;
+    sh                          = NULL;
+    isAsym                      = false;
+    hasNoOddCoeffs              = true;
     discretizationFlag          = false;
     isspheresliced              = true;
     sphereFileName              = _sphereFileName;
@@ -66,6 +72,10 @@ NIBR::FOD_Image::~FOD_Image() {
     if (discVolSphInds!=NULL) {
          delete[] discVolSphInds;
          discVolSphInds = NULL;
+    }
+    if (sh!=NULL) {
+         delete sh;
+         sh = NULL;
     }
 }
 
@@ -105,18 +115,27 @@ bool NIBR::FOD_Image::read() {
 
     }
     
-    // We need spherical harmonic basis functions in any case
-    setSHorder();
-    SH::precompute(shOrder, orderOfDirections, SHprecomputationResolution);
+    // Initialize spherical harmonic features
+    setSH();
+
+    disp(MSG_DETAIL,"Number of spherical harmonic coefficients: %d", sh->getCoeffCount());
+    disp(MSG_DETAIL,"Number of volumes in FOD image: %d", imgDims[3]);
     
     if ((discretizationFlag==false) && (isspheresliced==false)) {
-        fodAmp = &FOD_Image::ampWithDiscretizationOFF;
-        return true;
+        if (imgDims[3] == sh->getCoeffCount()) {
+            fodAmp = &FOD_Image::ampWithDiscretizationOFF;
+            disp(MSG_DETAIL,"Discretization is not used");
+        } else {
+            disp(MSG_FATAL,"Number of volumes in FOD image does not match number of spherical harmonic coefficients. Can't continue without discretization.");
+            return false;   
+        }
     }
     
     
     // We will find and only process those voxels which have non-zero values
+    disp(MSG_DETAIL,"Counting non-zero voxels");
     std::vector<std::vector<int64_t>> nnzVoxelSubs = getNonZero3DVoxelSubs(this);
+    disp(MSG_DETAIL,"Number of non-zero voxels: %d", nnzVoxelSubs.size());
     
     // We will make a new data array and load the data there
     int64_t nnt;
@@ -124,22 +143,25 @@ bool NIBR::FOD_Image::read() {
         fillDiscVolSph();
         nnt = discVolSphCoords.size();
     } else {
-        nnt = getNumberOfSHCoeffs(shOrder);
+        nnt = sh->getCoeffCount();
     }
     
     std::vector<std::vector<float>> Ylm;
 
     if (isspheresliced) {
-        SH_basis(Ylm,sphereCoords,shOrder);
+        SH_basis(Ylm,sphereCoords,shOrder,hasNoOddCoeffs);
     }
 
     float* ddata = new float[nnt*voxCnt];
-    int    shNum = getNumberOfSHCoeffs(shOrder);
+    int    shNum = sh->getCoeffCount();
 
     auto loadingTask = [&](const NIBR::MT::TASK& task)->void {
         
+        // Get voxel subscripts
         std::vector<int64_t> sub = nnzVoxelSubs[task.no];
-        float *FOD               = new float[shNum];
+
+        // Get voxel values
+        float *FOD = new float[shNum];
         
         if (isspheresliced==false) {
             for (int t=0; t<shNum; t++)
@@ -154,8 +176,8 @@ bool NIBR::FOD_Image::read() {
         
         if (discretizationFlag==true) {
             for (int64_t t=0; t<nnt; t++) {
-                float dir[3]          = {discVolSphCoords[t][0],discVolSphCoords[t][1],discVolSphCoords[t][2]};
-                ddata[t + sub[0]*nnt + sub[1]*nnt*imgDims[0] + sub[2]*nnt*imgDims[0]*imgDims[1]] = SH::toSF(FOD,dir);
+                float dir[3] = {discVolSphCoords[t][0],discVolSphCoords[t][1],discVolSphCoords[t][2]};
+                ddata[t + sub[0]*nnt + sub[1]*nnt*imgDims[0] + sub[2]*nnt*imgDims[0]*imgDims[1]] = sh->toSF(FOD,dir);
             }
         } else {
             for (int64_t t=0; t<nnt; t++) {
@@ -167,6 +189,7 @@ bool NIBR::FOD_Image::read() {
         
     };
     NIBR::MT::MTRUN(nnzVoxelSubs.size(),NIBR::MT::MAXNUMBEROFTHREADS(),"Loading FOD",loadingTask);
+    
     
     delete[] data;
     
@@ -185,7 +208,7 @@ bool NIBR::FOD_Image::read() {
     
     if (discretizationFlag) {
         discVolSphCoords.clear();
-        SH::clean();
+        delete sh; sh = NULL;
         fodAmp = &FOD_Image::ampWithDiscretizationON;
     } else {
         fodAmp = &FOD_Image::ampWithDiscretizationOFF;
@@ -199,9 +222,9 @@ float NIBR::FOD_Image::ampWithDiscretizationON(float *p, float* tan) {
 }
 
 float NIBR::FOD_Image::ampWithDiscretizationOFF(float *p, float* tan) {
-    float* tmp = (float*) malloc(SH::getNumberOfSHCoeffs()*sizeof(float));
+    float* tmp = (float*) malloc(sh->getCoeffCount()*sizeof(float));
     (*this)(p,tmp);
-    float val  = SH::toSF(tmp,tan);
+    float val  = sh->toSF(tmp,tan);
     free(tmp);
     return val;
 }

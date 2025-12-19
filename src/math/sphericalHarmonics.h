@@ -1,29 +1,50 @@
 #pragma once
 
-#include "base/nibr.h"
-#include "math/core.h"
 #include "math/reorient.h"
+#include <cstddef>
+#include <functional>
 
 namespace NIBR 
 {
+    
+class SH
+{
+public:
+    SH(int _order, bool _noOddCoeffs = false, OrderOfDirections _orderOfDirs = XYZ, size_t _numberOfSamples = 1024);
+    ~SH() { clean(); }
 
-    int getNumberOfSHCoeffs(int order);
-    int getSHOrderFromNumberOfCoeffs(int numberOfCoefficients);
+    SH(const SH&) = delete;
+    SH& operator=(const SH&) = delete;
 
-    // Input:
-    //  inpCoords: Nx3 list of coordinates on a unit sphere.
-    //  order: spherical harmonics order
-    // Output:
-    //  B: NxM basis coefficients
-    void  SH_basis(std::vector<std::vector<float>>& B, std::vector<Point3D>& inpCoords, int order);
+    int   getCoeffCount() {return coeffCount;}
+    float toSF(float *sh, float *dir);
 
-    // TODO: Below should be a separate class.
-    namespace SH 
-    {
-        int   getNumberOfSHCoeffs();
-        void  precompute(int _sphericalHarmonicOrder, OrderOfDirections _orderOfDirs, size_t _num);
-        void  clean();
-        float toSF(float *sh, float *dir);        
-    }
+private:
+
+    void  clean();
+    void  precompute();
+
+    int  order;
+    int  coeffCount;
+    bool noOddCoeffs;
+
+    size_t numberOfSamples;
+    size_t numberOfSamples_phi;
+    size_t numberOfSamples_theta;
+
+    double scalingFactor_phi;
+    double scalingFactor_theta;
+
+    float* precomputedPhiComponent   = NULL;
+    float* precomputedThetaComponent = NULL;
+
+    OrderOfDirections            orderOfDirs;
+    std::function<void(float *)> orderDirections;
+
+};
 
 }
+
+
+
+

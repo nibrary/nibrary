@@ -1,4 +1,4 @@
-#include "StreamlineAutoencoder.h"
+#include "streamlineAutoencoder.h"
 #include <torch/script.h>
 #include <torch/torch.h>
 #include <c10/util/Half.h>

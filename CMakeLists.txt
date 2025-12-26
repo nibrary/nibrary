@@ -38,6 +38,7 @@ include_directories(${CMAKE_SOURCE_DIR}/src)
 include_directories(${CMAKE_SOURCE_DIR}/external)
 include_directories(${CMAKE_SOURCE_DIR}/external/expat)
 include_directories(${CMAKE_SOURCE_DIR}/external/marchingCubes)
+include_directories(${CMAKE_SOURCE_DIR}/external/nanoflann)
 include_directories(${CMAKE_SOURCE_DIR}/external/triangleVoxelIntersection)
 include_directories(${CMAKE_SOURCE_DIR}/external/unordered_dense)
 
@@ -223,6 +224,7 @@ install(DIRECTORY ${CMAKE_SOURCE_DIR}/external/expat DESTINATION include/${nibra
 install(DIRECTORY ${CMAKE_SOURCE_DIR}/external/fast-marching-method DESTINATION include/${nibrary} FILES_MATCHING PATTERN "*.hpp")
 install(DIRECTORY ${CMAKE_SOURCE_DIR}/external/gifticlib DESTINATION include/${nibrary} FILES_MATCHING PATTERN "*.h")
 install(DIRECTORY ${CMAKE_SOURCE_DIR}/external/marchingCubes DESTINATION include/${nibrary} FILES_MATCHING PATTERN "*.h")
+install(DIRECTORY ${CMAKE_SOURCE_DIR}/external/nanoflann DESTINATION include/${nibrary} FILES_MATCHING PATTERN "*.hpp") 
 install(DIRECTORY ${CMAKE_SOURCE_DIR}/external/niftilib DESTINATION include/${nibrary} FILES_MATCHING PATTERN "*.h")
 install(DIRECTORY ${CMAKE_SOURCE_DIR}/external/unordered_dense DESTINATION include/${nibrary} FILES_MATCHING PATTERN "*.h")
 

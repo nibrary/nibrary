@@ -1,10 +1,5 @@
-#include "autoEncoderUtils.h"
+#include "streamlineAutoencoder.h"
 #include "base/fileOperations.h"
-#include "base/verbose.h"
-#include "dMRI/tractography/tractogram.h"
-#include "dMRI/tractography/utility/resampleStreamline.h"
-#include <torch/script.h>
-#include <torch/torch.h>
 #include <c10/util/Half.h>
 
 using namespace NIBR;

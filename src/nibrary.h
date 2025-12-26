@@ -57,6 +57,8 @@
 #include "dMRI/tractography/utility/streamline_operators.h"
 #include "dMRI/tractography/utility/tractogram_operators.h"
 
+#include "dMRI/tractography/autoencoder/streamlineAutoencoder.h"
+
 // EEG
 
 // fMRI

@@ -1,0 +1,7 @@
+CompileFlags:
+  Remove:
+    - -mno-direct-extern-access
+
+Diagnostics:
+  Suppress:
+    - drv_unknown_argument

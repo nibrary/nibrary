@@ -1,6 +1,5 @@
-#include "streamlineAutoencoder.h"
-#include "base/fileOperations.h"
-#include <c10/util/Half.h>
+#include "streamlineAutoencoder_enc_dec.h"
+#include "dMRI/tractography/io/tractogramReader.h"
 
 using namespace NIBR;
 
@@ -10,18 +9,13 @@ bool NIBR::encodeAndSave(std::string inp, std::string out, bool force, Streamlin
 
     // Prepare input
     NIBR::TractogramReader _tractogram(inp, false);
-    if(!_tractogram.isReady()){
+    if(!_tractogram.isReady()) {
         disp(MSG_ERROR, "Failed opening tractogram.");
         return false;
     }
 
     NIBR::Tractogram tracObj = _tractogram.getTractogram();
-
-    int latDimMultiplier = 2;
-    if(model.newGenSize > 0) {
-        latDimMultiplier = 1;
-    }
-
+    
     // Template that deduces the type T (float, double, at::Half) from its argument.
     auto process_with_type = [&](auto type_placeholder) -> bool {
         
@@ -35,27 +29,13 @@ bool NIBR::encodeAndSave(std::string inp, std::string out, bool force, Streamlin
             return false;
         }
 
-        int N = _tractogram.numberOfStreamlines;
-        int batchCnt = (N < batchSize) ? 1 : (N + batchSize - 1) / batchSize;
-        std::vector<std::vector<std::vector<T>>> results(batchCnt);
+        // Encode the streamlines
+        // The encode function handles batching and resampling internally
+        disp(MSG_INFO,"Encoding %d streamlines...", tracObj.size());
+        auto latent = model.encode<T>(tracObj, batchSize);
 
-        auto run = [&](NIBR::MT::TASK task) -> void {
-            int bas = std::min(batchSize, N - (int)task.no * batchSize);
-            NIBR::StreamlineBatch streamlines(bas);
-            for (int i = 0; i < bas; i++) {
-                int idx = i + (int)task.no * batchSize;
-                auto tmp = tracObj[idx];
-                streamlines[i] = resampleStreamline_withStepCount(tmp, model.inpDim);
-            }
-            results[task.no] = encode_batch<T>(streamlines, model);
-        };
-
-        NIBR::MT::MTRUN(batchCnt, "Encoding streamlines", run);
-
-        for (const auto& encoded_batch : results) {
-            for (const auto& encoded_streamline : encoded_batch) {
-                ofs.write(reinterpret_cast<const char*>(encoded_streamline.data()), latDimMultiplier * model.latDim * sizeof(T));
-            }
+        for (const auto& vec : latent) {
+            ofs.write(reinterpret_cast<const char*>(vec.data()), vec.size() * sizeof(T));
         }
         ofs.close();
 
@@ -68,14 +48,14 @@ bool NIBR::encodeAndSave(std::string inp, std::string out, bool force, Streamlin
     };
 
     // Dispatch to the generic lambda with the correct type
-    if (model.dtype == torch::kFloat) {
+    if (model.getDType() == torch::kFloat) {
         return process_with_type(float{});
-    } else if (model.dtype == torch::kDouble) {
+    } else if (model.getDType() == torch::kDouble) {
         return process_with_type(double{});
-    } else if (model.dtype == torch::kHalf) {
+    } else if (model.getDType() == torch::kHalf) {
         return process_with_type(at::Half{});
     } else {
-        disp(MSG_ERROR, "Unsupported data type for encoding: %s", c10::toString(model.dtype));
+        disp(MSG_ERROR, "Unsupported data type for encoding: %s", c10::toString(model.getDType()));
         return false;
     }
 }

@@ -1,210 +1,121 @@
 #pragma once
 
-#include <Eigen/Dense>
-#include "base/verbose.h"
-#include "dMRI/tractography/tractogram.h"
-#include "dMRI/tractography/io/tractogramWriter.h"
+#include "streamlineAutoencoder_aux.h"
 #include "dMRI/tractography/utility/resampleStreamline.h"
-#include "nanoflann/nanoflann.hpp"
-#include <torch/torch.h>
-#include <torch/script.h>
-#include <c10/util/Half.h>
 
 namespace NIBR
 {
+
     class StreamlineAutoencoder {
 
         public:
-            std::string moduleFile;                 // Path to Torch script module file
-            torch::jit::script::Module module;      // Torch script module
-            int inpDim;                             // input model dimension < 3 x inpDim>
-            int latDim;                             // latent space dimension
-            torch::Dtype  dtype  = torch::kFloat32; // data type
-            double distScaler    = 1.0;             // scaling factor to match real-space distance (this value can be obtained with the modelTest command)
-            torch::Device device = torch::kCPU;     // CPU / GPU
-            bool useCPU{false};
-            bool ready{false};
-            size_t newGenSize = 0;
 
-            StreamlineAutoencoder(const std::tuple<std::string,int,int,std::string>&        _moduleSpec, bool _useCPU);
-            StreamlineAutoencoder(const std::tuple<std::string,int,int,std::string>&        _moduleSpec, bool _useCPU, size_t _newGenSize);
-            StreamlineAutoencoder(const std::tuple<std::string,int,int,std::string,double>& _moduleSpec, bool _useCPU);
-            StreamlineAutoencoder(const std::tuple<std::string,int,int,std::string,double>& _moduleSpec, bool _useCPU, size_t _newGenSize);
+            StreamlineAutoencoder(const StreamlineAutoencoderDefinition& _modelDef, bool _useCPU = false);
 
-            bool isReady() {return ready;}
+            StreamlineAutoencoderDefinition model;
+            torch::jit::script::Module      module;
+            torch::Device                   device;
+            bool                            useCPU;
+            bool                            ready;
+
+            int          getInpDim()              {return model.inpDim;}
+            ModelType    getAeType()              {return model.aeType;}
+            int          getLatDim()              {return model.latDim;}
+            int          getFinDim()              {return model.finDim;}
+            torch::Dtype getDType()               {return model.dType;}
+            double       getDistScaler()          {return model.distScaler;}
+            int          getLatDimMultiplier()    {return (model.aeType == SAE_FINSR) ? 1 : 2;}
+            bool         isReady()                {return ready;}
+
+            template <typename T>
+            std::vector<std::vector<T>> encode(const NIBR::StreamlineBatch& streamlines,  int batchSize = 0);
+
+            template <typename T>
+            NIBR::StreamlineBatch       decode(const std::vector<std::vector<T>>& latent, int batchSize = 0, bool useSecondHalf = false);
 
         private:
-            void init(const std::string& _moduleFile, int _inpDim, int _latDim, const std::string& dataType, double _distScaler, bool _useCPU, size_t _newGenSize);
+
+            template <typename T> 
+            std::vector<std::vector<T>> encode_batch(const NIBR::StreamlineBatch& streamlines);
+
+            template <typename T>
+            NIBR::StreamlineBatch       decode_batch(const std::vector<std::vector<T>>& latent, bool useSecondHalf = false);
 
     };
 
-    // Convenience functions to get torch data type
-    template<typename T>
-    constexpr torch::Dtype get_dtype();
 
-    template<>
-    constexpr torch::Dtype get_dtype<float>()    { return torch::kFloat;  }
-
-    template<>
-    constexpr torch::Dtype get_dtype<double>()   { return torch::kDouble; }
-
-    template<>
-    constexpr torch::Dtype get_dtype<at::Half>() { return torch::kHalf; }
-
-
-    // Flattens a streamline and returns it together with its flipped version
-    // Output has both the original and flipped streamlines.
-    template <typename T>
-    std::vector<T> flatten_and_flip_streamlines(const NIBR::StreamlineBatch& streamlines) {
-        
-        if (streamlines.empty()) return {};
-
-        size_t number_of_streamlines = streamlines.size();
-        size_t points_per_streamline = streamlines[0].size(); // Assumes all are resampled to the same size
-
-        std::vector<T> flattened(2 * number_of_streamlines * 3 * points_per_streamline);
-        size_t index = 0;
-
-        for (size_t i = 0; i < number_of_streamlines; ++i) {
-
-            // Append original streamline
-            for (int j = 0; j < 3; ++j) {
-                for (size_t k = 0; k < points_per_streamline; ++k) {
-                    flattened[index++] = static_cast<T>(streamlines[i][k][j]);
-                }
-            }
-
-            // Append flipped streamline
-            for (int j = 0; j < 3; ++j) {
-                for (int k = points_per_streamline - 1; k != -1; --k) {
-                    flattened[index++] = static_cast<T>(streamlines[i][k][j]);
-                }
-            }
-        }
-        return flattened;
-    }
-
-    template <typename T>
-    std::vector<T> flatten_streamlines(const NIBR::StreamlineBatch& streamlines) {
-        
-        if (streamlines.empty()) return {};
-
-        size_t number_of_streamlines = streamlines.size();
-        size_t points_per_streamline = streamlines[0].size(); // Assumes all are resampled to the same size
-
-        std::vector<T> flattened(number_of_streamlines * 3 * points_per_streamline);
-        size_t index = 0;
-
-        for (size_t i = 0; i < number_of_streamlines; ++i) {
-
-            // Append original streamline
-            for (int j = 0; j < 3; ++j) {
-                for (size_t k = 0; k < points_per_streamline; ++k) {
-                    flattened[index++] = static_cast<T>(streamlines[i][k][j]);
-                }
-            }
-        }
-        return flattened;
-    }
-
-    // This helper function encodes a batch of streamlines.
-    template <typename T>
-    std::vector<std::vector<T>> encode_batch(                               // output latent representations <number of streamlines x latDim>
-        const NIBR::StreamlineBatch& streamlines,    // input tractogram <number of streamlines x (variable) number of points x 3>
-        StreamlineAutoencoder& model                                        // model
-    )
+    // Encoders
+    template <typename T> 
+    std::vector<std::vector<T>> StreamlineAutoencoder::encode_batch(const NIBR::StreamlineBatch& streamlines)
     {
 
+        int N = streamlines.size();
+
+        if (N == 0) return std::vector<std::vector<T>>();
+
+        disp(MSG_DETAIL, "Resampling streamlines to %d points...", model.inpDim);
+        NIBR::StreamlineBatch resampled_streamlines(N);
+        for (int i = 0; i < N; ++i) {
+            resampled_streamlines[i] = resampleStreamline_withStepCount(streamlines[i], model.inpDim);
+        }
+
         disp(MSG_DETAIL,"Flattening...");
-        // Flatten the streamlines for this batch
         std::vector<T> flattened_data;
-        if (model.newGenSize > 0) {
-            disp(MSG_DETAIL,"Newgen model detected.");
-            flattened_data = flatten_streamlines<T>(streamlines);
+        int            latDimMultiplier;
+        
+        if (model.aeType == SAE_FINSR) {
+            disp(MSG_DETAIL,"FINSR model detected.");
+            flattened_data   = flatten_streamlines<T>(resampled_streamlines, false);
+            latDimMultiplier = 1;
         } else {
-            flattened_data = flatten_and_flip_streamlines<T>(streamlines);
+            flattened_data   = flatten_streamlines<T>(resampled_streamlines, true);
+            latDimMultiplier = 2;
         }
             
         disp(MSG_DETAIL,"Flattening completed");
 
-        int N = streamlines.size();
+        disp(MSG_DETAIL,"Creating tensor...");
+        auto input = torch::from_blob(flattened_data.data(), {latDimMultiplier * N, 3, model.inpDim}, model.dType).to(device).clone();    
+        disp(MSG_DETAIL,"Tensor created");
 
+        // Run the model's encode method
+        std::vector<torch::jit::IValue> inputs;
+        inputs.push_back(input);
+        disp(MSG_DETAIL,"Running encoder...");
+        auto encoded = module.get_method("encode")(inputs).toTensor().to(torch::kCPU).contiguous();
 
-        // TODO: don't use if/else. make sure this works before
-        if(model.newGenSize > 0) {
-            disp(MSG_DETAIL,"Creating tensor...");
-            auto input   = torch::from_blob(flattened_data.data(), {(long)N, 3, model.inpDim}, model.dtype).to(model.device).clone();    
-            disp(MSG_DETAIL,"Tensor created");
+        // Copy encoded tensor data to latent vector
+        std::vector<std::vector<T>> latent(N, std::vector<T>(latDimMultiplier * model.latDim));
 
-            // Run the model's encode method
-            std::vector<torch::jit::IValue> inputs;
-            inputs.push_back(input);
-            disp(MSG_DETAIL,"Running encoder...");
-            auto encoded = model.module.get_method("encode")(inputs).toTensor().to(torch::kCPU).contiguous();
-
-            std::vector<std::vector<T>> latent(N, std::vector<T>(model.latDim));
-
-            const T* src_ptr = encoded.template data_ptr<T>();
-            for (int i = 0; i < N; i++) {
-                T* dst_ptr = latent[i].data();
-                std::memcpy(dst_ptr, src_ptr + (i * model.latDim), model.latDim * sizeof(T));
-            }
-
-            disp(MSG_DETAIL,"Encoder completed.");
-            return latent;
-
-        } else {
-            // Create tensor with the correct type and move to the model's device
-            disp(MSG_DETAIL,"Creating tensor...");
-            auto input   = torch::from_blob(flattened_data.data(), {2 * (long)N, 3, model.inpDim}, model.dtype).to(model.device).clone();    
-            disp(MSG_DETAIL,"Tensor created");
-
-            // Run the model's encode method
-            std::vector<torch::jit::IValue> inputs;
-            inputs.push_back(input);
-            disp(MSG_DETAIL,"Running encoder...");
-            auto encoded = model.module.get_method("encode")(inputs).toTensor().to(torch::kCPU).contiguous();
-
-            std::vector<std::vector<T>> latent(N, std::vector<T>(2 * model.latDim));
-
-            // Copy encoded tensor data to latent vector
-            const T* src_ptr = encoded.template data_ptr<T>();
-            for (int i = 0; i < N; i++) {
-                T* dst_ptr = latent[i].data();
-                std::memcpy(dst_ptr, src_ptr + (i * 2 * model.latDim), 2 * model.latDim * sizeof(T));
-            }
-
-            disp(MSG_DETAIL,"Encoder completed.");
-            return latent;
+        const T* src_ptr = encoded.template data_ptr<T>();
+        for (int i = 0; i < N; i++) {
+            T* dst_ptr = latent[i].data();
+            std::memcpy(dst_ptr, src_ptr + (i * latDimMultiplier * model.latDim), latDimMultiplier * model.latDim * sizeof(T));
         }
-        
 
-        
+        disp(MSG_DETAIL,"Encoder completed.");
+        return latent;
+
     }
 
-    // Encoder
     template <typename T>
-    std::vector<std::vector<T>> encodeStreamlines(                              // output latent representations <number of streamlines x latDim>
-        const NIBR::StreamlineBatch& streamlines,        // input tractogram <number of streamlines x (variable) number of points x 3>
-        StreamlineAutoencoder& model,                                           // model
-        int batchSize                                                           // batch-size
-        )
+    std::vector<std::vector<T>> StreamlineAutoencoder::encode(const NIBR::StreamlineBatch& streamlines, int batchSize)
     {
         // Safety Check: Ensure the C++ type matches the model's tensor type.
-        if (model.dtype != get_dtype<T>()) {
-            disp(MSG_ERROR, "Type mismatch: encodeStreamlines called with %s but model requires %s.", typeid(T).name(), c10::toString(model.dtype));
-            return {};
+        if (model.dType != get_dtype<T>()) {
+            disp(MSG_ERROR, "Type mismatch: encodeStreamlines called with %s but model requires %s.", typeid(T).name(), c10::toString(model.dType));
+            return std::vector<std::vector<T>>();
         }
 
         int N = streamlines.size();
-        if (N == 0) return {};
+        if (N == 0) return std::vector<std::vector<T>>();
+
+        if (batchSize == 0) return encode_batch<T>(streamlines);
 
         int batchCnt = (N < batchSize) ? 1 : (N + batchSize - 1) / batchSize;
 
-        int latDimMultiplier = 2;
-        if(model.newGenSize > 0) {
-            latDimMultiplier = 1;
-        }
+        int latDimMultiplier = getLatDimMultiplier();
+
         std::vector<std::vector<T>> latent(N, std::vector<T>(latDimMultiplier * model.latDim));
 
         // Iterate through the whole tractogram in parallel
@@ -220,7 +131,7 @@ namespace NIBR
             disp(MSG_DETAIL,"Encoding batch between indices %d - %d", idx, idx + bas);
 
             // 2. Call the helper function to perform the encoding
-            auto latent_batch = encode_batch<T>(batch_streamlines, model);
+            auto latent_batch = encode_batch<T>(batch_streamlines);
 
             disp(MSG_DETAIL,"Encoding completed");
 
@@ -236,29 +147,27 @@ namespace NIBR
 
     }
 
-    // This helper function decodes a batch of latent vectors.
+    // Decoders
     template <typename T>
-    NIBR::StreamlineBatch decode_batch(              // output tractogram <number of streamlines x (variable) number of points x 3>
-        const std::vector<std::vector<T>>& latent,                          // input latent representations <number of streamlines x latDim>
-        StreamlineAutoencoder& model                                        // model
-    )
+    NIBR::StreamlineBatch StreamlineAutoencoder::decode_batch(const std::vector<std::vector<T>>& latent, bool useSecondHalf)
     {
         int N = latent.size();
-        if (N == 0) return {};
+        if (N == 0) return NIBR::StreamlineBatch();
 
-        // 1. Prepare input tensor from C++ vectors (ignoring the flipped representation).
-        // Should also work if don't contain flipped representations
+        int latDimShift = useSecondHalf ? model.latDim : 0;
+
+        // 1. Prepare input tensor from C++ vectors
         std::vector<T> blob(N * model.latDim);
         for (int i = 0; i < N; ++i) {
-            std::copy(latent[i].begin(), latent[i].begin() + model.latDim, blob.begin() + i * model.latDim);
+            std::copy(latent[i].begin() + latDimShift, latent[i].begin() + model.latDim + latDimShift, blob.begin() + i * model.latDim);
         }
 
-        auto input   = torch::from_blob(blob.data(), {(long)N, model.latDim}, model.dtype).to(model.device).clone();
+        auto input   = torch::from_blob(blob.data(), {(long)N, model.latDim}, model.dType).to(device).clone();
 
         // 2. Decode the batch with the model
         std::vector<torch::jit::IValue> inputs;
         inputs.push_back(input);
-        at::Tensor decoded = model.module.get_method("decode")(inputs).toTensor().to(torch::kCPU).contiguous();
+        at::Tensor decoded = module.get_method("decode")(inputs).toTensor().to(torch::kCPU).contiguous();
 
         // 3. Unpack the output tensor into the final C++ streamline format
         NIBR::StreamlineBatch streamlines(N);
@@ -278,22 +187,19 @@ namespace NIBR
         return streamlines;
     }
 
-    // Decoder
     template <typename T>
-    NIBR::Tractogram decodeStreamlines(             // output tractogram <number of streamlines x (fixed) inpDim x 3>
-        const std::vector<std::vector<T>>& latent,                              // input latent representations <number of streamlines x latDim>
-        StreamlineAutoencoder& model,                                           // model
-        int batchSize                                                           // batch-size
-        )
+    NIBR::StreamlineBatch StreamlineAutoencoder::decode(const std::vector<std::vector<T>>& latent, int batchSize,bool useSecondHalf)
     {
         // Safety Check: Ensure the C++ type matches the model's tensor type.
-        if (model.dtype != get_dtype<T>()) {
-            disp(MSG_ERROR, "Type mismatch: decodeStreamlines called with %s but model requires %s.", typeid(T).name(), c10::toString(model.dtype));
-            return {};
+        if (model.dType != get_dtype<T>()) {
+            disp(MSG_ERROR, "Type mismatch: decodeStreamlines called with %s but model requires %s.", typeid(T).name(), c10::toString(model.dType));
+            return NIBR::StreamlineBatch();
         }
 
         int N = latent.size();
-        if (N == 0) return {};
+        if (N == 0) return NIBR::StreamlineBatch();
+
+        if (batchSize == 0) return decode_batch<T>(latent,useSecondHalf);
 
         int batchCnt = (N < batchSize) ? 1 : (N + batchSize - 1) / batchSize;
         
@@ -309,7 +215,7 @@ namespace NIBR
             std::vector<std::vector<T>> latent_batch(latent.begin() + idx, latent.begin() + idx + bas);
 
             // Call the helper to decode this single batch.
-            NIBR::StreamlineBatch decoded_batch = decode_batch<T>(latent_batch, model);
+            NIBR::StreamlineBatch decoded_batch = decode_batch<T>(latent_batch,useSecondHalf);
 
             // Copy the batch results into the correct slice of the pre-allocated output vector.
             for (int i = 0; i < bas; ++i) {
@@ -324,37 +230,7 @@ namespace NIBR
         return streamlines;
     }
 
-    // inp:   path to input file containing latent representations of streamlines
-    // out:   path to output tractogram file to save
-    // force: if true, overwrites out if it already exists
-    bool decodeAndSave(std::string inp, std::string out, bool force, StreamlineAutoencoder& model, int batchSize);
 
-    // inp:   path to input tractogram file
-    // out:   path to output file containing latent representations of streamlines
-    // force: if true, overwrites out if it already exists
-    bool encodeAndSave(std::string inp, std::string out, bool force, StreamlineAutoencoder& model, int batchSize);
 
-    // Used for KD-tree for clustering and scoring 
-    struct PointCloud {
-        std::vector<Eigen::VectorXf> points;
-
-        // Must return the number of data points
-        inline size_t kdtree_get_point_count() const { return points.size(); }
-
-        // Returns the distance between the vector "p1[0:size-1]" and the data point with index "idx_p2" stored in the class
-        inline float kdtree_distance(const float* p1, const size_t idx_p2, size_t size) const {
-            Eigen::VectorXf vec(size);
-            for (size_t i = 0; i < size; ++i)
-                vec(i) = p1[i];
-            return (vec - points[idx_p2]).squaredNorm();
-        }
-
-        // Returns the dim'th component of the idx'th point in the class
-        inline float kdtree_get_pt(const size_t idx, int dim) const { return points[idx](dim); }
-
-        // Optional bounding-box computation
-        template <class BBOX>
-        bool kdtree_get_bbox(BBOX&) const { return false; }
-    };
 
 }

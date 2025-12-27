@@ -1,7 +1,5 @@
-#include "streamlineAutoencoder.h"
-#include <type_traits>
-#include "base/fileOperations.h"
-#include <c10/util/Half.h>
+#include "streamlineAutoencoder_enc_dec.h"
+#include "dMRI/tractography/io/tractogramWriter.h"
 
 using namespace NIBR;
 
@@ -14,10 +12,7 @@ bool NIBR::decodeAndSave(std::string inp, std::string out, bool force, Streamlin
 
         using T = decltype(type_placeholder);
 
-        int latDimMultiplier = 2;
-        if(model.newGenSize > 0) {
-            latDimMultiplier = 1;
-        }
+        int latDimMultiplier = model.getLatDimMultiplier();
 
         // 1. Open and read the input latent file
         std::ifstream ifs(inp, std::ios::binary);
@@ -32,17 +27,17 @@ bool NIBR::decodeAndSave(std::string inp, std::string out, bool force, Streamlin
             return true; // Success, nothing to do.
         }
 
-        int N = ifs.tellg() / (sizeof(T) * latDimMultiplier * model.latDim);
+        int N = ifs.tellg() / (sizeof(T) * latDimMultiplier * model.getLatDim());
         ifs.seekg(0, std::ios::beg);
 
-        std::vector<std::vector<T>> latent(N, std::vector<T>(latDimMultiplier * model.latDim));
+        std::vector<std::vector<T>> latent(N, std::vector<T>(latDimMultiplier * model.getLatDim()));
         for (int i = 0; i < N; ++i) {
-            ifs.read(reinterpret_cast<char*>(latent[i].data()), latDimMultiplier * model.latDim * sizeof(T));
+            ifs.read(reinterpret_cast<char*>(latent[i].data()), latDimMultiplier * model.getLatDim() * sizeof(T));
         }
         ifs.close();
 
-        // 2. Call decodeStreamlines
-        NIBR::Tractogram streamlines = decodeStreamlines<T>(latent, model, batchSize);
+        // 2. Call decode
+        NIBR::Tractogram streamlines = model.decode<T>(latent, batchSize);
 
         if (streamlines.empty()) {
             disp(MSG_ERROR, "Decoding failed or produced no streamlines.");
@@ -54,14 +49,14 @@ bool NIBR::decodeAndSave(std::string inp, std::string out, bool force, Streamlin
     };
 
     // Dispatch to the generic lambda with the correct type
-    if (model.dtype == torch::kFloat) {
+    if (model.getDType() == torch::kFloat) {
         return read_decode_and_save(float{});
-    } else if (model.dtype == torch::kDouble) {
+    } else if (model.getDType() == torch::kDouble) {
         return read_decode_and_save(double{});
-    } else if (model.dtype == torch::kHalf) {
+    } else if (model.getDType() == torch::kHalf) {
         return read_decode_and_save(at::Half{});
     } else {
-        disp(MSG_ERROR, "Unsupported data type for decoding: %s", c10::toString(model.dtype));
+        disp(MSG_ERROR, "Unsupported data type for decoding: %s", c10::toString(model.getDType()));
         return false;
     }
 }

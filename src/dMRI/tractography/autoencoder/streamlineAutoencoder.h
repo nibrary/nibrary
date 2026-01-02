@@ -28,51 +28,59 @@ namespace NIBR
             bool         isReady()                {return ready;}
 
             template <typename T>
-            std::vector<std::vector<T>> encode(const NIBR::StreamlineBatch& streamlines,  int batchSize = 0);
+            std::vector<std::vector<T>> encode(const NIBR::StreamlineBatch& streamlines,  int batchSize = 0, bool performResampling = false);
 
             template <typename T>
-            NIBR::StreamlineBatch       decode(const std::vector<std::vector<T>>& latent, int batchSize = 0, bool useSecondHalf = false);
+            NIBR::StreamlineBatch       decode(const std::vector<std::vector<T>>& latent, int batchSize = 0, bool useSecondHalf = false, float resampleStepSize = 0);
 
         private:
 
             template <typename T> 
-            std::vector<std::vector<T>> encode_batch(const NIBR::StreamlineBatch& streamlines);
+            std::vector<std::vector<T>> encode_batch(const NIBR::StreamlineBatch& streamlines, bool performResampling = false);
 
             template <typename T>
-            NIBR::StreamlineBatch       decode_batch(const std::vector<std::vector<T>>& latent, bool useSecondHalf = false);
+            NIBR::StreamlineBatch       decode_batch(const std::vector<std::vector<T>>& latent, bool useSecondHalf = false, float resampleStepSize = 0);
 
     };
 
 
     // Encoders
     template <typename T> 
-    std::vector<std::vector<T>> StreamlineAutoencoder::encode_batch(const NIBR::StreamlineBatch& streamlines)
+    std::vector<std::vector<T>> StreamlineAutoencoder::encode_batch(const NIBR::StreamlineBatch& streamlines, bool performResampling)
     {
 
         int N = streamlines.size();
 
         if (N == 0) return std::vector<std::vector<T>>();
 
-        disp(MSG_DETAIL, "Resampling streamlines to %d points...", model.inpDim);
-        NIBR::StreamlineBatch resampled_streamlines(N);
-        for (int i = 0; i < N; ++i) {
-            resampled_streamlines[i] = resampleStreamline_withStepCount(streamlines[i], model.inpDim);
-        }
-
-        disp(MSG_DETAIL,"Flattening...");
         std::vector<T> flattened_data;
         int            latDimMultiplier;
         
-        if (model.aeType == SAE_FINSR) {
-            disp(MSG_DETAIL,"FINSR model detected.");
-            flattened_data   = flatten_streamlines<T>(resampled_streamlines, false);
-            latDimMultiplier = 1;
+        auto runFlatten = [&](const NIBR::StreamlineBatch& toFlatten) -> void {
+            disp(MSG_DETAIL,"Flattening...");
+            if (model.aeType == SAE_FINSR) {
+                disp(MSG_DETAIL,"FINSR model detected.");
+                flattened_data   = flatten_streamlines<T>(toFlatten, false);
+                latDimMultiplier = 1;
+            } else {
+                flattened_data   = flatten_streamlines<T>(toFlatten, true);
+                latDimMultiplier = 2;
+            } 
+            disp(MSG_DETAIL,"Flattening completed");
+        };
+
+        // Resample if needed
+        if (performResampling) {
+            disp(MSG_DETAIL, "Resampling streamlines to %d points...", model.inpDim);
+            NIBR::StreamlineBatch resampled_streamlines(N);
+            for (int i = 0; i < N; ++i) {
+                resampled_streamlines[i] = resampleStreamline_withStepCount(streamlines[i], model.inpDim);
+            }
+            disp(MSG_DETAIL,"Resampling completed");
+            runFlatten(resampled_streamlines);
         } else {
-            flattened_data   = flatten_streamlines<T>(resampled_streamlines, true);
-            latDimMultiplier = 2;
+            runFlatten(streamlines);
         }
-            
-        disp(MSG_DETAIL,"Flattening completed");
 
         disp(MSG_DETAIL,"Creating tensor...");
         auto input = torch::from_blob(flattened_data.data(), {latDimMultiplier * N, 3, model.inpDim}, model.dType).to(device).clone();    
@@ -99,7 +107,7 @@ namespace NIBR
     }
 
     template <typename T>
-    std::vector<std::vector<T>> StreamlineAutoencoder::encode(const NIBR::StreamlineBatch& streamlines, int batchSize)
+    std::vector<std::vector<T>> StreamlineAutoencoder::encode(const NIBR::StreamlineBatch& streamlines, int batchSize, bool performResampling)
     {
         // Safety Check: Ensure the C++ type matches the model's tensor type.
         if (model.dType != get_dtype<T>()) {
@@ -131,7 +139,7 @@ namespace NIBR
             disp(MSG_DETAIL,"Encoding batch between indices %d - %d", idx, idx + bas);
 
             // 2. Call the helper function to perform the encoding
-            auto latent_batch = encode_batch<T>(batch_streamlines);
+            auto latent_batch = encode_batch<T>(batch_streamlines, performResampling);
 
             disp(MSG_DETAIL,"Encoding completed");
 
@@ -149,7 +157,7 @@ namespace NIBR
 
     // Decoders
     template <typename T>
-    NIBR::StreamlineBatch StreamlineAutoencoder::decode_batch(const std::vector<std::vector<T>>& latent, bool useSecondHalf)
+    NIBR::StreamlineBatch StreamlineAutoencoder::decode_batch(const std::vector<std::vector<T>>& latent, bool useSecondHalf, float resampleStepSize)
     {
         int N = latent.size();
         if (N == 0) return NIBR::StreamlineBatch();
@@ -180,6 +188,9 @@ namespace NIBR
                     trk[j][1] = static_cast<float>(decoded_data[j + model.inpDim]);
                     trk[j][2] = static_cast<float>(decoded_data[j + 2 * model.inpDim]);
                 }
+                if (resampleStepSize > 0) {
+                    trk = resampleStreamline_withStepSize(trk, resampleStepSize);
+                }
                 streamlines[i] = std::move(trk);
             }
         });
@@ -188,7 +199,7 @@ namespace NIBR
     }
 
     template <typename T>
-    NIBR::StreamlineBatch StreamlineAutoencoder::decode(const std::vector<std::vector<T>>& latent, int batchSize,bool useSecondHalf)
+    NIBR::StreamlineBatch StreamlineAutoencoder::decode(const std::vector<std::vector<T>>& latent, int batchSize, bool useSecondHalf, float resampleStepSize)
     {
         // Safety Check: Ensure the C++ type matches the model's tensor type.
         if (model.dType != get_dtype<T>()) {
@@ -215,7 +226,7 @@ namespace NIBR
             std::vector<std::vector<T>> latent_batch(latent.begin() + idx, latent.begin() + idx + bas);
 
             // Call the helper to decode this single batch.
-            NIBR::StreamlineBatch decoded_batch = decode_batch<T>(latent_batch,useSecondHalf);
+            NIBR::StreamlineBatch decoded_batch = decode_batch<T>(latent_batch,useSecondHalf,resampleStepSize);
 
             // Copy the batch results into the correct slice of the pre-allocated output vector.
             for (int i = 0; i < bas; ++i) {

@@ -3,7 +3,7 @@
 
 using namespace NIBR;
 
-bool NIBR::encodeAndSave(std::string inp, std::string out, bool force, StreamlineAutoencoder& model, int batchSize)
+bool NIBR::encodeAndSave(std::string inp, std::string out, bool force, StreamlineAutoencoder& model, int batchSize, bool performResampling)
 {
     if (existsFile(out) && !force) return true;
 
@@ -32,7 +32,7 @@ bool NIBR::encodeAndSave(std::string inp, std::string out, bool force, Streamlin
         // Encode the streamlines
         // The encode function handles batching and resampling internally
         disp(MSG_INFO,"Encoding %d streamlines...", tracObj.size());
-        auto latent = model.encode<T>(tracObj, batchSize);
+        auto latent = model.encode<T>(tracObj, batchSize, performResampling);
 
         for (const auto& vec : latent) {
             ofs.write(reinterpret_cast<const char*>(vec.data()), vec.size() * sizeof(T));

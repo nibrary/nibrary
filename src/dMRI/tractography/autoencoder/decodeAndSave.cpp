@@ -3,7 +3,7 @@
 
 using namespace NIBR;
 
-bool NIBR::decodeAndSave(std::string inp, std::string out, bool force, StreamlineAutoencoder& model, int batchSize)
+bool NIBR::decodeAndSave(std::string inp, std::string out, bool force, StreamlineAutoencoder& model, int batchSize, float resampleStepSize)
 {
     if (existsFile(out) && !force) return true;
 
@@ -37,7 +37,7 @@ bool NIBR::decodeAndSave(std::string inp, std::string out, bool force, Streamlin
         ifs.close();
 
         // 2. Call decode
-        NIBR::Tractogram streamlines = model.decode<T>(latent, batchSize);
+        NIBR::Tractogram streamlines = model.decode<T>(latent, batchSize, resampleStepSize);
 
         if (streamlines.empty()) {
             disp(MSG_ERROR, "Decoding failed or produced no streamlines.");

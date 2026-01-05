@@ -39,7 +39,7 @@ namespace NIBR
             COVERAGE    // Pass 3: Fixed centers, create new only if needed
         };
 
-        Clusterer(float distanceThreshold, int batchSize = 65536);
+        Clusterer(float distanceThreshold, int batchSize = 65536, bool shuffle = true);
         ~Clusterer();
         
         Clusterer(const Clusterer&) = delete;
@@ -62,8 +62,9 @@ namespace NIBR
         std::pair<int, float> assign(const Eigen::VectorXf& point);
 
         // Getters
-        std::vector<Eigen::VectorXf> getClusterCenters() const;
-        std::vector<double>          getClusterCounts() const;
+        std::vector<Eigen::VectorXf> getClusterCenters()     const;
+        std::vector<double>          getClusterCounts()      const;
+        int                          getClusterCenterCount() const;
 
         // Configuration
         void setCenters(const std::vector<Eigen::VectorXf>& centers); 

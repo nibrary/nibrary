@@ -39,7 +39,7 @@ namespace NIBR
             COVERAGE    // Pass 3: Fixed centers, create new only if needed
         };
 
-        Clusterer(float distanceThreshold, int batchSize = 65536, bool shuffle = true);
+        Clusterer(int dim, float distanceThreshold, bool shuffle = true);
         ~Clusterer();
         
         Clusterer(const Clusterer&) = delete;
@@ -70,8 +70,6 @@ namespace NIBR
         void setCenters(const std::vector<Eigen::VectorXf>& centers); 
 
     private:
-        void processBatch(const std::vector<Eigen::VectorXf>& points, size_t start, size_t end);
-
         struct Impl;
         Impl* pImpl;
     };

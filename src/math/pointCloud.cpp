@@ -20,6 +20,8 @@ struct NIBR::Clusterer::Impl {
     std::vector<Eigen::VectorXf> centers;
     std::vector<Eigen::VectorXd> sums;
     std::vector<double>          counts;
+    std::vector<size_t>          medoidIndices;
+    std::vector<float>           medoidSqDists;
     int                          dim;
     int                          maxLeafSize;
     float                        distanceThreshold;
@@ -63,6 +65,8 @@ struct NIBR::Clusterer::Impl {
     std::vector<Eigen::VectorXf> newCenters;
     std::vector<Eigen::VectorXd> newSums;
     std::vector<double>          newCounts;
+    std::vector<size_t>          newMedoidIndices;
+    std::vector<float>           newMedoidSqDists;
     std::mutex                   newCenterMutex[MAXMINIBATCHSIZE];
 
 };
@@ -76,6 +80,9 @@ NIBR::Clusterer::~Clusterer() {
 }
 
 void NIBR::Clusterer::setMode(Mode mode) {
+    if (mode == Mode::REFINEMENT) {
+        std::fill(pImpl->medoidSqDists.begin(), pImpl->medoidSqDists.end(), std::numeric_limits<float>::max());
+    }
     pImpl->mode = mode;
 }
 
@@ -85,9 +92,13 @@ void NIBR::Clusterer::setCenters(const std::vector<Eigen::VectorXf>& centers) {
         pImpl->dim = centers[0].size();
         pImpl->sums.assign(centers.size(), Eigen::VectorXd::Zero(pImpl->dim));
         pImpl->counts.assign(centers.size(), 0.0);
+        pImpl->medoidIndices.assign(centers.size(), 0);
+        pImpl->medoidSqDists.assign(centers.size(), std::numeric_limits<float>::max());
     } else {
         pImpl->sums.clear();
         pImpl->counts.clear();
+        pImpl->medoidIndices.clear();
+        pImpl->medoidSqDists.clear();
     }
     pImpl->cloud.points = &pImpl->centers;
     pImpl->kdtree->buildIndex();
@@ -99,6 +110,10 @@ std::vector<Eigen::VectorXf> NIBR::Clusterer::getClusterCenters() const {
 
 std::vector<double> NIBR::Clusterer::getClusterCounts() const {
     return pImpl->counts;
+}
+
+std::vector<size_t> NIBR::Clusterer::getClusterMedoids() const {
+    return pImpl->medoidIndices;
 }
 
 int NIBR::Clusterer::getClusterCenterCount() const {
@@ -191,6 +206,16 @@ void NIBR::Clusterer::process(const std::vector<Eigen::VectorXf>& points) {
                 // Assign to existing cluster: Update stats
                 pImpl->sums[idx]   += points[i].cast<double>();
                 pImpl->counts[idx] += 1.0;
+
+                // Update medoid only during REFINEMENT or COVERAGE
+                if (pImpl->mode == Mode::REFINEMENT || pImpl->mode == Mode::COVERAGE) {
+                    float dist = (points[i] - pImpl->centers[idx]).squaredNorm();
+                    if (dist < pImpl->medoidSqDists[idx]) {
+                        pImpl->medoidSqDists[idx] = dist;
+                        pImpl->medoidIndices[idx] = pImpl->totalProcessed - N + i;
+                    }
+                }
+
             } else {
                 // Save for batch processing
                 if (pImpl->mode != Mode::REFINEMENT) {
@@ -234,6 +259,8 @@ void NIBR::Clusterer::process(const std::vector<Eigen::VectorXf>& points) {
     pImpl->newCenters.clear();
     pImpl->newSums.clear();
     pImpl->newCounts.clear();
+    pImpl->newMedoidIndices.clear();
+    pImpl->newMedoidSqDists.clear();
 
     int miniBatchSize;
     if      (unaCnt <= 100000)  miniBatchSize = 1000;
@@ -270,6 +297,13 @@ void NIBR::Clusterer::process(const std::vector<Eigen::VectorXf>& points) {
 
                 pImpl->newSums[closestIdx]    += p.cast<double>();
                 pImpl->newCounts[closestIdx]  += 1.0;
+
+                if (pImpl->mode == Mode::COVERAGE) {
+                    if (sqDist < pImpl->newMedoidSqDists[closestIdx]) {
+                        pImpl->newMedoidSqDists[closestIdx] = sqDist;
+                        pImpl->newMedoidIndices[closestIdx] = pImpl->totalProcessed - N + realIdx;
+                    }
+                }
             } else {
                 localMisses[task.no] = 1;
             }
@@ -281,6 +315,20 @@ void NIBR::Clusterer::process(const std::vector<Eigen::VectorXf>& points) {
         for (size_t k = 0; k < pImpl->newCenters.size(); ++k) {
              if (pImpl->newCounts[k] > 0) {
                  pImpl->newCenters[k] = (pImpl->newSums[k] / pImpl->newCounts[k]).cast<float>();
+
+                 // Since the center moved, we must re-evaluate the distance of the CURRENT medoid
+                 // But only if we are tracking medoids (REFINEMENT or COVERAGE)
+                 // Actually, REFINEMENT doesn't run here. So only COVERAGE.
+                 // But wait, DISCOVERY creates new clusters. We initialize medoid.
+                 // If we don't update medoid in DISCOVERY, we don't need to update distance?
+                 // Correct. If we are in DISCOVERY, we stick with the initial medoid.
+                 
+                 if (pImpl->mode == Mode::COVERAGE) {
+                     size_t currentMedoidGlobalIdx = pImpl->newMedoidIndices[k];
+                     size_t currentMedoidLocalIdx  = currentMedoidGlobalIdx - (pImpl->totalProcessed - N);
+                     float currentMedoidDist       = (points[currentMedoidLocalIdx] - pImpl->newCenters[k]).squaredNorm();
+                     pImpl->newMedoidSqDists[k]    = currentMedoidDist;
+                 }
              }
         }
 
@@ -316,11 +364,30 @@ void NIBR::Clusterer::process(const std::vector<Eigen::VectorXf>& points) {
                     pImpl->newCenters[bestCenter] += (float)alpha * (p - pImpl->newCenters[bestCenter]);
                     pImpl->newSums[bestCenter]    += p.cast<double>();
                     pImpl->newCounts[bestCenter]   = n;
+
+                    // Update medoid
+                    if (pImpl->mode == Mode::COVERAGE) {
+                        size_t currentMedoidGlobalIdx = pImpl->newMedoidIndices[bestCenter];
+                        size_t currentMedoidLocalIdx  = currentMedoidGlobalIdx - (pImpl->totalProcessed - N);
+                        float currentMedoidDist       = (points[currentMedoidLocalIdx] - pImpl->newCenters[bestCenter]).squaredNorm();
+                        
+                        pImpl->newMedoidSqDists[bestCenter] = currentMedoidDist;
+
+                        // Now check if the new point is closer
+                        float newPointDist = (p - pImpl->newCenters[bestCenter]).squaredNorm();
+
+                        if (newPointDist <= pImpl->newMedoidSqDists[bestCenter]) {
+                            pImpl->newMedoidSqDists[bestCenter] = newPointDist;
+                            pImpl->newMedoidIndices[bestCenter] = pImpl->totalProcessed - N + realIdx;
+                        }
+                    }
                 } else {
                     // Create BRAND NEW center
                     pImpl->newCenters.push_back(p);
                     pImpl->newSums.push_back(p.cast<double>());
                     pImpl->newCounts.push_back(1.0);
+                    pImpl->newMedoidIndices.push_back(pImpl->totalProcessed - N + realIdx);
+                    pImpl->newMedoidSqDists.push_back(0.0f);
                 }
             }
         }
@@ -344,6 +411,8 @@ void NIBR::Clusterer::process(const std::vector<Eigen::VectorXf>& points) {
         pImpl->centers.insert(pImpl->centers.end(), pImpl->newCenters.begin(), pImpl->newCenters.end());
         pImpl->sums.insert(pImpl->sums.end(), pImpl->newSums.begin(), pImpl->newSums.end());
         pImpl->counts.insert(pImpl->counts.end(), pImpl->newCounts.begin(), pImpl->newCounts.end());
+        pImpl->medoidIndices.insert(pImpl->medoidIndices.end(), pImpl->newMedoidIndices.begin(), pImpl->newMedoidIndices.end());
+        pImpl->medoidSqDists.insert(pImpl->medoidSqDists.end(), pImpl->newMedoidSqDists.begin(), pImpl->newMedoidSqDists.end());
 
         pImpl->cloud.points = &pImpl->centers;
         pImpl->kdtree->buildIndex();

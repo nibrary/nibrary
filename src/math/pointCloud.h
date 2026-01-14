@@ -64,6 +64,7 @@ namespace NIBR
         // Getters
         std::vector<Eigen::VectorXf> getClusterCenters()     const;
         std::vector<double>          getClusterCounts()      const;
+        std::vector<size_t>          getClusterMedoids()     const;
         int                          getClusterCenterCount() const;
 
         // Configuration

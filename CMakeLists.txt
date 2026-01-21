@@ -148,6 +148,7 @@ if (ENABLE_AUTOENCODER)
     target_link_libraries(OBJS PUBLIC ${TORCH_LIBRARIES})
     target_link_libraries(${libNibrary} PUBLIC ${TORCH_LIBRARIES})
     target_include_directories(${libNibrary} PUBLIC ${TORCH_INCLUDE_DIRS})
+    target_compile_definitions(${libNibrary} PRIVATE ENABLE_AUTOENCODER)
 endif()
 
 IF(ENABLE_CUDA)

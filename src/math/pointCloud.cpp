@@ -207,8 +207,8 @@ void NIBR::Clusterer::process(const std::vector<Eigen::VectorXf>& points) {
                 pImpl->sums[idx]   += points[i].cast<double>();
                 pImpl->counts[idx] += 1.0;
 
-                // Update medoid only during REFINEMENT or COVERAGE
-                if (pImpl->mode == Mode::REFINEMENT || pImpl->mode == Mode::COVERAGE) {
+                // Update medoid only during REFINEMENT
+                if (pImpl->mode == Mode::REFINEMENT) {
                     float dist = (points[i] - pImpl->centers[idx]).squaredNorm();
                     if (dist < pImpl->medoidSqDists[idx]) {
                         pImpl->medoidSqDists[idx] = dist;
@@ -315,13 +315,6 @@ void NIBR::Clusterer::process(const std::vector<Eigen::VectorXf>& points) {
         for (size_t k = 0; k < pImpl->newCenters.size(); ++k) {
              if (pImpl->newCounts[k] > 0) {
                  pImpl->newCenters[k] = (pImpl->newSums[k] / pImpl->newCounts[k]).cast<float>();
-
-                 // Since the center moved, we must re-evaluate the distance of the CURRENT medoid
-                 // But only if we are tracking medoids (REFINEMENT or COVERAGE)
-                 // Actually, REFINEMENT doesn't run here. So only COVERAGE.
-                 // But wait, DISCOVERY creates new clusters. We initialize medoid.
-                 // If we don't update medoid in DISCOVERY, we don't need to update distance?
-                 // Correct. If we are in DISCOVERY, we stick with the initial medoid.
                  
                  if (pImpl->mode == Mode::COVERAGE) {
                      size_t currentMedoidGlobalIdx = pImpl->newMedoidIndices[k];

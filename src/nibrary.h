@@ -58,8 +58,10 @@
 #include "dMRI/tractography/utility/streamline_operators.h"
 #include "dMRI/tractography/utility/tractogram_operators.h"
 
+#ifdef ENABLE_AUTOENCODER
 #include "dMRI/tractography/autoencoder/streamlineAutoencoder.h"
 #include "dMRI/tractography/autoencoder/streamlineAutoencoder_enc_dec.h"
+#endif
 
 // EEG
 

@@ -5,6 +5,7 @@
 #include "tractogramWriter.h"
 #include "tractogramWriter_tck.h"
 #include "tractogramWriter_trk.h"
+#include "tractogramWriter_trx.h"
 #include "tractogramWriter_vtk_binary.h"
 #include "tractogramWriter_vtk_ascii.h"
 
@@ -29,6 +30,10 @@ TractogramWriter::TractogramWriter(std::string _filename) : filename_(std::move(
         pImpl_      = std::make_unique<VTKBinaryWriter>(filename_);
         fileFormat_ = VTK_BINARY_3;
         disp(MSG_DEBUG, "Selected VTKBinaryWriter for %s", filename_.c_str());
+    } else if (ext == "trx") {
+        pImpl_      = std::make_unique<TRXWriter>(filename_);
+        fileFormat_ = TRX;
+        disp(MSG_DEBUG, "Selected TRXWriter for %s", filename_.c_str());
     } else {
         pImpl_      = nullptr;
         fileFormat_ = UNKNOWN_TRACTOGRAM_FORMAT;

@@ -21,4 +21,5 @@ Below is the complete list of the external tools used in nibrary. Please also se
 | **triangleVoxelIntersection** | [MIT License](./triangleVoxelIntersection/LICENSE) | [triangleVoxelIntersection source file](http://fileadmin.cs.lth.se/cs/Personal/Tomas_Akenine-Moller/code/tribox2.txt)                                                      |
 | **zlib**                   | [zlib License](https://github.com/madler/zlib?tab=License-1-ov-file) | [zlib website](http://zlib.net/)           |
 | **dcm2niix**               | [dcm2niix License](https://github.com/rordenlab/dcm2niix?tab=License-1-ov-file#readme) | [dcm2niix website](https://www.nitrc.org/plugins/mwiki/index.php/dcm2nii:MainPage)           |
-| **unordered_dense**               | [MIT License](https://github.com/martinus/unordered_dense/blob/main/LICENSE) | [unordered_dense website](https://github.com/martinus/unordered_dense)           |
+| **unordered_dense**        | [MIT License](https://github.com/martinus/unordered_dense/blob/main/LICENSE) | [unordered_dense website](https://github.com/martinus/unordered_dense)           |
+| **trx-cpp**                | [BSD 2-Clause License](https://github.com/tee-ar-ex/trx-cpp/blob/main/LICENSE) | [trx-cpp website](https://github.com/tee-ar-ex)           |

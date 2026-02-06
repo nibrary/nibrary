@@ -87,6 +87,7 @@ include_directories(${LIBIGL_INCLUDE_DIR})
 include_directories(${SIMDE_INCLUDE_DIR})
 include_directories(${PROXSUITE_INCLUDE_DIR})
 include_directories(${CUDA_INCLUDE_DIR})
+include_directories(${TRX_INCLUDE_DIR})
 
 if (BUILD_DCM2NIIX)
     message(STATUS ">> Nibrary::Building dcm2niix")
@@ -130,6 +131,10 @@ target_link_libraries(${libNibrary} PUBLIC ${ZLIB_LIBRARIES} ${GEOGRAM_LIBRARY})
 
 if (BUILD_DCM2NIIX)
     target_link_libraries(${libNibrary} PUBLIC ${DCM2NIIX_LIBRARY})
+endif()
+
+if(DEFINED TRX_LIBRARY)
+    target_link_libraries(${libNibrary} PUBLIC ${TRX_LIBRARY})
 endif()
 
 IF(ENABLE_CUDA)

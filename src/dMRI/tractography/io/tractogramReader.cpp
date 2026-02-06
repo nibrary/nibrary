@@ -450,27 +450,27 @@ bool NIBR::TractogramReader::initReader(std::string _fileName, bool _preload, bo
             return false;
         }
 
-        const auto* trx = (trx_float != nullptr)  ? trx_float :
-                          (trx_double != nullptr) ? trx_double :
-                          (trx_half != nullptr)   ? trx_half : nullptr;
-        if (trx && trx->streamlines && trx->streamlines->_offsets.size() > 0) {
-            numberOfStreamlines = static_cast<std::size_t>(trx->streamlines->_offsets.size() - 1);
-        } else {
-            numberOfStreamlines = 0;
-        }
+        auto set_streamlines_count = [&](auto* t) {
+            if (t && t->streamlines && t->streamlines->_offsets.size() > 0) {
+                numberOfStreamlines = static_cast<std::size_t>(t->streamlines->_offsets.size() - 1);
+            } else {
+                numberOfStreamlines = 0;
+            }
+        };
+
+        if (trx_float)      set_streamlines_count(trx_float);
+        else if (trx_double) set_streamlines_count(trx_double);
+        else if (trx_half)   set_streamlines_count(trx_half);
+        else                 numberOfStreamlines = 0;
 
         currentStreamlinePos = 0;
         firstStreamlinePos   = 0;
 
         if (load_trx_fields) {
             trxFields.clear();
-            if (trx_float != nullptr) {
-                loadTrxFields(trx_float, *this, trxFields);
-            } else if (trx_double != nullptr) {
-                loadTrxFields(trx_double, *this, trxFields);
-            } else if (trx_half != nullptr) {
-                loadTrxFields(trx_half, *this, trxFields);
-            }
+            if (trx_float)      loadTrxFields(trx_float, *this, trxFields);
+            else if (trx_double) loadTrxFields(trx_double, *this, trxFields);
+            else if (trx_half)   loadTrxFields(trx_half, *this, trxFields);
         }
 
     } else {
@@ -1029,16 +1029,18 @@ const std::vector<uint64_t>& NIBR::TractogramReader::getNumberOfPoints()
     numberOfPoints.resize(numberOfStreamlines + 1, 0);
     
     if (fileFormat == TRX) {
-        if (trx_float || trx_double || trx_half) {
-            const auto* trx = (trx_float != nullptr)  ? trx_float :
-                              (trx_double != nullptr) ? trx_double :
-                              (trx_half != nullptr)   ? trx_half : nullptr;
-            if (trx && trx->streamlines && trx->streamlines->_offsets.size() > 0) {
+        auto fill_points = [&](auto* t) {
+            if (t && t->streamlines && t->streamlines->_offsets.size() > 0) {
                 for (std::size_t i = 0; i < numberOfStreamlines + 1; ++i) {
-                    numberOfPoints[i] = static_cast<uint64_t>(trx->streamlines->_offsets(static_cast<Eigen::Index>(i), 0));
+                    numberOfPoints[i] = static_cast<uint64_t>(t->streamlines->_offsets(static_cast<Eigen::Index>(i), 0));
                 }
             }
-        } else {
+        };
+
+        if (trx_float)      fill_points(trx_float);
+        else if (trx_double) fill_points(trx_double);
+        else if (trx_half)   fill_points(trx_half);
+        else {
             disp(MSG_ERROR, "TRX reader is not initialized for %s.", fileName.c_str());
         }
         return numberOfPoints;
@@ -1147,17 +1149,19 @@ const std::vector<uint64_t>& NIBR::TractogramReader::getNumberOfPoints()
 
         case TRX:
         {
-            if (trx_float || trx_double || trx_half) {
-                const auto* trx = (trx_float != nullptr)  ? trx_float :
-                                  (trx_double != nullptr) ? trx_double :
-                                  (trx_half != nullptr)   ? trx_half : nullptr;
-                if (trx && trx->streamlines && trx->streamlines->_offsets.size() > 0) {
+            auto fill_points_trx_2 = [&](auto* t) {
+                if (t && t->streamlines && t->streamlines->_offsets.size() > 0) {
                     numberOfPoints.resize(numberOfStreamlines + 1, 0);
                     for (std::size_t i = 0; i < numberOfStreamlines + 1; ++i) {
-                        numberOfPoints[i] = static_cast<uint64_t>(trx->streamlines->_offsets(static_cast<Eigen::Index>(i), 0));
+                        numberOfPoints[i] = static_cast<uint64_t>(t->streamlines->_offsets(static_cast<Eigen::Index>(i), 0));
                     }
                 }
-            } else {
+            };
+
+            if (trx_float)       fill_points_trx_2(trx_float);
+            else if (trx_double) fill_points_trx_2(trx_double);
+            else if (trx_half)   { 
+                fill_points_trx_2(trx_half);
                 disp(MSG_ERROR, "TRX reader is not initialized for %s.", fileName.c_str());
             }
             break;

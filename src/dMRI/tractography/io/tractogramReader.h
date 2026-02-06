@@ -9,9 +9,11 @@
 #include "math/core.h"
 #include "image/image.h"
 #include "dMRI/tractography/tractogram.h"
+#include <trx/trx.h>
 
 namespace NIBR
 {
+    struct TractogramField;
 
     #pragma pack(push, 1)
     struct trkFileStruct {
@@ -54,14 +56,15 @@ namespace NIBR
         VTK_ASCII,
         VTK_BINARY,
         TCK,
-        TRK
+        TRK,
+        TRX
     } TRACTOGRAMFILEFORMAT;
 
     class TractogramReader {
         
         public:
             
-            TractogramReader(std::string _fileName, bool _preload = false);
+            TractogramReader(std::string _fileName, bool _preload = false, bool _loadTrxFields = false);
             ~TractogramReader();
 
             TractogramReader(const TractogramReader& obj) = delete;             // Disable the copy constructor
@@ -78,6 +81,8 @@ namespace NIBR
             Tractogram                                  getTractogram();                            // Complete tractogram reader
             std::size_t                                 getNumberOfStreamlines() const { return numberOfStreamlines; }
             const std::vector<uint64_t>&                getNumberOfPoints();                        // Size of streamline n is out[n] - out[n-1]. The last element, out[numberOfStreamlines+1] is the total number of points
+            const std::vector<TractogramField>&         getTrxFields() const { return trxFields; }
+            bool                                        hasTrxFields() const { return !trxFields.empty(); }
 
             std::string             fileName;
             std::string             fileDescription;
@@ -108,7 +113,7 @@ namespace NIBR
         private:
 
             FILE* file;
-            bool  initReader(std::string _fileName, bool _preload);
+            bool  initReader(std::string _fileName, bool _preload, bool _loadTrxFields);
 
             // Core I/O logic, reads a batch from the file. Not thread-safe by itself.
             StreamlineBatch readBatchFromFile(std::size_t batchSize);
@@ -127,6 +132,7 @@ namespace NIBR
             // State variables
             bool  isInitialized = false;
             char* readerBuffer  = nullptr;
+            bool  load_trx_fields = false;
             
             // File position tracking
             std::atomic<std::size_t>    streamlines_read_from_file{0};
@@ -152,6 +158,13 @@ namespace NIBR
             // TRK specific
             short           n_scalars_trk;          // TRK file format extension
             short           n_properties_trk;       // TRK file format extension
+
+            // TRX specific
+            trxmmap::TrxScalarType     trx_scalar_type = trxmmap::TrxScalarType::Float32;
+            trxmmap::TrxFile<Eigen::half>*  trx_half   = nullptr;
+            trxmmap::TrxFile<float>*        trx_float  = nullptr;
+            trxmmap::TrxFile<double>*       trx_double = nullptr;
+            std::vector<TractogramField>    trxFields;
 
     };
 

@@ -11,10 +11,129 @@
 #define TCK_CHUNK_SIZE          16 * 1024 * 1024
 
 using namespace NIBR;
-			
-NIBR::TractogramReader::TractogramReader(std::string _fileName, bool _preload) 
+
+namespace {
+template <typename DT>
+void read_trx_batch(trxmmap::TrxFile<DT>* trx,
+                    std::size_t start_index,
+                    std::size_t batch_size,
+                    StreamlineBatch& batch_out)
 {
-    initReader(_fileName, _preload);
+    if (!trx || !trx->streamlines) return;
+
+    const auto& offsets = trx->streamlines->_offsets;
+    const auto& data    = trx->streamlines->_data;
+
+    const std::size_t num_streamlines = (offsets.size() > 0) ? static_cast<std::size_t>(offsets.size() - 1) : 0;
+    const std::size_t end_index = std::min(start_index + batch_size, num_streamlines);
+
+    for (std::size_t s = start_index; s < end_index; ++s) {
+        const auto start = static_cast<Eigen::Index>(offsets(static_cast<Eigen::Index>(s), 0));
+        const auto end   = static_cast<Eigen::Index>(offsets(static_cast<Eigen::Index>(s + 1), 0));
+        Streamline streamline;
+        streamline.reserve(static_cast<std::size_t>(end - start));
+        for (Eigen::Index i = start; i < end; ++i) {
+            Point3D p;
+            p[0] = static_cast<float>(data(i, 0));
+            p[1] = static_cast<float>(data(i, 1));
+            p[2] = static_cast<float>(data(i, 2));
+            streamline.emplace_back(p);
+        }
+        batch_out.emplace_back(std::move(streamline));
+    }
+}
+
+template <typename DT>
+void loadTrxFields(trxmmap::TrxFile<DT>* trx,
+                   TractogramReader& reader,
+                   std::vector<TractogramField>& field_out)
+{
+    if (!trx) return;
+
+    const std::size_t num_streamlines = reader.numberOfStreamlines;
+
+    // Data per streamline (DPS)
+    for (const auto& it : trx->data_per_streamline) {
+        const std::string& name = it.first;
+        const auto* matrix = it.second;
+        if (!matrix) continue;
+
+        const int dim = static_cast<int>(matrix->_matrix.cols());
+        if (dim <= 0) continue;
+
+        TractogramField field;
+        field.owner     = STREAMLINE_OWNER;
+        field.name      = name;
+        field.datatype  = FLOAT32_DT;
+        field.dimension = dim;
+
+        float** data = new float*[num_streamlines];
+        for (std::size_t s = 0; s < num_streamlines; ++s) {
+            data[s] = new float[dim];
+            for (int d = 0; d < dim; ++d) {
+                data[s][d] = static_cast<float>(matrix->_matrix(static_cast<Eigen::Index>(s), d));
+            }
+        }
+
+        field.data = reinterpret_cast<void*>(data);
+        field_out.push_back(field);
+    }
+
+    // Data per vertex (DPV)
+    for (const auto& it : trx->data_per_vertex) {
+        const std::string& name = it.first;
+        const auto* seq = it.second;
+        if (!seq) continue;
+
+        const int dim = static_cast<int>(seq->_data.cols());
+        if (dim <= 0) continue;
+
+        std::vector<uint64_t> offsets;
+        if (seq->_offsets.size() == static_cast<Eigen::Index>(num_streamlines + 1)) {
+            offsets.resize(num_streamlines + 1);
+            for (std::size_t i = 0; i < num_streamlines + 1; ++i) {
+                offsets[i] = static_cast<uint64_t>(seq->_offsets(static_cast<Eigen::Index>(i), 0));
+            }
+        } else {
+            offsets = reader.getNumberOfPoints();
+            if (offsets.size() != num_streamlines + 1) {
+                disp(MSG_WARN, "TRXReader: DPV offsets size mismatch for %s. Skipping field.", name.c_str());
+                continue;
+            }
+        }
+
+        TractogramField field;
+        field.owner     = POINT_OWNER;
+        field.name      = name;
+        field.datatype  = FLOAT32_DT;
+        field.dimension = dim;
+
+        float*** data = new float**[num_streamlines];
+
+        for (std::size_t s = 0; s < num_streamlines; ++s) {
+            const uint64_t start = offsets[s];
+            const uint64_t end   = offsets[s + 1];
+            const uint64_t len   = (end > start) ? (end - start) : 0;
+            data[s] = new float*[len];
+
+            for (uint64_t l = 0; l < len; ++l) {
+                data[s][l] = new float[dim];
+                const Eigen::Index idx = static_cast<Eigen::Index>(start + l);
+                for (int d = 0; d < dim; ++d) {
+                    data[s][l][d] = static_cast<float>(seq->_data(idx, d));
+                }
+            }
+        }
+
+        field.data = reinterpret_cast<void*>(data);
+        field_out.push_back(field);
+    }
+}
+} // namespace
+			
+NIBR::TractogramReader::TractogramReader(std::string _fileName, bool _preload, bool _loadTrxFields) 
+{
+    initReader(_fileName, _preload, _loadTrxFields);
 }
 
 NIBR::TractogramReader::~TractogramReader() 
@@ -26,22 +145,42 @@ NIBR::TractogramReader::~TractogramReader()
     }
     if (file != nullptr) fclose(file);
     if (readerBuffer != nullptr) delete[] readerBuffer;
+    for (auto& field : trxFields) {
+        clearField(field, *this);
+    }
+    trxFields.clear();
+    if (trx_half != nullptr)   { trx_half->close();   delete trx_half;   trx_half = nullptr; }
+    if (trx_float != nullptr)  { trx_float->close();  delete trx_float;  trx_float = nullptr; }
+    if (trx_double != nullptr) { trx_double->close(); delete trx_double; trx_double = nullptr; }
 }
 
-bool NIBR::TractogramReader::initReader(std::string _fileName, bool _preload) 
+bool NIBR::TractogramReader::initReader(std::string _fileName, bool _preload, bool _loadTrxFields) 
 {
 
     CNumericLocaleGuard lockScopeForNumericReading;
 
     if (isInitialized) return true;
 
+    load_trx_fields = _loadTrxFields;
+
     // On POSIX systems system, try to optimize file reading
     std::string extension = getFileExtension(_fileName);
+    bool is_trx_dir = false;
+    if (extension != "trx") {
+        try {
+            is_trx_dir = trxmmap::is_trx_directory(_fileName);
+        } catch (const std::exception&) {
+            is_trx_dir = false;
+        }
+    }
+    const bool is_trx = (extension == "trx") || is_trx_dir;
 
-    if ((extension == "tck") || (extension == "trk")){
+    if ((extension == "tck") || (extension == "trk")) {
         prepSequentialRead(_fileName);
     } else if (extension == "vtk") {
         prepRandomRead(_fileName);
+    } else if (is_trx) {
+        // TRX reading uses mmap through trx-cpp, no file handle needed.
     } else {
         disp(MSG_ERROR,"Unsupported file format: %s", extension.c_str());
         return false;
@@ -49,18 +188,20 @@ bool NIBR::TractogramReader::initReader(std::string _fileName, bool _preload)
 
 
 	fileName 	= _fileName;
-	file 		= fopen(fileName.c_str(), "rb");
+    if (!is_trx) {
+        file = fopen(fileName.c_str(), "rb");
 
-	if (file == nullptr) {
-        disp(MSG_ERROR, "Failed to open file: %s", fileName.c_str());
-        return false;
-    }
+        if (file == nullptr) {
+            disp(MSG_ERROR, "Failed to open file: %s", fileName.c_str());
+            return false;
+        }
 
-    // Set up the file I/O buffer
-    readerBuffer = new char[READER_BUFFER_SIZE];
-    if (setvbuf(file, readerBuffer, _IOFBF, READER_BUFFER_SIZE) != 0) {
-        delete[] readerBuffer;
-        readerBuffer = nullptr;
+        // Set up the file I/O buffer
+        readerBuffer = new char[READER_BUFFER_SIZE];
+        if (setvbuf(file, readerBuffer, _IOFBF, READER_BUFFER_SIZE) != 0) {
+            delete[] readerBuffer;
+            readerBuffer = nullptr;
+        }
     }
 
     
@@ -285,8 +426,55 @@ bool NIBR::TractogramReader::initReader(std::string _fileName, bool _preload)
 		}
 
 
-	} else {
-        disp(MSG_ERROR,"Unknown file extension. Only .vtk, .tck and .trk extensions are supported.");
+	} else if (is_trx) {
+
+        fileFormat      = TRX;
+        fileDescription = "trx file";
+
+        try {
+            trx_scalar_type = trxmmap::detect_positions_scalar_type(fileName, trxmmap::TrxScalarType::Float32);
+            switch (trx_scalar_type) {
+                case trxmmap::TrxScalarType::Float16:
+                    trx_half = trxmmap::load<Eigen::half>(fileName);
+                    break;
+                case trxmmap::TrxScalarType::Float64:
+                    trx_double = trxmmap::load<double>(fileName);
+                    break;
+                case trxmmap::TrxScalarType::Float32:
+                default:
+                    trx_float = trxmmap::load<float>(fileName);
+                    break;
+            }
+        } catch (const std::exception& e) {
+            disp(MSG_ERROR, "Failed to load TRX file %s. %s", fileName.c_str(), e.what());
+            return false;
+        }
+
+        const auto* trx = (trx_float != nullptr)  ? trx_float :
+                          (trx_double != nullptr) ? trx_double :
+                          (trx_half != nullptr)   ? trx_half : nullptr;
+        if (trx && trx->streamlines && trx->streamlines->_offsets.size() > 0) {
+            numberOfStreamlines = static_cast<std::size_t>(trx->streamlines->_offsets.size() - 1);
+        } else {
+            numberOfStreamlines = 0;
+        }
+
+        currentStreamlinePos = 0;
+        firstStreamlinePos   = 0;
+
+        if (load_trx_fields) {
+            trxFields.clear();
+            if (trx_float != nullptr) {
+                loadTrxFields(trx_float, *this, trxFields);
+            } else if (trx_double != nullptr) {
+                loadTrxFields(trx_double, *this, trxFields);
+            } else if (trx_half != nullptr) {
+                loadTrxFields(trx_half, *this, trxFields);
+            }
+        }
+
+    } else {
+        disp(MSG_ERROR,"Unknown file extension. Only .vtk, .tck, .trk and .trx extensions are supported.");
         isInitialized = false;
         return false;
     }
@@ -363,8 +551,10 @@ void NIBR::TractogramReader::reset()
         tck_buffer_offset = 0;
 
         // Physically seek the file pointer back to the start of the streamline data
-        disp(MSG_DEBUG, "Seek the file pointer back to the start of the streamline data");
-        fseek(file, firstStreamlinePos, SEEK_SET);
+        if (file != nullptr) {
+            disp(MSG_DEBUG, "Seek the file pointer back to the start of the streamline data");
+            fseek(file, firstStreamlinePos, SEEK_SET);
+        }
 
         // With a clean state, we can now launch a new producer thread. Allow the new producer to run
         disp(MSG_DEBUG, "Launch a new producer thread");
@@ -779,6 +969,21 @@ StreamlineBatch NIBR::TractogramReader::readBatchFromFile(std::size_t batchSize)
             break;
         }
 
+        case TRX:
+        {
+            const std::size_t start_index = streamlines_read_from_file.load();
+            if (trx_float != nullptr) {
+                read_trx_batch(trx_float, start_index, actualBatchSize, batch_out);
+            } else if (trx_double != nullptr) {
+                read_trx_batch(trx_double, start_index, actualBatchSize, batch_out);
+            } else if (trx_half != nullptr) {
+                read_trx_batch(trx_half, start_index, actualBatchSize, batch_out);
+            } else {
+                disp(MSG_ERROR, "TRX reader is not initialized for %s.", fileName.c_str());
+            }
+            break;
+        }
+
         default:
             // Unknown format, do nothing.
             break;
@@ -823,6 +1028,22 @@ const std::vector<uint64_t>& NIBR::TractogramReader::getNumberOfPoints()
 
     numberOfPoints.resize(numberOfStreamlines + 1, 0);
     
+    if (fileFormat == TRX) {
+        if (trx_float || trx_double || trx_half) {
+            const auto* trx = (trx_float != nullptr)  ? trx_float :
+                              (trx_double != nullptr) ? trx_double :
+                              (trx_half != nullptr)   ? trx_half : nullptr;
+            if (trx && trx->streamlines && trx->streamlines->_offsets.size() > 0) {
+                for (std::size_t i = 0; i < numberOfStreamlines + 1; ++i) {
+                    numberOfPoints[i] = static_cast<uint64_t>(trx->streamlines->_offsets(static_cast<Eigen::Index>(i), 0));
+                }
+            }
+        } else {
+            disp(MSG_ERROR, "TRX reader is not initialized for %s.", fileName.c_str());
+        }
+        return numberOfPoints;
+    }
+
     // In preload mode, we need the full buffer to calculate this from memory
     if (isPreloadMode) {
         std::unique_lock<std::mutex> lock(buffer_mutex);
@@ -924,6 +1145,24 @@ const std::vector<uint64_t>& NIBR::TractogramReader::getNumberOfPoints()
             break;
         }
 
+        case TRX:
+        {
+            if (trx_float || trx_double || trx_half) {
+                const auto* trx = (trx_float != nullptr)  ? trx_float :
+                                  (trx_double != nullptr) ? trx_double :
+                                  (trx_half != nullptr)   ? trx_half : nullptr;
+                if (trx && trx->streamlines && trx->streamlines->_offsets.size() > 0) {
+                    numberOfPoints.resize(numberOfStreamlines + 1, 0);
+                    for (std::size_t i = 0; i < numberOfStreamlines + 1; ++i) {
+                        numberOfPoints[i] = static_cast<uint64_t>(trx->streamlines->_offsets(static_cast<Eigen::Index>(i), 0));
+                    }
+                }
+            } else {
+                disp(MSG_ERROR, "TRX reader is not initialized for %s.", fileName.c_str());
+            }
+            break;
+        }
+
         case VTK_BINARY_3:
         case VTK_BINARY_4:
         case VTK_ASCII_3:
@@ -979,6 +1218,7 @@ void NIBR::TractogramReader::printInfo() {
 	std::cout << "Format:                   ";
 	if (fileFormat==NIBR::TCK)               std::cout << "tck"             << std::endl << std::flush;
 	else if (fileFormat==NIBR::TRK)          std::cout << "trk"             << std::endl << std::flush;
+	else if (fileFormat==NIBR::TRX)          std::cout << "trx"             << std::endl << std::flush;
 	else if (fileFormat==NIBR::VTK_ASCII_3)  std::cout << "vtk v3 (ascii)"  << std::endl << std::flush;
 	else if (fileFormat==NIBR::VTK_BINARY_3) std::cout << "vtk v3 (binary)" << std::endl << std::flush;
     else if (fileFormat==NIBR::VTK_ASCII_4)  std::cout << "vtk v4 (ascii)"  << std::endl << std::flush;

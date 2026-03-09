@@ -112,6 +112,8 @@ if(BUILDING_TRX_FROM_SOURCE)
         ALWAYS 0
     )
 
+    # configure_file("${CMAKE_SOURCE_DIR}/external/trx_patch/trx.h" "${CMAKE_INSTALL_PREFIX}/include/${nibrary}/trx-cpp/trx/trx.h" COPYONLY)
+
     # Define variables based on conditions
     if(BUILD_SHARED_LIBS)
         if(UNIX)

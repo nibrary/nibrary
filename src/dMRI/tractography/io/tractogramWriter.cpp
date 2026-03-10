@@ -65,12 +65,30 @@ void TractogramWriter::setVTKIsAscii(bool isAscii)
     }
 }
 
-void TractogramWriter::setVTKFields(const std::vector<TractogramField>& fields) 
+void TractogramWriter::setVTKFields(const std::vector<TractogramField>& fields)
 {
     if (pImpl_) {
         pImpl_->setVTKFields(fields);
     } else {
         disp(MSG_WARN, "Cannot set VTK fields: writer implementation is null.");
+    }
+}
+
+void TractogramWriter::setTRXDtype(const std::string& dtype)
+{
+    if (pImpl_) {
+        pImpl_->setTRXDtype(dtype);
+    } else {
+        disp(MSG_WARN, "Cannot set TRX dtype: writer implementation is null.");
+    }
+}
+
+void TractogramWriter::setTRXFields(const std::vector<TractogramField>& fields)
+{
+    if (pImpl_) {
+        pImpl_->setTRXFields(fields);
+    } else {
+        disp(MSG_WARN, "Cannot set TRX fields: writer implementation is null.");
     }
 }
 
@@ -426,18 +444,20 @@ template bool writeTractogram<double>       (std::string out_fname, const Tracto
 template bool writeTractogram<long double>  (std::string out_fname, const Tractogram& tractogram, const Image<long double>&   refImg);
 
 
-bool writeTractogram(std::string out_fname, const Tractogram& tractogram, const std::vector<TractogramField>& fields) 
+bool writeTractogram(std::string out_fname, const Tractogram& tractogram, const std::vector<TractogramField>& fields)
 {
-    
-    if (getFileExtension(out_fname) != "vtk" ){
-        disp(MSG_ERROR, "Field data can be written only for vtk output.");
+    const std::string ext = getFileExtension(out_fname);
+
+    if (ext != "vtk" && ext != "trx") {
+        disp(MSG_ERROR, "Field data output is only supported for .vtk and .trx formats.");
         return false;
     }
 
     TractogramWriter writer(out_fname);
     if (!writer.isValid()) return false;
 
-    writer.setVTKFields(fields);
+    if (ext == "vtk") writer.setVTKFields(fields);
+    if (ext == "trx") writer.setTRXFields(fields);
     if (!writer.open())    return false;
 
     const size_t single_batch_threshold = WRITE_BUFFER_SIZE * 5;
@@ -472,7 +492,21 @@ bool writeTractogram(std::string out_fname, const Tractogram& tractogram, const 
 }
 
 
-bool writeTractogram(std::string out_fname, NIBR::TractogramReader* reader, const std::vector<size_t>& idx_to_keep_const) 
+bool writeTractogram(std::string out_fname, const Tractogram& tractogram, const std::vector<TractogramField>& fields, const std::map<std::string, std::vector<uint32_t>>& groups)
+{
+    if (!writeTractogram(out_fname, tractogram, fields)) return false;
+    if (groups.empty() || getFileExtension(out_fname) != "trx") return true;
+    try {
+        trx::append_groups_to_zip(out_fname, groups);
+    } catch (const std::exception& e) {
+        disp(MSG_ERROR, "Failed to write TRX groups to %s: %s", out_fname.c_str(), e.what());
+        return false;
+    }
+    return true;
+}
+
+
+bool writeTractogram(std::string out_fname, NIBR::TractogramReader* reader, const std::vector<size_t>& idx_to_keep_const)
 {
     
     if (!reader || !reader->isReady()) {

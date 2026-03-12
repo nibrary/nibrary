@@ -14,7 +14,7 @@ using namespace NIBR;
 
 namespace {
 template <typename DT>
-void read_trx_batch(trxmmap::TrxFile<DT>* trx,
+void read_trx_batch(trx::TrxFile<DT>* trx,
                     std::size_t start_index,
                     std::size_t batch_size,
                     StreamlineBatch& batch_out)
@@ -44,7 +44,7 @@ void read_trx_batch(trxmmap::TrxFile<DT>* trx,
 }
 
 template <typename DT>
-void loadTrxFields(trxmmap::TrxFile<DT>* trx,
+void loadTrxFields(trx::TrxFile<DT>* trx,
                    TractogramReader& reader,
                    std::vector<TractogramField>& field_out)
 {
@@ -55,7 +55,7 @@ void loadTrxFields(trxmmap::TrxFile<DT>* trx,
     // Data per streamline (DPS)
     for (const auto& it : trx->data_per_streamline) {
         const std::string& name = it.first;
-        const auto* matrix = it.second;
+        const auto* matrix = it.second.get();
         if (!matrix) continue;
 
         const int dim = static_cast<int>(matrix->_matrix.cols());
@@ -82,7 +82,7 @@ void loadTrxFields(trxmmap::TrxFile<DT>* trx,
     // Data per vertex (DPV)
     for (const auto& it : trx->data_per_vertex) {
         const std::string& name = it.first;
-        const auto* seq = it.second;
+        const auto* seq = it.second.get();
         if (!seq) continue;
 
         const int dim = static_cast<int>(seq->_data.cols());
@@ -136,7 +136,29 @@ NIBR::TractogramReader::TractogramReader(std::string _fileName, bool _preload, b
     initReader(_fileName, _preload, _loadTrxFields);
 }
 
-NIBR::TractogramReader::~TractogramReader() 
+std::map<std::string, std::vector<uint32_t>> NIBR::TractogramReader::getGroups() const
+{
+    std::map<std::string, std::vector<uint32_t>> result;
+
+    auto extract = [&](auto* trx) {
+        if (!trx) return;
+        for (const auto& kv : trx->groups) {
+            const auto* mat = kv.second.get();
+            if (!mat) continue;
+            std::vector<uint32_t> indices(static_cast<size_t>(mat->_matrix.rows()));
+            for (Eigen::Index i = 0; i < mat->_matrix.rows(); ++i)
+                indices[static_cast<size_t>(i)] = static_cast<uint32_t>(mat->_matrix(i, 0));
+            result[kv.first] = std::move(indices);
+        }
+    };
+
+    extract(trx_float);
+    if (result.empty()) extract(trx_double);
+    if (result.empty()) extract(trx_half);
+    return result;
+}
+
+NIBR::TractogramReader::~TractogramReader()
 {
     stop_producer = true;
     buffer_cv.notify_all();
@@ -168,7 +190,7 @@ bool NIBR::TractogramReader::initReader(std::string _fileName, bool _preload, bo
     bool is_trx_dir = false;
     if (extension != "trx") {
         try {
-            is_trx_dir = trxmmap::is_trx_directory(_fileName);
+            is_trx_dir = trx::is_trx_directory(_fileName);
         } catch (const std::exception&) {
             is_trx_dir = false;
         }
@@ -432,17 +454,17 @@ bool NIBR::TractogramReader::initReader(std::string _fileName, bool _preload, bo
         fileDescription = "trx file";
 
         try {
-            trx_scalar_type = trxmmap::detect_positions_scalar_type(fileName, trxmmap::TrxScalarType::Float32);
+            trx_scalar_type = trx::detect_positions_scalar_type(fileName, trx::TrxScalarType::Float32);
             switch (trx_scalar_type) {
-                case trxmmap::TrxScalarType::Float16:
-                    trx_half = trxmmap::load<Eigen::half>(fileName);
+                case trx::TrxScalarType::Float16:
+                    trx_half = trx::TrxFile<Eigen::half>::load(fileName).release();
                     break;
-                case trxmmap::TrxScalarType::Float64:
-                    trx_double = trxmmap::load<double>(fileName);
+                case trx::TrxScalarType::Float64:
+                    trx_double = trx::TrxFile<double>::load(fileName).release();
                     break;
-                case trxmmap::TrxScalarType::Float32:
+                case trx::TrxScalarType::Float32:
                 default:
-                    trx_float = trxmmap::load<float>(fileName);
+                    trx_float = trx::TrxFile<float>::load(fileName).release();
                     break;
             }
         } catch (const std::exception& e) {

@@ -5,6 +5,8 @@
 #include <atomic>
 #include <mutex>
 #include <future>
+#include <map>
+#include <cstdint>
 #include "base/nibr.h"
 #include "math/core.h"
 #include "image/image.h"
@@ -81,8 +83,9 @@ namespace NIBR
             Tractogram                                  getTractogram();                            // Complete tractogram reader
             std::size_t                                 getNumberOfStreamlines() const { return numberOfStreamlines; }
             const std::vector<uint64_t>&                getNumberOfPoints();                        // Size of streamline n is out[n] - out[n-1]. The last element, out[numberOfStreamlines+1] is the total number of points
-            const std::vector<TractogramField>&         getTrxFields() const { return trxFields; }
-            bool                                        hasTrxFields() const { return !trxFields.empty(); }
+            const std::vector<TractogramField>&              getTrxFields() const { return trxFields; }
+            bool                                             hasTrxFields() const { return !trxFields.empty(); }
+            std::map<std::string, std::vector<uint32_t>>     getGroups() const;
 
             std::string             fileName;
             std::string             fileDescription;
@@ -112,7 +115,7 @@ namespace NIBR
 
         private:
 
-            FILE* file;
+            FILE* file = nullptr;
             bool  initReader(std::string _fileName, bool _preload, bool _loadTrxFields);
 
             // Core I/O logic, reads a batch from the file. Not thread-safe by itself.
@@ -160,10 +163,10 @@ namespace NIBR
             short           n_properties_trk;       // TRK file format extension
 
             // TRX specific
-            trxmmap::TrxScalarType     trx_scalar_type = trxmmap::TrxScalarType::Float32;
-            trxmmap::TrxFile<Eigen::half>*  trx_half   = nullptr;
-            trxmmap::TrxFile<float>*        trx_float  = nullptr;
-            trxmmap::TrxFile<double>*       trx_double = nullptr;
+            trx::TrxScalarType     trx_scalar_type = trx::TrxScalarType::Float32;
+            trx::TrxFile<Eigen::half>*  trx_half   = nullptr;
+            trx::TrxFile<float>*        trx_float  = nullptr;
+            trx::TrxFile<double>*       trx_double = nullptr;
             std::vector<TractogramField>    trxFields;
 
     };

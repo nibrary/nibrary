@@ -1,14 +1,14 @@
 #include "image_operators.h"
 #include "math/sphere.h"
+#include "math/sphericalHarmonics_aux.h"
 
 using namespace NIBR;
 using namespace SF;
-using namespace SH;
 
-void NIBR::sf2sh(NIBR::Image<float>* out, NIBR::Image<float>* inp, std::vector<Point3D>& coords, int shOrder) {
+void NIBR::sf2sh(NIBR::Image<float>* out, NIBR::Image<float>* inp, std::vector<Point3D>& coords, int shOrder, bool ignoreOddCoeffs) {
     
     std::vector<std::vector<float>> Ylm;
-    SH_basis(Ylm, coords, shOrder);
+    SH_basis(Ylm, coords, shOrder, ignoreOddCoeffs);
 
     int coeffCount = Ylm[0].size();
 
@@ -61,10 +61,10 @@ void NIBR::sf2sh(NIBR::Image<float>* out, NIBR::Image<float>* inp, std::vector<P
 
 void NIBR::sh2sf(NIBR::Image<float>* out, NIBR::Image<float>* inp, std::vector<Point3D>& coords) {
     
-    int shOrder = getSHOrderFromNumberOfCoeffs(inp->imgDims[3]);
+    auto [shOrder, ignoreOddCoeffs] = getSHOrderFromNumberOfCoeffs(inp->imgDims[3]);
 
     std::vector<std::vector<float>> Ylm;
-    SH_basis(Ylm, coords, shOrder);
+    SH_basis(Ylm, coords, shOrder, ignoreOddCoeffs);
 
     // Create image if needed
     if ( (out == NULL) || (out->data == NULL) ) {
@@ -119,7 +119,7 @@ void NIBR::sh2sf(NIBR::Image<float>* out, NIBR::Image<float>* inp, std::vector<P
 // Here is the alternative approach for sh2sf conversion using precomputed coefficients
 void NIBR::sh2sf(NIBR::Image<float>* out, NIBR::Image<float>* inp, std::vector<std::vector<float>>& coords) {
     
-    int shOrder = getSHOrderFromNumberOfCoeffs(inp->imgDims[3]);
+    auto [shOrder, ignoreOddCoeffs] = getSHOrderFromNumberOfCoeffs(inp->imgDims[3]);
 
     // Precompute SH constants if not already computed
     SH::precompute(shOrder,XYZ,1024);
@@ -197,11 +197,11 @@ void NIBR::reorientSH(NIBR::Image<float>* img, OrderOfDirections ood)
 
 
     // Compute input and output basis functions
-    int shOrder = getSHOrderFromNumberOfCoeffs(img->imgDims[3]);
-    SH::precompute(shOrder, ood, 1024);
+    auto [shOrder, ignoreOddCoeffs] = getSHOrderFromNumberOfCoeffs(img->imgDims[3]);
+    SH sh(shOrder, ignoreOddCoeffs, ood, 1024);
 
     std::vector<std::vector<float>> Ylm;
-    SH_basis(Ylm, coords, shOrder);
+    SH_basis(Ylm, coords, shOrder, ignoreOddCoeffs);    
 
     int coeffCount = img->imgDims[3];
     int valueCount = coords.size();
@@ -246,7 +246,7 @@ void NIBR::reorientSH(NIBR::Image<float>* img, OrderOfDirections ood)
 
         for (int t=0; t<valueCount; t++) {
             float dir[3] = {coords[t][0],coords[t][1],coords[t][2]};
-            values[t]    = SH::toSF(coeffs,&dir[0]);
+            values[t]    = sh.toSF(coeffs,&dir[0]);
         }
         
         for (int n=0; n<coeffCount; n++) {
@@ -285,13 +285,13 @@ void NIBR::rotateSH(NIBR::Image<float>* img, float R[][4])
 
 
     // Compute input and output basis functions
-    int shOrder = getSHOrderFromNumberOfCoeffs(img->imgDims[3]);
+    auto [shOrder, ignoreOddCoeffs] = getSHOrderFromNumberOfCoeffs(img->imgDims[3]);
 
     std::vector<std::vector<float>> inp_Ylm;
     std::vector<std::vector<float>> out_Ylm;
 
-    SH_basis(inp_Ylm, inp_coords, shOrder);
-    SH_basis(out_Ylm, out_coords, shOrder);
+    SH_basis(inp_Ylm, inp_coords, shOrder, ignoreOddCoeffs);
+    SH_basis(out_Ylm, out_coords, shOrder, ignoreOddCoeffs);
 
     int coeffCount = img->imgDims[3];
     int valueCount = out_coords.size();

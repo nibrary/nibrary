@@ -133,6 +133,9 @@ namespace NIBR
         void          to_ijk(XYZ* xyz, IJK* ijk);
 
         template<typename OUT_T>
+        void          to_ijk(OUT_T* xyz, int32_t* ijk);
+
+        template<typename OUT_T>
         void          to_ijk(OUT_T* xyz, int64_t* ijk);
         
         template<typename IJK, typename XYZ>
@@ -255,10 +258,17 @@ namespace NIBR
     }
 
     template<typename T> template<typename OUT_T>
+    void Image<T>::to_ijk(OUT_T* xyz, int32_t *ijk) {
+        ijk[0]  = std::round(xyz2ijk[0][0]*xyz[0] + xyz2ijk[0][1]*xyz[1] + xyz2ijk[0][2]*xyz[2] + xyz2ijk[0][3]);
+        ijk[1]  = std::round(xyz2ijk[1][0]*xyz[0] + xyz2ijk[1][1]*xyz[1] + xyz2ijk[1][2]*xyz[2] + xyz2ijk[1][3]);
+        ijk[2]  = std::round(xyz2ijk[2][0]*xyz[0] + xyz2ijk[2][1]*xyz[1] + xyz2ijk[2][2]*xyz[2] + xyz2ijk[2][3]);
+    }
+
+    template<typename T> template<typename OUT_T>
     void Image<T>::to_ijk(OUT_T* xyz, int64_t *ijk) {
-        ijk[0]  = xyz2ijk[0][0]*xyz[0] + xyz2ijk[0][1]*xyz[1] + xyz2ijk[0][2]*xyz[2] + xyz2ijk[0][3];
-        ijk[1]  = xyz2ijk[1][0]*xyz[0] + xyz2ijk[1][1]*xyz[1] + xyz2ijk[1][2]*xyz[2] + xyz2ijk[1][3];
-        ijk[2]  = xyz2ijk[2][0]*xyz[0] + xyz2ijk[2][1]*xyz[1] + xyz2ijk[2][2]*xyz[2] + xyz2ijk[2][3];
+        ijk[0]  = std::round(xyz2ijk[0][0]*xyz[0] + xyz2ijk[0][1]*xyz[1] + xyz2ijk[0][2]*xyz[2] + xyz2ijk[0][3]);
+        ijk[1]  = std::round(xyz2ijk[1][0]*xyz[0] + xyz2ijk[1][1]*xyz[1] + xyz2ijk[1][2]*xyz[2] + xyz2ijk[1][3]);
+        ijk[2]  = std::round(xyz2ijk[2][0]*xyz[0] + xyz2ijk[2][1]*xyz[1] + xyz2ijk[2][2]*xyz[2] + xyz2ijk[2][3]);
     }
 
     template<typename T> template<typename IJK, typename XYZ>

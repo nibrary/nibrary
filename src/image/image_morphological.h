@@ -12,45 +12,77 @@ namespace NIBR
 {
 
     // imgErode
+    // template<typename T>
+    // void imgErode(NIBR::Image<T>& inp, CONN3D conn)
+    // {
+
+    //     auto N = get3DNeighbors(conn);
+
+    //     std::vector<int> inds = getNonZeroIndices(&inp);
+
+    //     std::set<int> marked;
+    //     std::mutex    modifier;
+
+    //     auto f = [&](const NIBR::MT::TASK& task)->void {
+            
+    //         int64_t i,j,k; 
+
+    //         inp.ind2sub(inds[task.no],i,j,k);
+
+    //         for (auto n : N) {
+
+    //             int64_t ii = i + n[0];
+    //             int64_t jj = j + n[1];
+    //             int64_t kk = k + n[2];
+
+    //             if ( inp.isInside(ii,jj,kk) && (inp(ii,jj,kk)==0) ) {
+    //                 std::lock_guard lock(modifier);
+    //                 marked.insert(inds[task.no]);
+    //                 break;
+    //             }
+
+    //         }
+
+    //     };
+
+    //     MT::MTRUN(inds.size(),f);
+        
+    //     for (auto m : marked) {
+    //         inp.data[m] = 0;
+    //     }
+
+    // }
+
     template<typename T>
     void imgErode(NIBR::Image<T>& inp, CONN3D conn)
     {
-
         auto N = get3DNeighbors(conn);
-
         std::vector<int> inds = getNonZeroIndices(&inp);
 
-        std::set<int> marked;
-        std::mutex    modifier;
+        std::vector<int> to_delete;
+        to_delete.reserve(inds.size()); 
 
-        auto f = [&](const NIBR::MT::TASK& task)->void {
-            
-            int64_t i,j,k; 
+        int64_t i, j, k;
 
-            inp.ind2sub(inds[task.no],i,j,k);
+        for (auto n : inds) {
 
-            for (auto n : N) {
+            inp.ind2sub(n, i, j, k);
 
-                int64_t ii = i + n[0];
-                int64_t jj = j + n[1];
-                int64_t kk = k + n[2];
+            for (auto nn : N) {
+                int64_t ii = i + nn[0];
+                int64_t jj = j + nn[1];
+                int64_t kk = k + nn[2];
 
-                if ( inp.isInside(ii,jj,kk) && (inp(ii,jj,kk)==0) ) {
-                    std::lock_guard lock(modifier);
-                    marked.insert(inds[task.no]);
+                if ( inp.isInside(ii,jj,kk) && (inp(ii,jj,kk) == 0) ) {
+                    to_delete.push_back(n);
                     break;
                 }
-
             }
-
-        };
-
-        MT::MTRUN(inds.size(),f);
+        }
         
-        for (auto m : marked) {
+        for (auto m : to_delete) {
             inp.data[m] = 0;
         }
-
     }
     
     template<typename T_OUT,typename T_INP>
@@ -69,38 +101,62 @@ namespace NIBR
 
 
     // imgDilate
+    // template<typename T>
+    // void imgDilate(NIBR::Image<T>& inp, CONN3D conn)
+    // {
+
+    //     auto N = get3DNeighbors(conn);
+
+    //     std::vector<int> inds = getNonZeroIndices(&inp);
+    //     std::mutex       modifier;
+
+    //     auto f = [&](const NIBR::MT::TASK& task)->void {
+            
+    //         int64_t i,j,k; 
+
+    //         inp.ind2sub(inds[task.no],i,j,k);
+
+    //         for (auto n : N) {
+
+    //             int64_t ii = i + n[0];
+    //             int64_t jj = j + n[1];
+    //             int64_t kk = k + n[2];
+
+    //             if ( inp.isInside(ii,jj,kk) && (inp(ii,jj,kk)==0) ) {
+    //                 std::lock_guard lock(modifier);
+    //                 *inp.at(ii,jj,kk) = 1;
+    //             }
+
+    //         }
+
+    //     };
+        
+    //     MT::MTRUN(inds.size(),f);
+
+    // }
+
     template<typename T>
     void imgDilate(NIBR::Image<T>& inp, CONN3D conn)
     {
-
         auto N = get3DNeighbors(conn);
 
         std::vector<int> inds = getNonZeroIndices(&inp);
-        std::mutex       modifier;
+        int64_t i,j,k;
 
-        auto f = [&](const NIBR::MT::TASK& task)->void {
-            
-            int64_t i,j,k; 
+        for (auto idx : inds) {
 
-            inp.ind2sub(inds[task.no],i,j,k);
+            inp.ind2sub(idx,i,j,k);
 
-            for (auto n : N) {
-
+            for (auto n : N) { 
                 int64_t ii = i + n[0];
                 int64_t jj = j + n[1];
                 int64_t kk = k + n[2];
 
                 if ( inp.isInside(ii,jj,kk) && (inp(ii,jj,kk)==0) ) {
-                    std::lock_guard lock(modifier);
                     *inp.at(ii,jj,kk) = 1;
                 }
-
             }
-
-        };
-        
-        MT::MTRUN(inds.size(),f);
-
+        }
     }
     
     template<typename T_OUT,typename T_INP>

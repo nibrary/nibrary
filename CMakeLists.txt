@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 3.15.0)
 
 set(nibrary_VERSION_MAJOR 0)
-set(nibrary_VERSION_MINOR 4)
-set(nibrary_VERSION_PATCH 4)
+set(nibrary_VERSION_MINOR 5)
+set(nibrary_VERSION_PATCH 0)
 
 project(nibrary VERSION ${nibrary_VERSION_MAJOR}.${nibrary_VERSION_MINOR}.${nibrary_VERSION_PATCH} LANGUAGES CXX C)
 
@@ -14,6 +14,8 @@ set(CMAKE_INSTALL_PREFIX "${CMAKE_BINARY_DIR}/install")
 option(BUILD_SHARED_LIBS        "Build shared libraries"                ON)
 option(USE_SYSTEM_EIGEN         "Use system eigen if exists"            OFF)
 option(USE_SYSTEM_ZLIB          "Use system zlib if exists"             OFF)
+option(USE_SYSTEM_LIBZIP        "Use system libzip if exists"           OFF)
+# option(USE_SYSTEM_TRX_CPP       "Use system trx-cpp if exists"          OFF) - Remove support for this until trx-cpp stable version is released
 # option(USE_SYSTEM_GEOGRAM       "Use system geogram if exists"          OFF) - Remove support for this until the dependency of mesh_fill_holes.cpp is resolved
 option(USE_SYSTEM_LIBIGL        "Use system libigl if exists"           OFF)
 option(USE_SYSTEM_SIMDE         "Use system simde if exists"            OFF)
@@ -85,9 +87,12 @@ include_directories(${ZLIB_INCLUDE_DIRS})
 include_directories(${GEOGRAM_INCLUDE_DIR})
 include_directories(${LIBIGL_INCLUDE_DIR})
 include_directories(${SIMDE_INCLUDE_DIR})
-include_directories(${PROXSUITE_INCLUDE_DIR})
+include_directories(SYSTEM ${PROXSUITE_INCLUDE_DIR})
 include_directories(${CUDA_INCLUDE_DIR})
+include_directories(${LIBZIP_INCLUDE_DIR})
+include_directories(${TRX_INCLUDE_DIR})
 
+# dcm2niix
 if (BUILD_DCM2NIIX)
     message(STATUS ">> Nibrary::Building dcm2niix")
     add_compile_definitions(HAS_DCM2NIIX)
@@ -100,14 +105,36 @@ else()
     message(STATUS ">> Nibrary::dcm2niix will not be built")
 endif()
 
-if(BUILDING_ZLIB_FROM_SOURCE)
-    add_dependencies(OBJS build_zlib)
-    add_dependencies(build_dcm2niix build_zlib)
+# trx-cpp
+if(BUILDING_TRX_CPP_FROM_SOURCE)
+    include_directories(${TRX_INCLUDE_DIR})
+    add_dependencies(OBJS build_trx_cpp)
+    # libzip: Depends on zlib. Dependency of trx-cpp.
+    if(BUILDING_LIBZIP_FROM_SOURCE)
+        add_dependencies(build_trx_cpp build_libzip)
+    else()
+        message(STATUS ">> Nibrary::libzip will not be built")
+    endif()
+else()
+    message(STATUS ">> Nibrary::trx-cpp will not be built")
 endif()
 
+# zlib: Dependency of niftilib, libzip, dcm2niix
+if(BUILDING_ZLIB_FROM_SOURCE)
+    add_dependencies(OBJS build_zlib)           # niftilib
+    add_dependencies(build_libzip build_zlib)   # libzip
+    add_dependencies(build_dcm2niix build_zlib) # dcm2niix
+else()
+    message(STATUS ">> Nibrary::zlib will not be built")
+endif()
+
+# geogram
 if(BUILDING_GEOGRAM_FROM_SOURCE)
     add_dependencies(OBJS build_geogram)    
+else()
+    message(STATUS ">> Nibrary::geogram will not be built")
 endif()
+
 
 IF(BUILD_SHARED_LIBS)
     message(STATUS ">> Nibrary::Building shared library")
@@ -126,11 +153,27 @@ if(OpenMP_FOUND)
     target_include_directories(${libNibrary} PUBLIC ${OpenMP_CXX_INCLUDE_DIRS})
 endif()
 
-target_link_libraries(${libNibrary} PUBLIC ${ZLIB_LIBRARIES} ${GEOGRAM_LIBRARY})
+target_link_libraries(${libNibrary} PUBLIC ${ZLIB_LIBRARIES} ${GEOGRAM_LIBRARY} ${TRX_LIBRARY})
 
 if (BUILD_DCM2NIIX)
     target_link_libraries(${libNibrary} PUBLIC ${DCM2NIIX_LIBRARY})
 endif()
+
+# if(DEFINED TRX_LIBRARY)
+
+#     if (USE_SYSTEM_LIBZIP)
+#         find_package(libzip QUIET)
+#     else()
+#         add_subdirectory(external/libzip)
+#     endif()
+
+#     if(libzip_FOUND)
+#         get_target_property(_libzip_includes libzip::zip INTERFACE_INCLUDE_DIRECTORIES)
+#         include_directories(SYSTEM ${_libzip_includes})
+#         target_link_libraries(${libNibrary} PUBLIC libzip::zip)
+#     endif()
+#     target_link_libraries(${libNibrary} PUBLIC ${TRX_LIBRARY})
+# endif()
 
 IF(ENABLE_CUDA)
     add_library(CUDA_OBJS OBJECT ${CUDA_SRCS})

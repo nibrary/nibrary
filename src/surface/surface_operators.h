@@ -14,6 +14,7 @@ namespace NIBR {
     Surface surfFillHoles(const Surface& surf,double maxArea);
     Surface surfSmooth(const Surface& surf,int smoothing_iterations = 1);
     Surface surfRemesh(const Surface& surf,int newVertexCount, int smoothing_iterations = 1, float anisotropy = 0);
+
     std::vector<double> surfCalcAreasOfHoles(const Surface& surf);
 
     // Other functions
@@ -22,6 +23,9 @@ namespace NIBR {
     Surface surfRemoveOverconnectedVertices(Surface& surf);
     Surface surfRemoveBadBoundaryVertices(Surface& surf);
     Surface surfRemoveAllBoundaryVertices(Surface& surf);
+
+    Surface surfDecimate(const Surface& surf, float binSize);
+    Surface surfFixNormals(const Surface& surf);
 
     Surface surfMerge(const Surface& s1, const Surface& s2);
     Surface surfDiff(const Surface& s1, const Surface& s2);

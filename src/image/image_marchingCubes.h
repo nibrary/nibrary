@@ -27,7 +27,7 @@ namespace NIBR
 
         Image<float> inp;
         imgThresh(inp, seg, label, label);
-        
+
         for (int n = 0; n < 2; n++) {
             imgDilate(inp,NIBR::CONN6);
             imgErode (inp,NIBR::CONN6);
@@ -40,15 +40,38 @@ namespace NIBR
         }
 
         if (surf.nv > 0) surf = surfSmooth(surf,2);
+
         if (meanFaceArea != 0) {
             if (surf.nv > 0) surf.calcArea();
             if (surf.nv > 0) surf = surfRemesh(surf,surf.area/meanFaceArea*0.5f,1,0);
         }
+
         if (surf.nv > 0) surf = surfMakeItSingleClosed(surf);
 
         return surf;
 
     }
+
+    template<typename T1, typename T2, typename T3>
+    Surface label2surface_fast(Image<T1>& seg, T2 label, T3 meanFaceArea) {
+
+        Image<float> inp;
+        imgThresh(inp, seg, label, label);
+
+        Surface surf;
+        if (!isosurface(&inp, 0.5, &surf)) {
+            disp(MSG_ERROR, "Failed to generate surface");
+            return Surface();
+        }
+
+        if (surf.nv > 0) surf = surfDecimate(surf,meanFaceArea * std::sqrt(2.0f));
+        if (surf.nv > 0) surf = surfSmooth(surf,2);
+        if (surf.nv > 0) surf = surfMakeItSingleClosed(surf);
+
+        return surf;
+
+    }
+
 }
 
 

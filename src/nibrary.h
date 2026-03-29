@@ -1,5 +1,6 @@
 #pragma once
 
+// base
 #include "base/nibr.h"
 #include "base/config.h"
 #include "base/stringOperations.h"
@@ -101,3 +102,4 @@
 #include "image/interpolationCuda.cuh"
 #include "image/image_operatorsCuda.cuh"
 #endif
+

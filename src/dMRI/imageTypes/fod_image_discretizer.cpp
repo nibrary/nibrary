@@ -1,42 +1,48 @@
 #include "fod_image.h"
+#include "math/sphericalHarmonics_aux.h"
 
 using namespace NIBR;
 
-void NIBR::FOD_Image::setSHorder() {
+void NIBR::FOD_Image::setSH() {
 
     if (isspheresliced==false) {
-        int order = sqrt(imgDims[3]);
-        if ((order*order)!=imgDims[3]) {
-            order  = (sqrt(8*imgDims[3]+1)-3)/2;
-            disp(MSG_DETAIL,"(symmetric FOD with order %d )", order);
-            iseven = true;
-            shOrder=order;
-        } else {
-            disp(MSG_DETAIL,"(asymmetric FOD with order %d )",sqrt(imgDims[3])-1);
-            iseven = false;
-            shOrder=order-1;
-        }
+
+        auto [order, ignoreOdd] = getSHOrderFromNumberOfCoeffs(imgDims[3]);
+
+        shOrder         = order;
+        hasNoOddCoeffs  = ignoreOdd;
+        isAsym          = !ignoreOdd;
+        
     } else {
-        if (iseven) {
-            int order = 16;
-            disp(MSG_DETAIL,"(using symmetric FOD with order %d )",order);
-            shOrder   = order;
+        if (!isAsym) {
+            shOrder         = 16;
+            hasNoOddCoeffs  = true;
+        } else {
+            shOrder         = 13;
+            hasNoOddCoeffs  = false;
         }
-        else {
-            int order = 13;
-            disp(MSG_DETAIL,"(using asymmetric FOD with order %d )",order);
-            shOrder   = order;
-        }
-            
     }
+
+    if (!isAsym) {
+        disp(MSG_DETAIL,"(symmetric FOD with order %d)", shOrder);
+    } else {
+        disp(MSG_DETAIL,"(asymmetric FOD with order %d)",shOrder);
+    }
+
+    if (sh!=NULL) {
+        delete sh;
+        sh = NULL;
+    }
+
+    sh = new SH(shOrder, hasNoOddCoeffs, orderOfDirections, SHprecomputationResolution);
 
 }
 
 void NIBR::FOD_Image::fillDiscVolSph() {
-    
+
     // Prep sphere parameters
-    // discVolSphDim      = iseven ? 21 : 15; // For even, 1038 points on half-sphere (2076 points on full-sphere); for odd, 1004 points on full-sphere, i.e. AFOD is less densely sampled
-    discVolSphDim      = iseven ? 13 : 11;
+    // discVolSphDim      = (!isAsym) ? 21 : 15; // For even, 1038 points on half-sphere (2076 points on full-sphere); for odd, 1004 points on full-sphere, i.e. AFOD is less densely sampled
+    discVolSphDim      = (!isAsym) ? 13 : 11;
     discVolSphRadius   = (float(discVolSphDim)-1)/2.0 - 0.5;
     discVolSphShift    = discVolSphRadius + 0.5;
 
@@ -44,7 +50,7 @@ void NIBR::FOD_Image::fillDiscVolSph() {
     float zs;
     
 
-    if (iseven) {
+    if (!isAsym) {
         discVolSphInds      = new int[discVolSphDim*discVolSphDim*((discVolSphDim/2)+1)];
         zs                  = 0;
     } else {
@@ -75,7 +81,7 @@ int64_t NIBR::FOD_Image::vertexCoord2volInd(float* vertexCoord) {
     
     int x,y,z;
     
-    if (iseven) { 
+    if (!isAsym) { 
         if (vertexCoord[2]<0) {
             x = std::nearbyint(-vertexCoord[0]*discVolSphRadius) + discVolSphShift;
             y = std::nearbyint(-vertexCoord[1]*discVolSphRadius) + discVolSphShift;

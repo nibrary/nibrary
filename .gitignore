@@ -1,6 +1,7 @@
 .vscode/
 .vs/
 .cache/
+.clangd
 release/
 external/proxsuite/include/proxsuite/config.hpp
 external/zlib/zconf.h

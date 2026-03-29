@@ -23,3 +23,4 @@ Below is the complete list of the external tools used in nibrary. Please also se
 | **dcm2niix**               | [dcm2niix License](https://github.com/rordenlab/dcm2niix?tab=License-1-ov-file#readme) | [dcm2niix website](https://www.nitrc.org/plugins/mwiki/index.php/dcm2nii:MainPage)           |
 | **unordered_dense**        | [MIT License](https://github.com/martinus/unordered_dense/blob/main/LICENSE) | [unordered_dense website](https://github.com/martinus/unordered_dense)           |
 | **trx-cpp**                | [BSD 2-Clause License](https://github.com/tee-ar-ex/trx-cpp/blob/main/LICENSE) | [trx-cpp website](https://github.com/tee-ar-ex)           |
+| **libzip**                 | [libzip License](https://github.com/nih-at/libzip/blob/main/LICENSE) | [libzip website](https://github.com/nih-at/libzip)           |

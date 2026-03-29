@@ -5,6 +5,7 @@
 #include "math/sphere.h"
 #include "image/image_operators.h"
 #include "surface/surface.h"
+#include "math/sphericalHarmonics_aux.h"
 
 using namespace NIBR;
 
@@ -90,7 +91,7 @@ void TranShi2015::prep()
         vertices.push_back({DENSESPHEREVERT[n][0],DENSESPHEREVERT[n][1],DENSESPHEREVERT[n][2]});
     }
     std::vector<std::vector<float>> BS;
-    SH_basis(BS, vertices, shOrder);
+    SH_basis(BS, vertices, shOrder, true);
     Y_constraint = VecToMatf(BS).cast<double>();
 
     // The spherical function can be synthesized on a different sphere.
@@ -100,13 +101,13 @@ void TranShi2015::prep()
         vertices.push_back({sphere.vertices[n][0],sphere.vertices[n][1],sphere.vertices[n][2]});
     }
     BS.clear();
-    SH_basis(BS, vertices, shOrder);
+    SH_basis(BS, vertices, shOrder, true);
     Y = VecToMatf(BS).cast<double>();
 
 
     // Setting up the Spherical harmonics basis and converting them to Eigen format
     std::vector<std::vector<float>> B;
-    SH_basis(B, bvecs, shOrder);
+    SH_basis(B, bvecs, shOrder, true);
     Eigen::MatrixXd B_mat = VecToMatf(B).cast<double>();
 
     Eigen::MatrixXd G = VecToMatd(G_mat(bvals, init_D_inAx, init_D_trapped, shOrder));

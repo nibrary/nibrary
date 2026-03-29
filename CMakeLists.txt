@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 3.15.0)
 
 set(nibrary_VERSION_MAJOR 0)
-set(nibrary_VERSION_MINOR 4)
-set(nibrary_VERSION_PATCH 5)
+set(nibrary_VERSION_MINOR 5)
+set(nibrary_VERSION_PATCH 0)
 
 project(nibrary VERSION ${nibrary_VERSION_MAJOR}.${nibrary_VERSION_MINOR}.${nibrary_VERSION_PATCH} LANGUAGES CXX C)
 
@@ -15,7 +15,7 @@ option(BUILD_SHARED_LIBS        "Build shared libraries"                ON)
 option(USE_SYSTEM_EIGEN         "Use system eigen if exists"            OFF)
 option(USE_SYSTEM_ZLIB          "Use system zlib if exists"             OFF)
 option(USE_SYSTEM_LIBZIP        "Use system libzip if exists"           OFF)
-option(USE_SYSTEM_TRX_CPP       "Use system trx-cpp if exists"          OFF)
+# option(USE_SYSTEM_TRX_CPP       "Use system trx-cpp if exists"          OFF) - Remove support for this until trx-cpp stable version is released
 # option(USE_SYSTEM_GEOGRAM       "Use system geogram if exists"          OFF) - Remove support for this until the dependency of mesh_fill_holes.cpp is resolved
 option(USE_SYSTEM_LIBIGL        "Use system libigl if exists"           OFF)
 option(USE_SYSTEM_SIMDE         "Use system simde if exists"            OFF)

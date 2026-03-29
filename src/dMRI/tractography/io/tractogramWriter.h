@@ -3,6 +3,8 @@
 #include <string>
 #include <vector>
 #include <memory>
+#include <map>
+#include <cstdint>
 #include "base/nibr.h"
 #include "dMRI/tractography/tractogram.h"
 #include "image/image.h"
@@ -25,7 +27,10 @@ namespace NIBR
 
         // Optional methods for setting context, with default no-op implementations
         virtual void setTRKReference(const Image<bool>& /*reference*/) {}
+        virtual void setTRXReference(const Image<bool>& /*reference*/) {}
         virtual void setVTKFields(const std::vector<TractogramField>& /*fields*/) {}
+        virtual void setTRXFields(const std::vector<TractogramField>& /*fields*/) {}
+        virtual void setTRXDtype(const std::string& /*dtype*/) {}
     };
 
     // Main TractogramWriter class using Pimpl idiom
@@ -41,8 +46,12 @@ namespace NIBR
         // Methods to set context before opening
         template<typename T>
         void setTRKReference(const Image<T>& refImg) {if (pImpl_) { Image<bool> tmp; tmp.createFromTemplate(refImg,false); pImpl_->setTRKReference(tmp);} else {disp(MSG_WARN, "Cannot set TRK reference info: writer implementation is null.");}}
+        template<typename T>
+        void setTRXReference(const Image<T>& refImg) {if (pImpl_) { Image<bool> tmp; tmp.createFromTemplate(refImg,false); pImpl_->setTRXReference(tmp);} else {disp(MSG_WARN, "Cannot set TRX reference info: writer implementation is null.");}}
+        void setTRXFields(const std::vector<TractogramField>& fields);
         void setVTKIsAscii(bool isAscii = true); // Has to be used immediately after the constructor
         void setVTKFields(const std::vector<TractogramField>& fields);
+        void setTRXDtype(const std::string& dtype);
 
         bool open();
         bool writeStreamline(const Streamline& streamline);
@@ -92,8 +101,11 @@ namespace NIBR
     // Write a whole tractogram from an in-memory Tractogram object
     bool writeTractogram(std::string out_fname, const Tractogram& tractogram);
 
-    // Write a tractogram with associated field data (primarily for VTK)
+    // Write a tractogram with associated field data (VTK and TRX)
     bool writeTractogram(std::string out_fname, const Tractogram& tractogram, const std::vector<TractogramField>& fields);
+
+    // Write a tractogram with fields and TRX groups (groups ignored for non-TRX formats)
+    bool writeTractogram(std::string out_fname, const Tractogram& tractogram, const std::vector<TractogramField>& fields, const std::map<std::string, std::vector<uint32_t>>& groups);
 
     // Write a subset of streamlines from a TractogramReader using indices
     bool writeTractogram(std::string out_fname, NIBR::TractogramReader* reader, const std::vector<size_t>& idx_to_keep);

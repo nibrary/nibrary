@@ -133,7 +133,7 @@ std::vector<bool> NIBR::tractogramDiff(const StreamlineBatch& inpBatch, const St
 TractogramField NIBR::colorTractogram(NIBR::TractogramReader* tractogram)
 {
 
-    float*** segmentColors = new float**[tractogram->numberOfStreamlines];
+    float*** segmentColors = new float**[tractogram->numberOfStreamlines]{};
 
     // Iterate throught the whole tractogram
 

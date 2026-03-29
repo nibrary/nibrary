@@ -58,11 +58,6 @@
 #include "dMRI/tractography/utility/streamline_operators.h"
 #include "dMRI/tractography/utility/tractogram_operators.h"
 
-#ifdef ENABLE_AUTOENCODER
-#include "dMRI/tractography/autoencoder/streamlineAutoencoder.h"
-#include "dMRI/tractography/autoencoder/streamlineAutoencoder_enc_dec.h"
-#endif
-
 // EEG
 
 // fMRI
@@ -84,7 +79,6 @@
 #include "math/gaussian.h"
 #include "math/reorient.h"
 #include "math/PDE/FDM.h"
-#include "math/pointCloud.h"
 
 // surface
 #include "surface/findSegmentTriangleIntersection.h"
@@ -108,7 +102,4 @@
 #include "image/interpolationCuda.cuh"
 #include "image/image_operatorsCuda.cuh"
 #endif
-
-// external
-#include "nanoflann/nanoflann.hpp"
 

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <map>
+#include <cstdint>
 #include "base/nibr.h"
 #include "base/dataTypeHandler.h"
 #include "dMRI/tractography/io/tractogramReader.h"
@@ -31,10 +33,20 @@ namespace NIBR
     TractogramField readTractogramField(TractogramReader& tractogram,std::string name);
 
     TractogramField makeTractogramFieldFromFile(TractogramReader& tractogram, std::string filePath, std::string name, std::string owner, std::string dataType, int dimension, bool isASCII);
-    
+
     // Make tractogramfield from vector
     template<typename T>
     TractogramField makeTractogramFieldFromVector(TractogramReader& tractogram, std::string name, const std::vector<T>& dataVec);
+
+    // Subset fields and groups by selected streamline indices (for trekker select/filter)
+    std::vector<TractogramField> subsetTractogramFields(
+        const std::vector<TractogramField>& fields,
+        const std::vector<size_t>& indices,
+        TractogramReader& reader);
+
+    std::map<std::string, std::vector<uint32_t>> subsetGroups(
+        const std::map<std::string, std::vector<uint32_t>>& groups,
+        const std::vector<size_t>& indices);
 
 }
 

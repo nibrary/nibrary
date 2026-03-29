@@ -83,11 +83,20 @@ if(BUILDING_LIBZIP_FROM_SOURCE)
                     -DCMAKE_INSTALL_PREFIX=${NIBRARY_EXTERNAL_CMAKE_INSTALL_PREFIX}
                     -DZLIB_INCLUDE_DIR:PATH=${NIBRARY_EXTERNAL_CMAKE_INSTALL_PREFIX}/include
                     -DZLIB_LIBRARY:PATH=${NIBRARY_EXTERNAL_CMAKE_INSTALL_PREFIX}/lib/libz.a
-                    -DENABLE_ZSTD=OFF
                     -DBUILD_EXAMPLES=OFF
                     -DBUILD_DOC=OFF
                     -DBUILD_TOOLS=OFF
                     -DBUILD_REGRESS=OFF
+                    -DENABLE_COMMONCRYPTO=OFF
+                    -DENABLE_GNUTLS=OFF
+                    -DENABLE_OPENSSL=OFF
+                    -DENABLE_WINDOWS_CRYPTO=OFF
+                    -DENABLE_BZIP2=OFF
+                    -DENABLE_LZMA=OFF
+                    -DENABLE_ZSTD=OFF
+                    -DENABLE_FDOPEN=OFF
+                    -DENABLE_COVERAGE=OFF
+                    -DENABLE_MBEDTLS=OFF
         )
 
 
@@ -105,11 +114,20 @@ if(BUILDING_LIBZIP_FROM_SOURCE)
                     -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
                     -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
                     -DCMAKE_INSTALL_PREFIX=${NIBRARY_EXTERNAL_CMAKE_INSTALL_PREFIX}
-                    -DENABLE_ZSTD=OFF
                     -DBUILD_EXAMPLES=OFF
                     -DBUILD_DOC=OFF
                     -DBUILD_TOOLS=OFF
                     -DBUILD_REGRESS=OFF
+                    -DENABLE_COMMONCRYPTO=OFF
+                    -DENABLE_GNUTLS=OFF
+                    -DENABLE_OPENSSL=OFF
+                    -DENABLE_WINDOWS_CRYPTO=OFF
+                    -DENABLE_BZIP2=OFF
+                    -DENABLE_LZMA=OFF
+                    -DENABLE_ZSTD=OFF
+                    -DENABLE_FDOPEN=OFF
+                    -DENABLE_COVERAGE=OFF
+                    -DENABLE_MBEDTLS=OFF
         )
     endif()
 

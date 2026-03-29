@@ -7,9 +7,11 @@ include("${CMAKE_CURRENT_LIST_DIR}/utils.cmake")
 if (USE_SYSTEM_TRX)
     find_package(trx ${TRX_MIN_VERSION} QUIET)
     if (trx_FOUND)
-        set(BUILDING_TRX_FROM_SOURCE FALSE CACHE INTERNAL "Using system trx")
+        set(BUILDING_TRX_CPP_FROM_SOURCE FALSE CACHE INTERNAL "Using system trx")
         set(TRX_INCLUDE_DIR ${TRX_INCLUDE_DIRS} CACHE INTERNAL "")
         message(STATUS "Using system trx")
+    else()
+        set(BUILDING_TRX_CPP_FROM_SOURCE TRUE CACHE INTERNAL "trx-cpp will be built from local source")
     endif()
 endif()
 
@@ -29,7 +31,7 @@ if (NOT trx_FOUND)
             conditional_copy_file("${TRX_PATCH_DIR}/json11.cpp" "${JSON11_TARGET}")
         endif()
 
-        set(BUILDING_TRX_FROM_SOURCE TRUE CACHE INTERNAL "trx-cpp will be built from local source")
+        set(BUILDING_TRX_CPP_FROM_SOURCE TRUE CACHE INTERNAL "trx-cpp will be built from local source")
 
     else()
         
@@ -71,13 +73,13 @@ if (NOT trx_FOUND)
         #     conditional_copy_file("${TRX_PATCH_DIR}/json11.cpp" "${JSON11_TARGET}")
         # endif()
 
-        # set(BUILDING_TRX_FROM_SOURCE TRUE CACHE INTERNAL "trx-cpp will be downloaded")
+        # set(BUILDING_TRX_CPP_FROM_SOURCE TRUE CACHE INTERNAL "trx-cpp will be downloaded")
 
     endif()
 
 endif()
 
-if(BUILDING_TRX_FROM_SOURCE)
+if(BUILDING_TRX_CPP_FROM_SOURCE)
 
     include(ExternalProject)
     
@@ -93,13 +95,13 @@ if(BUILDING_TRX_FROM_SOURCE)
         -DTRX_ENABLE_INSTALL=ON
     )
 
-    ExternalProject_Add(build_trx
+    ExternalProject_Add(build_trx_cpp
         SOURCE_DIR "${TRX_SOURCE_DIR}"
         PREFIX ${CMAKE_BINARY_DIR}/external/trx-cpp
         CMAKE_ARGS ${TRX_CMAKE_ARGS}
     )
 
-    ExternalProject_Add_Step(build_trx POST_BUILD
+    ExternalProject_Add_Step(build_trx_cpp POST_BUILD
         COMMENT "Moving trx headers and libraries"
         DEPENDEES install
         COMMAND ${CMAKE_COMMAND} 

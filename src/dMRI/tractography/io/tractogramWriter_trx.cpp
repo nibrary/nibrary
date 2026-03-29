@@ -1,4 +1,5 @@
 #include "base/nibr.h"      // For disp, SGNTR
+#include "zip.h"
 #include "tractogramWriter_trx.h"
 
 namespace NIBR {

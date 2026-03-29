@@ -157,7 +157,7 @@ if(BUILDING_GEOGRAM_FROM_SOURCE)
 
     ExternalProject_Add_Step(build_geogram move_geogram_headers
         COMMENT "Moving Geogram headers from /include/geogram1/geogram to /include/${nibrary}/geogram"
-        DEPENDEES install # Assuming 'install' is the last step of building geogram, adjust as needed
+        DEPENDEES install
         COMMAND ${CMAKE_COMMAND} 
             -D nibrary=${nibrary} 
             -D NIBRARY_CMAKE_INSTALL_PREFIX=${NIBRARY_CMAKE_INSTALL_PREFIX} 

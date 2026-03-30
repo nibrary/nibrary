@@ -147,10 +147,7 @@ if(BUILDING_LIBZIP_FROM_SOURCE)
         ALWAYS 0 # This ensures the step is only run when the DEPENDEES are updated, not every build
     )
 
-    # We will for now set this as follows, not as ${CMAKE_INSTALL_PREFIX}/include/libzip
-    # This is because mesh_fill_holes function actually uses a geogram .cpp file, which is not ideal but
-    # for now, this was found to be working solution. Until we have a better solution, let's keep the line below.
-    set(LIBZIP_INCLUDE_DIR ${LIBZIP_SOURCE_DIR}/src/lib CACHE INTERNAL "Libzip include directory")
+    set(LIBZIP_INCLUDE_DIR ${CMAKE_INSTALL_PREFIX}/include/${nibrary}/libzip CACHE INTERNAL "Libzip include directory")
     
     if(BUILD_SHARED_LIBS)
 

@@ -58,24 +58,41 @@ if(MSVC)
     add_compile_definitions(NOMINMAX)
 endif()
 
+# --- Libzip ---
 set(TRX_LIBZIP_INCLUDE_DIR "" CACHE PATH "Preferred libzip include directory (overrides detection)")
 set(TRX_LIBZIP_LIBRARY "" CACHE FILEPATH "Preferred libzip library to link against (overrides detection)")
 
-# Try to find libzip but allow overrides via TRX_LIBZIP_LIBRARY / TRX_LIBZIP_INCLUDE_DIR
 find_package(libzip QUIET)
+
+# 1. Check for standard modern CMake targets
 set(TRX_LIBZIP_TARGET "")
-if(TRX_LIBZIP_LIBRARY)
-    # Caller provided a full library path or linkable name
-    set(TRX_LIBZIP_TARGET "${TRX_LIBZIP_LIBRARY}")
-elseif(TARGET libzip::libzip)
+if(TARGET libzip::libzip)
     set(TRX_LIBZIP_TARGET libzip::libzip)
 elseif(TARGET libzip::zip)
     set(TRX_LIBZIP_TARGET libzip::zip)
 elseif(TARGET zip::zip)
     set(TRX_LIBZIP_TARGET zip::zip)
-else()
-    # Defer fatal errors until include/library lookup below.
-    set(TRX_LIBZIP_TARGET "")
+endif()
+
+# 2. If no target was found, or the user provided manual overrides, create our own imported target
+if(TRX_LIBZIP_LIBRARY OR NOT TRX_LIBZIP_TARGET)
+    if(NOT TRX_LIBZIP_LIBRARY)
+        find_library(TRX_LIBZIP_LIBRARY NAMES zip libzip)
+    endif()
+    if(NOT TRX_LIBZIP_INCLUDE_DIR)
+        find_path(TRX_LIBZIP_INCLUDE_DIR NAMES zip.h)
+    endif()
+
+    if(TRX_LIBZIP_LIBRARY AND TRX_LIBZIP_INCLUDE_DIR)
+        add_library(trx_libzip_custom UNKNOWN IMPORTED)
+        set_target_properties(trx_libzip_custom PROPERTIES
+            IMPORTED_LOCATION "${TRX_LIBZIP_LIBRARY}"
+            INTERFACE_INCLUDE_DIRECTORIES "${TRX_LIBZIP_INCLUDE_DIR}"
+        )
+        set(TRX_LIBZIP_TARGET trx_libzip_custom)
+    else()
+        message(FATAL_ERROR "libzip not found. Please install libzip or manually set TRX_LIBZIP_LIBRARY and TRX_LIBZIP_INCLUDE_DIR.")
+    endif()
 endif()
 
 # Eigen3
@@ -112,24 +129,6 @@ elseif(TRX_USE_CONAN)
     message(STATUS "TRX_USE_CONAN enabled but cmake/ConanSetup.cmake not found; skipping Conan.")
 endif()
 
-# Fallback for libzip packages that don't expose include dirs via CMake targets.
-set(TRX_LIBZIP_INCLUDE_DIR "${TRX_LIBZIP_INCLUDE_DIR}" CACHE PATH "Preferred libzip include directory (overrides detection)")
-set(_trx_libzip_includes "")
-if(TRX_LIBZIP_TARGET AND TARGET ${TRX_LIBZIP_TARGET})
-    get_target_property(_trx_libzip_includes ${TRX_LIBZIP_TARGET} INTERFACE_INCLUDE_DIRECTORIES)
-endif()
-if(NOT _trx_libzip_includes)
-    if(TRX_LIBZIP_INCLUDE_DIR)
-        set(_trx_libzip_includes "${TRX_LIBZIP_INCLUDE_DIR}")
-    else()
-        find_path(TRX_LIBZIP_INCLUDE_DIR zip.h)
-        if(NOT TRX_LIBZIP_INCLUDE_DIR)
-            message(FATAL_ERROR "libzip headers not found. Set TRX_LIBZIP_INCLUDE_DIR or provide TRX_LIBZIP_LIBRARY or fix libzip CMake targets.")
-        endif()
-        set(_trx_libzip_includes "${TRX_LIBZIP_INCLUDE_DIR}")
-    endif()
-endif()
-
 TARGET_LINK_LIBRARIES(trx
     PUBLIC
         ${TRX_LIBZIP_TARGET}
@@ -145,12 +144,6 @@ target_include_directories(trx
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
-if(TRX_LIBZIP_INCLUDE_DIR)
-    target_include_directories(trx PUBLIC
-        $<BUILD_INTERFACE:${TRX_LIBZIP_INCLUDE_DIR}>
-        $<INSTALL_INTERFACE:${TRX_LIBZIP_INCLUDE_DIR}>
-    )
-endif()
 
 if(TRX_BUILD_TESTS)
     find_package(GTest CONFIG QUIET)

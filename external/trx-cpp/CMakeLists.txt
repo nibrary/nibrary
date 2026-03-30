@@ -58,6 +58,10 @@ if(MSVC)
     add_compile_definitions(NOMINMAX)
 endif()
 
+if(APPLE)
+  add_compile_options(-Wno-nullability-extension)
+endif()
+
 # --- Libzip ---
 set(TRX_LIBZIP_INCLUDE_DIR "" CACHE PATH "Preferred libzip include directory (overrides detection)")
 set(TRX_LIBZIP_LIBRARY "" CACHE FILEPATH "Preferred libzip library to link against (overrides detection)")

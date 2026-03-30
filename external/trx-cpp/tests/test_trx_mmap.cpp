@@ -1,0 +1,1049 @@
+#include <filesystem>
+#include <fstream>
+#include <gtest/gtest.h>
+#include <memory>
+#include <random>
+#include <stdexcept>
+#include <sys/stat.h>
+#include <system_error>
+#include <trx/trx.h>
+#include <typeinfo>
+#include <zip.h>
+
+using namespace Eigen;
+using ::json;
+using trx::TrxFile;
+using trx::TrxScalarType;
+namespace fs = std::filesystem;
+
+namespace {
+std::string get_test_data_root() {
+  const auto *env = std::getenv("TRX_TEST_DATA_DIR");
+  if (env == nullptr || std::string(env).empty()) {
+    return {};
+  }
+  return std::string(env);
+}
+
+fs::path resolve_memmap_test_data_dir(const std::string &root_dir) {
+  fs::path root(root_dir);
+  fs::path memmap_dir = root / "memmap_test_data";
+  if (fs::exists(memmap_dir)) {
+    return memmap_dir;
+  }
+  return root;
+}
+
+struct TestTrxFixture {
+  fs::path root_dir;
+  std::string path;
+  std::string dir_path;
+  json expected_header;
+  int nb_vertices;
+  int nb_streamlines;
+
+  TestTrxFixture() = default;
+  TestTrxFixture(const TestTrxFixture &) = delete;
+  TestTrxFixture &operator=(const TestTrxFixture &) = delete;
+
+  TestTrxFixture(TestTrxFixture &&other) noexcept
+      : root_dir(std::move(other.root_dir)),
+        path(std::move(other.path)),
+        dir_path(std::move(other.dir_path)),
+        expected_header(std::move(other.expected_header)),
+        nb_vertices(other.nb_vertices),
+        nb_streamlines(other.nb_streamlines) {
+    other.root_dir.clear();
+  }
+
+  TestTrxFixture &operator=(TestTrxFixture &&other) noexcept {
+    if (this != &other) {
+      cleanup();
+      root_dir = std::move(other.root_dir);
+      path = std::move(other.path);
+      dir_path = std::move(other.dir_path);
+      expected_header = std::move(other.expected_header);
+      nb_vertices = other.nb_vertices;
+      nb_streamlines = other.nb_streamlines;
+      other.root_dir.clear();
+    }
+    return *this;
+  }
+
+  ~TestTrxFixture() { cleanup(); }
+
+  void cleanup() {
+    std::error_code ec;
+    if (!root_dir.empty()) {
+      fs::remove_all(root_dir, ec);
+      if (ec) {
+        std::cerr << "Failed to clean up test directory " << root_dir.string() << ": " << ec.message() << std::endl;
+      }
+      root_dir.clear();
+    }
+  }
+};
+
+fs::path make_temp_test_dir(const std::string &prefix) {
+  std::error_code ec;
+  auto base = fs::temp_directory_path(ec);
+  if (ec) {
+    throw std::runtime_error("Failed to get temp directory: " + ec.message());
+  }
+
+  static std::mt19937_64 rng(std::random_device{}());
+  std::uniform_int_distribution<uint64_t> dist;
+
+  for (int attempt = 0; attempt < 100; ++attempt) {
+    fs::path candidate = base / (prefix + "_" + std::to_string(dist(rng)));
+    std::error_code dir_ec;
+    if (fs::create_directory(candidate, dir_ec)) {
+      return candidate;
+    }
+    if (dir_ec && dir_ec != std::errc::file_exists) {
+      throw std::runtime_error("Failed to create temporary directory: " + dir_ec.message());
+    }
+  }
+  throw std::runtime_error("Unable to create unique temporary directory");
+}
+
+TestTrxFixture create_fixture() {
+
+  TestTrxFixture fixture;
+  fs::path root_dir = make_temp_test_dir("trx_test");
+  fs::path trx_dir = root_dir / "trx_data";
+  std::error_code ec;
+  if (!fs::create_directory(trx_dir, ec) && ec) {
+    throw std::runtime_error("Failed to create trx data directory: " + ec.message());
+  }
+
+  fixture.root_dir = root_dir;
+  fixture.path = (root_dir / "small.trx").string();
+  fixture.dir_path = trx_dir.string();
+  fixture.nb_vertices = 12;
+  fixture.nb_streamlines = 4;
+
+  json::object header_obj;
+  header_obj["DIMENSIONS"] = json::array{117, 151, 115};
+  header_obj["NB_STREAMLINES"] = fixture.nb_streamlines;
+  header_obj["NB_VERTICES"] = fixture.nb_vertices;
+  header_obj["VOXEL_TO_RASMM"] = json::array{
+      json::array{-1.25, 0.0, 0.0, 72.5},
+      json::array{0.0, 1.25, 0.0, -109.75},
+      json::array{0.0, 0.0, 1.25, -64.5},
+      json::array{0.0, 0.0, 0.0, 1.0},
+  };
+  fixture.expected_header = json(header_obj);
+
+  // Write header.json
+  fs::path header_path = trx_dir / "header.json";
+  std::ofstream header_out(header_path.string());
+  if (!header_out.is_open()) {
+    throw std::runtime_error("Failed to write header.json");
+  }
+  header_out << fixture.expected_header.dump() << std::endl;
+  header_out.close();
+
+  // Write positions (float16)
+  Matrix<half, Dynamic, Dynamic, RowMajor> positions(fixture.nb_vertices, 3);
+  positions.setZero();
+  fs::path positions_path = trx_dir / "positions.3.float16";
+  trx::write_binary(positions_path.string(), positions);
+  struct stat sb;
+  if (stat(positions_path.string().c_str(), &sb) != 0) {
+    throw std::runtime_error("Failed to stat positions file");
+  }
+  const size_t expected_positions_bytes = fixture.nb_vertices * 3 * sizeof(half);
+  if (static_cast<size_t>(sb.st_size) != expected_positions_bytes) {
+    throw std::runtime_error("Positions file size mismatch");
+  }
+
+  // Write offsets (uint64) with sentinel (NB_STREAMLINES + 1)
+  Matrix<uint64_t, Dynamic, Dynamic, RowMajor> offsets(fixture.nb_streamlines + 1, 1);
+  for (int i = 0; i < fixture.nb_streamlines; ++i) {
+    offsets(i, 0) = static_cast<uint64_t>(i * (fixture.nb_vertices / fixture.nb_streamlines));
+  }
+  offsets(fixture.nb_streamlines, 0) = static_cast<uint64_t>(fixture.nb_vertices);
+
+  fs::path offsets_path = trx_dir / "offsets.uint64";
+  trx::write_binary(offsets_path.string(), offsets);
+  if (stat(offsets_path.string().c_str(), &sb) != 0) {
+    throw std::runtime_error("Failed to stat offsets file");
+  }
+  const size_t expected_offsets_bytes = (fixture.nb_streamlines + 1) * sizeof(uint64_t);
+  if (static_cast<size_t>(sb.st_size) != expected_offsets_bytes) {
+    throw std::runtime_error("Offsets file size mismatch");
+  }
+
+  // Zip the directory into a trx file without compression
+  int errorp = 0;
+  zip_t *zf = zip_open(fixture.path.c_str(), ZIP_CREATE | ZIP_TRUNCATE, &errorp);
+  if (zf == nullptr) {
+    throw std::runtime_error("Failed to create trx zip file");
+  }
+  trx::zip_from_folder(zf, trx_dir.string(), trx_dir.string(), ZIP_CM_STORE, nullptr);
+  if (zip_close(zf) != 0) {
+    throw std::runtime_error("Failed to close trx zip file");
+  }
+
+  // Validate zip entry sizes
+  int zip_err = 0;
+  zip_t *verify_zip = trx::open_zip_for_read(fixture.path, zip_err);
+  if (verify_zip == nullptr) {
+    throw std::runtime_error("Failed to reopen trx zip file");
+  }
+  zip_stat_t stat_buf;
+  if (zip_stat(verify_zip, "offsets.uint64", ZIP_FL_UNCHANGED, &stat_buf) != 0 ||
+      static_cast<size_t>(stat_buf.size) != expected_offsets_bytes) {
+    zip_close(verify_zip);
+    throw std::runtime_error("Zip offsets entry size mismatch");
+  }
+  if (zip_stat(verify_zip, "positions.3.float16", ZIP_FL_UNCHANGED, &stat_buf) != 0 ||
+      static_cast<size_t>(stat_buf.size) != expected_positions_bytes) {
+    zip_close(verify_zip);
+    throw std::runtime_error("Zip positions entry size mismatch");
+  }
+  zip_close(verify_zip);
+
+  return fixture;
+}
+
+const TestTrxFixture &get_fixture() {
+  static TestTrxFixture fixture = create_fixture();
+  return fixture;
+}
+} // namespace
+
+std::unique_ptr<TrxFile<float>> create_small_trx() {
+  auto trx = std::make_unique<TrxFile<float>>(8, 4);
+
+  auto &positions = trx->streamlines->_data;
+  auto &offsets = trx->streamlines->_offsets;
+  auto &lengths = trx->streamlines->_lengths;
+
+  lengths(0) = 2;
+  lengths(1) = 2;
+  lengths(2) = 3;
+  lengths(3) = 1;
+
+  offsets(0, 0) = 0;
+  offsets(1, 0) = 2;
+  offsets(2, 0) = 4;
+  offsets(3, 0) = 7;
+  offsets(4, 0) = 8;
+
+  positions(0, 0) = 0.0f;
+  positions(0, 1) = 0.0f;
+  positions(0, 2) = 0.0f;
+  positions(1, 0) = 1.0f;
+  positions(1, 1) = 1.0f;
+  positions(1, 2) = 1.0f;
+
+  positions(2, 0) = 10.0f;
+  positions(2, 1) = 0.0f;
+  positions(2, 2) = 0.0f;
+  positions(3, 0) = 11.0f;
+  positions(3, 1) = 0.0f;
+  positions(3, 2) = 0.0f;
+
+  positions(4, 0) = -5.0f;
+  positions(4, 1) = 5.0f;
+  positions(4, 2) = 0.0f;
+  positions(5, 0) = -5.0f;
+  positions(5, 1) = 6.0f;
+  positions(5, 2) = 0.0f;
+  positions(6, 0) = -5.0f;
+  positions(6, 1) = 7.0f;
+  positions(6, 2) = 0.0f;
+
+  positions(7, 0) = 0.0f;
+  positions(7, 1) = 0.0f;
+  positions(7, 2) = 9.0f;
+
+  std::vector<float> dpv_values{100.0f, 101.0f, 102.0f, 103.0f,
+                                104.0f, 105.0f, 106.0f, 107.0f};
+  trx->add_dpv_from_vector("dpv1", "float32", dpv_values);
+
+  std::vector<float> dps_values{1.0f, 2.0f, 3.0f, 4.0f};
+  trx->add_dps_from_vector("dps1", "float32", dps_values);
+
+  trx->add_group_from_indices("g1", std::vector<uint32_t>{0, 2});
+  trx->add_group_from_indices("g2", std::vector<uint32_t>{1, 3});
+
+  std::vector<float> dpg_values{0.5f, 1.5f};
+  trx->add_dpg_from_vector("g1", "dpg1", "float32", dpg_values);
+
+  return trx;
+}
+
+// TODO: Test null filenames. Maybe use MatrixBase instead of ArrayBase
+// TODO: try to update test case to use GTest parameterization
+// Mirrors trx/tests/test_memmap.py::test__generate_filename_from_data.
+TEST(TrxFileMemmap, __generate_filename_from_data) {
+  std::string filename = "mean_fa.uint8";
+  std::string output_fn;
+
+  Matrix<int16_t, 5, 4> arr1;
+  std::string exp_1 = "mean_fa.4.int16";
+
+  output_fn = trx::_generate_filename_from_data(arr1, filename);
+  EXPECT_STREQ(output_fn.c_str(), exp_1.c_str());
+  output_fn.clear();
+
+  Matrix<double, 5, 4> arr2;
+  std::string exp_2 = "mean_fa.4.float64";
+
+  output_fn = trx::_generate_filename_from_data(arr2, filename);
+  EXPECT_STREQ(output_fn.c_str(), exp_2.c_str());
+  output_fn.clear();
+
+  Matrix<double, 5, 1> arr3;
+  std::string exp_3 = "mean_fa.float64";
+
+  output_fn = trx::_generate_filename_from_data(arr3, filename);
+  EXPECT_STREQ(output_fn.c_str(), exp_3.c_str());
+  output_fn.clear();
+}
+
+TEST(TrxFileMemmap, detect_positions_dtype_normalizes_slashes) {
+  const fs::path root_dir = make_temp_test_dir("trx_norm_slash");
+  const fs::path weird_dir = root_dir / "subdir\\nested";
+  std::error_code ec;
+  fs::create_directories(weird_dir, ec);
+  ASSERT_FALSE(ec);
+
+  const fs::path positions_path = weird_dir / "positions.3.float64";
+  std::ofstream out(positions_path.string());
+  ASSERT_TRUE(out.is_open());
+  out.close();
+
+  EXPECT_EQ(trx::detect_positions_dtype(root_dir.string()), "float64");
+}
+
+TEST(TrxFileMemmap, detect_positions_scalar_type_directory) {
+  auto make_dir_with_positions = [](const std::string &suffix) {
+    const fs::path root_dir = make_temp_test_dir("trx_scalar_type");
+    const fs::path positions_path = root_dir / ("positions.3." + suffix);
+    std::ofstream out(positions_path.string());
+    if (!out.is_open()) {
+      throw std::runtime_error("Failed to write positions file");
+    }
+    out.close();
+    return root_dir;
+  };
+
+  const fs::path float16_dir = make_dir_with_positions("float16");
+  const fs::path float32_dir = make_dir_with_positions("float32");
+  const fs::path float64_dir = make_dir_with_positions("float64");
+
+  EXPECT_EQ(trx::detect_positions_scalar_type(float16_dir.string(), TrxScalarType::Float64), TrxScalarType::Float16);
+  EXPECT_EQ(trx::detect_positions_scalar_type(float32_dir.string(), TrxScalarType::Float16), TrxScalarType::Float32);
+  EXPECT_EQ(trx::detect_positions_scalar_type(float64_dir.string(), TrxScalarType::Float32), TrxScalarType::Float64);
+}
+
+TEST(TrxFileMemmap, detect_positions_scalar_type_fallback) {
+  const fs::path empty_dir = make_temp_test_dir("trx_scalar_empty");
+  EXPECT_EQ(trx::detect_positions_scalar_type(empty_dir.string(), TrxScalarType::Float16), TrxScalarType::Float16);
+
+  const fs::path invalid_dir = make_temp_test_dir("trx_scalar_invalid");
+  const fs::path invalid_positions = invalid_dir / "positions.3.txt";
+  std::ofstream out(invalid_positions.string());
+  ASSERT_TRUE(out.is_open());
+  out.close();
+
+  EXPECT_THROW(trx::detect_positions_scalar_type(invalid_dir.string(), TrxScalarType::Float64), trx::TrxError);
+}
+
+TEST(TrxFileMemmap, detect_positions_scalar_type_missing_path) {
+  const fs::path missing = fs::path(make_temp_test_dir("trx_scalar_missing")) / "nope";
+  EXPECT_THROW(trx::detect_positions_scalar_type(missing.string(), TrxScalarType::Float32), trx::TrxError);
+}
+
+TEST(TrxFileMemmap, open_zip_for_read_generic_fallback) {
+#if defined(_WIN32) || defined(_WIN64)
+  const fs::path root_dir = make_temp_test_dir("trx_zip_generic");
+  const fs::path zip_path = root_dir / "sample.trx";
+
+  int errorp = 0;
+  zip_t *zf = zip_open(zip_path.string().c_str(), ZIP_CREATE | ZIP_TRUNCATE, &errorp);
+  ASSERT_NE(zf, nullptr);
+  const char payload[] = "data";
+  zip_source_t *source = zip_source_buffer(zf, payload, sizeof(payload) - 1, 0);
+  ASSERT_NE(source, nullptr);
+  ASSERT_GE(zip_file_add(zf, "dummy.txt", source, ZIP_FL_OVERWRITE), 0);
+  ASSERT_EQ(zip_close(zf), 0);
+
+  std::string alt_path = zip_path.string();
+  std::replace(alt_path.begin(), alt_path.end(), '/', '\\');
+  const std::string generic = fs::path(alt_path).generic_string();
+  if (generic == alt_path) {
+    GTEST_SKIP() << "Generic string did not change on this platform";
+  }
+
+  errorp = 0;
+  zip_t *direct = zip_open(alt_path.c_str(), 0, &errorp);
+  if (direct != nullptr) {
+    zip_close(direct);
+    GTEST_SKIP() << "libzip accepts backslash paths; fallback not exercised";
+  }
+
+  errorp = 0;
+  zip_t *fallback = trx::open_zip_for_read(alt_path, errorp);
+  ASSERT_NE(fallback, nullptr);
+  zip_close(fallback);
+#else
+  GTEST_SKIP() << "Generic path fallback is Windows-only";
+#endif
+}
+
+// Mirrors trx/tests/test_memmap.py::test__split_ext_with_dimensionality.
+TEST(TrxFileMemmap, __split_ext_with_dimensionality) {
+  std::tuple<std::string, int, std::string> output;
+  const std::string fn1 = "mean_fa.float64";
+  std::tuple<std::string, int, std::string> exp1("mean_fa", 1, "float64");
+  output = trx::detail::_split_ext_with_dimensionality(fn1);
+  EXPECT_TRUE(output == exp1);
+
+  const std::string fn2 = "mean_fa.5.int32";
+  std::tuple<std::string, int, std::string> exp2("mean_fa", 5, "int32");
+  output = trx::detail::_split_ext_with_dimensionality(fn2);
+  // std::cout << std::get<0>(output) << " TEST " << std::get<1>(output) << " " <<
+  // std::get<2>(output) << std::endl;
+  EXPECT_TRUE(output == exp2);
+
+  const std::string fn3 = "mean_fa";
+  EXPECT_THROW(
+      {
+        try {
+          output = trx::detail::_split_ext_with_dimensionality(fn3);
+        } catch (const trx::TrxError &e) {
+          EXPECT_STREQ("Invalid filename", e.what());
+          throw;
+        }
+      },
+      trx::TrxFormatError);
+
+  const std::string fn4 = "mean_fa.5.4.int32";
+  EXPECT_THROW(
+      {
+        try {
+          output = trx::detail::_split_ext_with_dimensionality(fn4);
+        } catch (const trx::TrxError &e) {
+          EXPECT_STREQ("Invalid filename", e.what());
+          throw;
+        }
+      },
+      trx::TrxFormatError);
+
+  const std::string fn5 = "mean_fa.fa";
+  EXPECT_THROW(
+      {
+        try {
+          output = trx::detail::_split_ext_with_dimensionality(fn5);
+        } catch (const trx::TrxDTypeError &e) {
+          EXPECT_TRUE(std::string(e.what()).find("Unsupported file extension") != std::string::npos);
+          throw;
+        }
+      },
+      trx::TrxDTypeError);
+}
+
+// Mirrors trx/tests/test_memmap.py::test__compute_lengths.
+TEST(TrxFileMemmap, __compute_lengths) {
+  Matrix<uint64_t, 5, 1> offsets{uint64_t{0}, uint64_t{1}, uint64_t{2}, uint64_t{3}, uint64_t{4}};
+  Matrix<uint32_t, 4, 1> lengths(trx::detail::_compute_lengths(offsets, 4));
+  Matrix<uint32_t, 4, 1> result{uint32_t{1}, uint32_t{1}, uint32_t{1}, uint32_t{1}};
+
+  EXPECT_EQ(lengths, result);
+
+  Matrix<uint64_t, 5, 1> offsets2{uint64_t{0}, uint64_t{1}, uint64_t{1}, uint64_t{3}, uint64_t{4}};
+  Matrix<uint32_t, 4, 1> lengths2(trx::detail::_compute_lengths(offsets2, 4));
+  Matrix<uint32_t, 4, 1> result2{uint32_t{1}, uint32_t{0}, uint32_t{2}, uint32_t{1}};
+
+  EXPECT_EQ(lengths2, result2);
+
+  Matrix<uint64_t, 4, 1> offsets3{uint64_t{0}, uint64_t{1}, uint64_t{2}, uint64_t{4}};
+  Matrix<uint32_t, 3, 1> lengths3(trx::detail::_compute_lengths(offsets3, 4));
+  Matrix<uint32_t, 3, 1> result3{uint32_t{1}, uint32_t{1}, uint32_t{2}};
+
+  EXPECT_EQ(lengths3, result3);
+
+  Matrix<uint64_t, 2, 1> offsets4;
+  offsets4 << uint64_t{0}, uint64_t{2};
+  Matrix<uint32_t, 1, 1> lengths4(trx::detail::_compute_lengths(offsets4, 2));
+  Matrix<uint32_t, 1, 1> result4(uint32_t{2});
+
+  EXPECT_EQ(lengths4, result4);
+
+  Matrix<uint64_t, 0, 0> offsets5;
+  Matrix<uint32_t, 0, 1> lengths5(trx::detail::_compute_lengths(offsets5, 2));
+  EXPECT_EQ(lengths5.size(), 0);
+
+  Matrix<int16_t, 5, 1> offsets6{int16_t(0), int16_t(1), int16_t(2), int16_t(3), int16_t(4)};
+  Matrix<uint32_t, 4, 1> lengths6(trx::detail::_compute_lengths(offsets6, 4));
+  Matrix<uint32_t, 4, 1> result6{uint32_t{1}, uint32_t{1}, uint32_t{1}, uint32_t{1}};
+  EXPECT_EQ(lengths6, result6);
+
+  Matrix<int32_t, 5, 1> offsets7{int32_t(0), int32_t(1), int32_t(1), int32_t(3), int32_t(4)};
+  Matrix<uint32_t, 4, 1> lengths7(trx::detail::_compute_lengths(offsets7, 4));
+  Matrix<uint32_t, 4, 1> result7{uint32_t{1}, uint32_t{0}, uint32_t{2}, uint32_t{1}};
+  EXPECT_EQ(lengths7, result7);
+}
+
+// Mirrors trx/tests/test_memmap.py::test__is_dtype_valid.
+TEST(TrxFileMemmap, __is_dtype_valid) {
+  std::string ext1 = "int16";
+  EXPECT_TRUE(trx::detail::_is_dtype_valid(ext1));
+
+  std::string ext2 = "float32";
+  EXPECT_TRUE(trx::detail::_is_dtype_valid(ext2));
+
+  std::string ext3 = "uint8";
+  EXPECT_TRUE(trx::detail::_is_dtype_valid(ext3));
+
+  std::string ext4 = "ushort";
+  EXPECT_TRUE(trx::detail::_is_dtype_valid(ext4));
+
+  std::string ext5 = "txt";
+  EXPECT_FALSE(trx::detail::_is_dtype_valid(ext5));
+}
+
+// asserts C++ dtype alias behavior.
+TEST(TrxFileMemmap, __sizeof_dtype_ushort_alias) {
+  EXPECT_EQ(trx::detail::_sizeof_dtype("ushort"), sizeof(uint16_t));
+  EXPECT_EQ(trx::detail::_sizeof_dtype("ushort"), trx::detail::_sizeof_dtype("uint16"));
+}
+
+// asserts dtype size mapping and default.
+TEST(TrxFileMemmap, __sizeof_dtype_values) {
+  EXPECT_EQ(trx::detail::_sizeof_dtype("uint8"), sizeof(uint8_t));
+  EXPECT_EQ(trx::detail::_sizeof_dtype("uint16"), sizeof(uint16_t));
+  EXPECT_EQ(trx::detail::_sizeof_dtype("uint32"), sizeof(uint32_t));
+  EXPECT_EQ(trx::detail::_sizeof_dtype("uint64"), sizeof(uint64_t));
+  EXPECT_EQ(trx::detail::_sizeof_dtype("int8"), sizeof(int8_t));
+  EXPECT_EQ(trx::detail::_sizeof_dtype("int16"), sizeof(int16_t));
+  EXPECT_EQ(trx::detail::_sizeof_dtype("int32"), sizeof(int32_t));
+  EXPECT_EQ(trx::detail::_sizeof_dtype("int64"), sizeof(int64_t));
+  EXPECT_EQ(trx::detail::_sizeof_dtype("float32"), sizeof(float));
+  EXPECT_EQ(trx::detail::_sizeof_dtype("float64"), sizeof(double));
+  EXPECT_EQ(trx::detail::_sizeof_dtype("float16"), sizeof(uint16_t));
+  EXPECT_THROW(trx::detail::_sizeof_dtype("unknown"), trx::TrxDTypeError);
+}
+
+// asserts dtype code mapping.
+TEST(TrxFileMemmap, __get_dtype_codes) {
+  EXPECT_EQ(trx::detail::_get_dtype("h"), "uint8");
+  EXPECT_EQ(trx::detail::_get_dtype("t"), "uint16");
+  EXPECT_EQ(trx::detail::_get_dtype("j"), "uint32");
+  EXPECT_EQ(trx::detail::_get_dtype("m"), "uint64");
+  EXPECT_EQ(trx::detail::_get_dtype("y"), "uint64");
+  EXPECT_EQ(trx::detail::_get_dtype("a"), "int8");
+  EXPECT_EQ(trx::detail::_get_dtype("s"), "int16");
+  EXPECT_EQ(trx::detail::_get_dtype("i"), "int32");
+  EXPECT_EQ(trx::detail::_get_dtype("l"), "int64");
+  EXPECT_EQ(trx::detail::_get_dtype("x"), "int64");
+  EXPECT_EQ(trx::detail::_get_dtype("f"), "float32");
+  EXPECT_EQ(trx::detail::_get_dtype("d"), "float64");
+  EXPECT_EQ(trx::detail::_get_dtype("z"), "float16");
+  EXPECT_EQ(trx::detail::_get_dtype("foo"), "float16");
+}
+
+// Mirrors trx/tests/test_memmap.py::test__dichotomic_search.
+TEST(TrxFileMemmap, __dichotomic_search) {
+  Matrix<int, 1, 5> m{0, 1, 2, 3, 4};
+  int result = trx::detail::_dichotomic_search(m);
+  EXPECT_EQ(result, 4);
+
+  Matrix<int, 1, 5> m2{0, 1, 0, 3, 4};
+  int result2 = trx::detail::_dichotomic_search(m2);
+  EXPECT_EQ(result2, 1);
+
+  Matrix<int, 1, 5> m3{0, 1, 2, 0, 4};
+  int result3 = trx::detail::_dichotomic_search(m3);
+  EXPECT_EQ(result3, 2);
+
+  Matrix<int, 1, 5> m4{0, 1, 2, 3, 4};
+  int result4 = trx::detail::_dichotomic_search(m4, 1, 2);
+  EXPECT_EQ(result4, 2);
+
+  Matrix<int, 1, 5> m5{0, 1, 2, 3, 4};
+  int result5 = trx::detail::_dichotomic_search(m5, 3, 3);
+  EXPECT_EQ(result5, 3);
+
+  Matrix<int, 1, 5> m6{0, 0, 0, 0, 0};
+  int result6 = trx::detail::_dichotomic_search(m6, 3, 3);
+  EXPECT_EQ(result6, -1);
+}
+
+// Mirrors trx/tests/test_memmap.py::test__create_memmap (create path).
+TEST(TrxFileMemmap, __create_memmap) {
+
+  fs::path dir = make_temp_test_dir("trx_memmap");
+  fs::path path = dir / "offsets.int16";
+
+  std::tuple<int, int> shape = std::make_tuple(3, 4);
+
+  // Test 1: create file and allocate space assert that correct data is filled
+  mio::shared_mmap_sink empty_mmap = trx::_create_memmap(path.string(), shape);
+  Map<Matrix<half, 3, 4>> expected_m(reinterpret_cast<half *>(empty_mmap.data()));
+  Matrix<half, 3, 4> zero_filled{
+      {half(0), half(0), half(0), half(0)}, {half(0), half(0), half(0), half(0)}, {half(0), half(0), half(0), half(0)}};
+
+  EXPECT_EQ(expected_m, zero_filled);
+
+  // Test 2: edit data and compare mapped values with new mmap
+  for (int i = 0; i < expected_m.size(); i++) {
+    expected_m(i) = half(i);
+  }
+
+  mio::shared_mmap_sink filled_mmap = trx::_create_memmap(path.string(), shape);
+  Map<Matrix<half, 3, 4>> real_m(reinterpret_cast<half *>(filled_mmap.data()), std::get<0>(shape), std::get<1>(shape));
+
+  EXPECT_EQ(expected_m, real_m);
+
+  std::error_code ec;
+  fs::remove_all(dir, ec);
+}
+
+// Mirrors trx/tests/test_memmap.py::test__create_memmap (non-create path).
+TEST(TrxFileMemmap, __create_memmap_empty) {
+  fs::path dir = make_temp_test_dir("trx_memmap_empty");
+  fs::path path = dir / "empty.float32";
+
+  std::tuple<int, int> shape = std::make_tuple(0, 1);
+  mio::shared_mmap_sink empty_mmap = trx::_create_memmap(path.string(), shape);
+
+  struct stat sb;
+  ASSERT_EQ(stat(path.string().c_str(), &sb), 0);
+  EXPECT_EQ(sb.st_size, 0);
+  EXPECT_EQ(empty_mmap.size(), 0u);
+
+  std::error_code ec;
+  fs::remove_all(dir, ec);
+}
+
+// validates header.json parsing in C++.
+TEST(TrxFileMemmap, load_header) {
+  const auto &fixture = get_fixture();
+  int errorp = 0;
+  zip_t *zf = trx::open_zip_for_read(fixture.path, errorp);
+  json root = trx::load_header(zf);
+
+  EXPECT_EQ(root, fixture.expected_header);
+  EXPECT_EQ(root.dump(), fixture.expected_header.dump());
+
+  zip_close(zf);
+}
+
+// TEST(TrxFileMemmap, _load)
+// {
+// }
+
+// TEST(TrxFileMemmap, _load_zip)
+// {
+// }
+
+// TEST(TrxFileMemmap, initialize_empty_trx)
+// {
+// }
+
+// TEST(TrxFileMemmap, _create_trx_from_pointer)
+// {
+// }
+
+// Mirrors trx/tests/test_memmap.py::test_load (small.trx via zip path).
+TEST(TrxFileMemmap, load_zip) {
+  const auto &fixture = get_fixture();
+  trx::TrxReader<half> reader(fixture.path);
+  auto *trx = reader.get();
+  EXPECT_GT(trx->streamlines->_data.size(), 0);
+}
+
+// Mirrors trx/tests/test_memmap.py::test_load for small.trx and small_compressed.trx.
+TEST(TrxFileMemmap, load_zip_test_data) {
+  const auto root = get_test_data_root();
+  if (root.empty()) {
+    GTEST_SKIP() << "TRX_TEST_DATA_DIR not set";
+  }
+  const auto memmap_dir = resolve_memmap_test_data_dir(root);
+
+  const fs::path small_trx = memmap_dir / "small.trx";
+  ASSERT_TRUE(fs::exists(small_trx));
+  trx::TrxReader<half> reader_small(small_trx.string());
+  auto *trx_small = reader_small.get();
+  EXPECT_GT(trx_small->streamlines->_data.size(), 0);
+
+  const fs::path small_compressed = memmap_dir / "small_compressed.trx";
+  ASSERT_TRUE(fs::exists(small_compressed));
+  trx::TrxReader<half> reader_compressed(small_compressed.string());
+  auto *trx_compressed = reader_compressed.get();
+  EXPECT_GT(trx_compressed->streamlines->_data.size(), 0);
+}
+
+// Mirrors trx/tests/test_memmap.py::test_load (small_fldr.trx via directory path).
+TEST(TrxFileMemmap, load_directory) {
+  const auto &fixture = get_fixture();
+  trx::TrxReader<half> reader(fixture.dir_path);
+  auto *trx = reader.get();
+  EXPECT_GT(trx->streamlines->_data.size(), 0);
+}
+
+// Mirrors trx/tests/test_memmap.py::test_load_directory.
+TEST(TrxFileMemmap, load_directory_test_data) {
+  const auto root = get_test_data_root();
+  if (root.empty()) {
+    GTEST_SKIP() << "TRX_TEST_DATA_DIR not set";
+  }
+  const auto memmap_dir = resolve_memmap_test_data_dir(root);
+
+  const fs::path small_dir = memmap_dir / "small_fldr.trx";
+  ASSERT_TRUE(fs::exists(small_dir));
+  trx::TrxReader<half> reader(small_dir.string());
+  auto *trx = reader.get();
+  EXPECT_GT(trx->streamlines->_data.size(), 0);
+}
+
+TEST(TrxFileMemmap, load_mixed_metadata_dtype_into_half_reader) {
+  const fs::path out_dir = make_temp_test_dir("trx_mixed_meta_dtype");
+  const fs::path out_path = out_dir / "mixed.trx";
+
+  trx::TrxStream stream("float16");
+  stream.push_streamline(std::vector<float>{0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f});
+  stream.push_streamline(std::vector<float>{2.0f, 2.0f, 2.0f, 3.0f, 3.0f, 3.0f});
+  stream.push_dps_from_vector("dps1", "float32", std::vector<float>{1.0f, 4.0f});
+  stream.push_dpv_from_vector("dpv1", "float32", std::vector<float>{100.0f, 101.0f, 106.0f, 107.0f});
+  stream.finalize<float>(out_path.string(), ZIP_CM_STORE);
+
+  trx::TrxReader<half> reader(out_path.string());
+  auto *trx = reader.get();
+  ASSERT_NE(trx, nullptr);
+  ASSERT_NE(trx->streamlines, nullptr);
+  EXPECT_GT(trx->streamlines->_data.size(), 0);
+
+  auto dps_it = trx->data_per_streamline.find("dps1");
+  ASSERT_NE(dps_it, trx->data_per_streamline.end());
+  EXPECT_FLOAT_EQ(static_cast<float>(dps_it->second->_matrix(0, 0)), 1.0f);
+  EXPECT_FLOAT_EQ(static_cast<float>(dps_it->second->_matrix(1, 0)), 4.0f);
+
+  auto dpv_it = trx->data_per_vertex.find("dpv1");
+  ASSERT_NE(dpv_it, trx->data_per_vertex.end());
+  EXPECT_FLOAT_EQ(static_cast<float>(dpv_it->second->_data(0, 0)), 100.0f);
+  EXPECT_FLOAT_EQ(static_cast<float>(dpv_it->second->_data(3, 0)), 107.0f);
+
+  trx->close();
+  std::error_code ec;
+  fs::remove_all(out_dir, ec);
+}
+
+TEST(TrxFileMemmap, load_multiple_metadata_dtypes_into_half_reader) {
+  const fs::path out_dir = make_temp_test_dir("trx_multi_meta_dtype");
+  const fs::path dir_path = out_dir / "multi_fldr.trx";
+  std::error_code ec;
+  fs::create_directories(dir_path / "dps", ec);
+  fs::create_directories(dir_path / "dpv", ec);
+
+  json::object header_obj;
+  header_obj["DIMENSIONS"] = json::array{1, 1, 1};
+  header_obj["NB_STREAMLINES"] = 2;
+  header_obj["NB_VERTICES"] = 4;
+  header_obj["VOXEL_TO_RASMM"] = json::array{
+      json::array{1.0, 0.0, 0.0, 0.0},
+      json::array{0.0, 1.0, 0.0, 0.0},
+      json::array{0.0, 0.0, 1.0, 0.0},
+      json::array{0.0, 0.0, 0.0, 1.0},
+  };
+  std::ofstream header_out((dir_path / "header.json").string());
+  ASSERT_TRUE(header_out.is_open());
+  header_out << json(header_obj).dump() << std::endl;
+  header_out.close();
+
+  Matrix<half, Dynamic, Dynamic, RowMajor> positions(4, 3);
+  positions.setZero();
+  trx::write_binary((dir_path / "positions.3.float16").string(), positions);
+
+  Matrix<uint32_t, Dynamic, Dynamic, RowMajor> offsets(3, 1);
+  offsets << 0, 2, 4;
+  trx::write_binary((dir_path / "offsets.uint32").string(), offsets);
+
+  // DPS with mixed dtypes
+  Matrix<float, Dynamic, Dynamic, RowMajor> dps_f32(2, 1);
+  dps_f32 << 1.5f, -2.5f;
+  trx::write_binary((dir_path / "dps" / "dps_f32.float32").string(), dps_f32);
+
+  Matrix<int16_t, Dynamic, Dynamic, RowMajor> dps_i16(2, 1);
+  dps_i16 << 7, -8;
+  trx::write_binary((dir_path / "dps" / "dps_i16.int16").string(), dps_i16);
+
+  // DPV with mixed dtypes
+  Matrix<double, Dynamic, Dynamic, RowMajor> dpv_f64(4, 1);
+  dpv_f64 << 1.25, 2.5, 3.75, 5.0;
+  trx::write_binary((dir_path / "dpv" / "dpv_f64.float64").string(), dpv_f64);
+
+  Matrix<uint8_t, Dynamic, Dynamic, RowMajor> dpv_u8(4, 1);
+  dpv_u8 << 15, 16, 17, 18;
+  trx::write_binary((dir_path / "dpv" / "dpv_u8.uint8").string(), dpv_u8);
+
+  trx::TrxReader<half> reader(dir_path.string());
+  auto *trx = reader.get();
+  ASSERT_NE(trx, nullptr);
+  ASSERT_NE(trx->streamlines, nullptr);
+  EXPECT_GT(trx->streamlines->_data.size(), 0);
+
+  auto expect_dps = [&](const std::string &name, float v0, float v1) {
+    auto it = trx->data_per_streamline.find(name);
+    ASSERT_NE(it, trx->data_per_streamline.end()) << "missing DPS: " << name;
+    EXPECT_FLOAT_EQ(static_cast<float>(it->second->_matrix(0, 0)), v0);
+    EXPECT_FLOAT_EQ(static_cast<float>(it->second->_matrix(1, 0)), v1);
+  };
+  expect_dps("dps_f32", 1.5f, -2.5f);
+  expect_dps("dps_i16", 7.0f, -8.0f);
+
+  auto expect_dpv = [&](const std::string &name, float v0, float v3) {
+    auto it = trx->data_per_vertex.find(name);
+    ASSERT_NE(it, trx->data_per_vertex.end()) << "missing DPV: " << name;
+    EXPECT_FLOAT_EQ(static_cast<float>(it->second->_data(0, 0)), v0);
+    EXPECT_FLOAT_EQ(static_cast<float>(it->second->_data(3, 0)), v3);
+  };
+  expect_dpv("dpv_f64", 1.25f, 5.0f);
+  expect_dpv("dpv_u8", 15.0f, 18.0f);
+
+  trx->close();
+  fs::remove_all(out_dir, ec);
+}
+
+// Mirrors trx/tests/test_memmap.py::test_load with missing path raising.
+TEST(TrxFileMemmap, load_missing_trx_throws) {
+  const auto root = get_test_data_root();
+  if (root.empty()) {
+    GTEST_SKIP() << "TRX_TEST_DATA_DIR not set";
+  }
+  const auto memmap_dir = resolve_memmap_test_data_dir(root);
+
+  const fs::path missing_trx = memmap_dir / "dontexist.trx";
+  EXPECT_THROW(trx::TrxReader<half>(missing_trx.string()), trx::TrxError);
+}
+
+// validates C++ TrxFile initialization.
+TEST(TrxFileMemmap, TrxFile) {
+  auto trx = std::make_unique<TrxFile<half>>();
+
+  // expected header
+  json::object expected_obj;
+  expected_obj["DIMENSIONS"] = json::array{1, 1, 1};
+  expected_obj["NB_STREAMLINES"] = 0;
+  expected_obj["NB_VERTICES"] = 0;
+  expected_obj["VOXEL_TO_RASMM"] = json::array{
+      json::array{1.0, 0.0, 0.0, 0.0},
+      json::array{0.0, 1.0, 0.0, 0.0},
+      json::array{0.0, 0.0, 1.0, 0.0},
+      json::array{0.0, 0.0, 0.0, 1.0},
+  };
+  json expected(expected_obj);
+
+  EXPECT_EQ(trx->header, expected);
+
+  const auto &fixture = get_fixture();
+  int errorp = 0;
+  zip_t *zf = trx::open_zip_for_read(fixture.path, errorp);
+  json root = trx::load_header(zf);
+  auto root_init = std::make_unique<TrxFile<half>>();
+  root_init->header = root;
+  zip_close(zf);
+
+  // TODO: test for now..
+
+  auto trx_init = std::make_unique<TrxFile<half>>(fixture.nb_vertices, fixture.nb_streamlines, root_init.get());
+  json::object init_as_obj;
+  init_as_obj["DIMENSIONS"] = json::array{117, 151, 115};
+  init_as_obj["NB_STREAMLINES"] = fixture.nb_streamlines;
+  init_as_obj["NB_VERTICES"] = fixture.nb_vertices;
+  init_as_obj["VOXEL_TO_RASMM"] = json::array{
+      json::array{-1.25, 0.0, 0.0, 72.5},
+      json::array{0.0, 1.25, 0.0, -109.75},
+      json::array{0.0, 0.0, 1.25, -64.5},
+      json::array{0.0, 0.0, 0.0, 1.0},
+  };
+  json init_as(init_as_obj);
+
+  EXPECT_EQ(root_init->header, init_as);
+  EXPECT_EQ(trx_init->streamlines->_data.size(), fixture.nb_vertices * 3);
+  EXPECT_EQ(trx_init->streamlines->_offsets.size(), fixture.nb_streamlines + 1);
+  EXPECT_EQ(trx_init->streamlines->_lengths.size(), fixture.nb_streamlines);
+}
+
+// validates C++ deepcopy.
+TEST(TrxFileMemmap, deepcopy) {
+  const auto &fixture = get_fixture();
+  trx::TrxReader<half> reader(fixture.path);
+  auto *trx = reader.get();
+  auto copy = trx->deepcopy();
+
+  EXPECT_EQ(trx->header, copy->header);
+  EXPECT_EQ(trx->streamlines->_data, trx->streamlines->_data);
+  EXPECT_EQ(trx->streamlines->_offsets, trx->streamlines->_offsets);
+  EXPECT_EQ(trx->streamlines->_lengths, trx->streamlines->_lengths);
+}
+
+// Mirrors trx/tests/test_memmap.py::test_resize.
+TEST(TrxFileMemmap, resize) {
+  const auto &fixture = get_fixture();
+  trx::TrxReader<half> reader(fixture.path);
+  auto *trx = reader.get();
+  trx->resize();
+  trx->resize(10);
+}
+// exercises save paths in C++.
+TEST(TrxFileMemmap, save) {
+  const auto &fixture = get_fixture();
+  trx::TrxReader<half> reader(fixture.path);
+  auto *trx = reader.get();
+  trx->save("testsave");
+  trx->save("testsave.trx");
+
+  // trx::TrxFile<half> *saved = trx::load_from_zip<half>("testsave.trx");
+  //  EXPECT_EQ(saved->data_per_vertex["color_x.float16"]->_data,
+  //  trx->data_per_vertex["color_x.float16"]->_data);
+}
+
+TEST(TrxFileMemmap, build_streamline_aabbs) {
+  auto trx = create_small_trx();
+  auto aabbs = trx->build_streamline_aabbs();
+  ASSERT_EQ(aabbs.size(), 4u);
+
+  EXPECT_FLOAT_EQ(static_cast<float>(aabbs[0][0]), 0.0f);
+  EXPECT_FLOAT_EQ(static_cast<float>(aabbs[0][3]), 1.0f);
+  EXPECT_FLOAT_EQ(static_cast<float>(aabbs[1][0]), 10.0f);
+  EXPECT_FLOAT_EQ(static_cast<float>(aabbs[1][3]), 11.0f);
+  EXPECT_FLOAT_EQ(static_cast<float>(aabbs[2][1]), 5.0f);
+  EXPECT_FLOAT_EQ(static_cast<float>(aabbs[2][4]), 7.0f);
+  EXPECT_FLOAT_EQ(static_cast<float>(aabbs[3][2]), 9.0f);
+  EXPECT_FLOAT_EQ(static_cast<float>(aabbs[3][5]), 9.0f);
+
+  trx->close();
+}
+
+TEST(TrxFileMemmap, query_aabb_filters_streamlines) {
+  auto trx = create_small_trx();
+  std::array<float, 3> min_corner{9.0f, -1.0f, -1.0f};
+  std::array<float, 3> max_corner{12.0f, 1.0f, 1.0f};
+
+  auto subset = trx->query_aabb(min_corner, max_corner);
+  EXPECT_EQ(subset->num_streamlines(), 1u);
+  EXPECT_EQ(subset->num_vertices(), 2u);
+
+  auto dps_it = subset->data_per_streamline.find("dps1");
+  ASSERT_NE(dps_it, subset->data_per_streamline.end());
+  EXPECT_FLOAT_EQ(dps_it->second->_matrix(0, 0), 2.0f);
+
+  auto dpv_it = subset->data_per_vertex.find("dpv1");
+  ASSERT_NE(dpv_it, subset->data_per_vertex.end());
+  EXPECT_FLOAT_EQ(dpv_it->second->_data(0, 0), 102.0f);
+  EXPECT_FLOAT_EQ(dpv_it->second->_data(1, 0), 103.0f);
+
+  subset->close();
+  trx->close();
+}
+
+TEST(TrxFileMemmap, query_aabb_rejects_bad_aabb_size) {
+  auto trx = create_small_trx();
+  std::array<float, 3> min_corner{-1.0f, -1.0f, -1.0f};
+  std::array<float, 3> max_corner{1.0f, 1.0f, 1.0f};
+
+  std::vector<std::array<Eigen::half, 6>> bad_aabbs(1);
+  EXPECT_THROW(trx->query_aabb(min_corner, max_corner, &bad_aabbs), trx::TrxError);
+
+  trx->close();
+}
+
+TEST(TrxFileMemmap, subset_streamlines_basic) {
+  auto trx = create_small_trx();
+  std::vector<uint32_t> ids{2, 0, 2};
+
+  auto subset = trx->subset_streamlines(ids);
+  EXPECT_EQ(subset->num_streamlines(), 2u);
+  EXPECT_EQ(subset->num_vertices(), 5u);
+
+  auto dps_it = subset->data_per_streamline.find("dps1");
+  ASSERT_NE(dps_it, subset->data_per_streamline.end());
+  EXPECT_FLOAT_EQ(dps_it->second->_matrix(0, 0), 3.0f);
+  EXPECT_FLOAT_EQ(dps_it->second->_matrix(1, 0), 1.0f);
+
+  auto group_it = subset->groups.find("g1");
+  ASSERT_NE(group_it, subset->groups.end());
+  EXPECT_EQ(group_it->second->_matrix(0, 0), 1u);
+  EXPECT_EQ(group_it->second->_matrix(1, 0), 0u);
+
+  auto dpg_it = subset->get_dpg("g1", "dpg1");
+  ASSERT_NE(dpg_it, nullptr);
+  ASSERT_EQ(dpg_it->_matrix.rows(), 1);
+  ASSERT_EQ(dpg_it->_matrix.cols(), 2);
+  EXPECT_FLOAT_EQ(dpg_it->_matrix(0, 0), 0.5f);
+  EXPECT_FLOAT_EQ(dpg_it->_matrix(0, 1), 1.5f);
+
+  subset->close();
+  trx->close();
+}
+
+TEST(TrxFileMemmap, subset_streamlines_empty) {
+  auto trx = create_small_trx();
+  std::vector<uint32_t> ids;
+  auto subset = trx->subset_streamlines(ids);
+  EXPECT_EQ(subset->num_streamlines(), 0u);
+  EXPECT_EQ(subset->num_vertices(), 0u);
+  subset->close();
+  trx->close();
+}
+
+TEST(TrxFileMemmap, subset_streamlines_out_of_range) {
+  auto trx = create_small_trx();
+  std::vector<uint32_t> ids{99};
+  EXPECT_THROW(trx->subset_streamlines(ids), trx::TrxError);
+  trx->close();
+}
+
+TEST(TrxFileMemmap, dpg_api_vector_and_matrix) {
+  auto trx = create_small_trx();
+
+  std::vector<float> values{1.0f, 2.0f, 3.0f, 4.0f};
+  trx->add_dpg_from_vector("g2", "dpg_vec", "float32", values, 2, 2);
+
+  Matrix<float, 1, 3> mat;
+  mat << 5.0f, 6.0f, 7.0f;
+  trx->add_dpg_from_matrix("g2", "dpg_mat", "float32", mat);
+
+  auto fields = trx->list_dpg_fields("g2");
+  EXPECT_EQ(fields.size(), 2u);
+
+  auto dpg_vec = trx->get_dpg("g2", "dpg_vec");
+  ASSERT_NE(dpg_vec, nullptr);
+  EXPECT_FLOAT_EQ(dpg_vec->_matrix(1, 1), 4.0f);
+
+  auto dpg_mat = trx->get_dpg("g2", "dpg_mat");
+  ASSERT_NE(dpg_mat, nullptr);
+  EXPECT_FLOAT_EQ(dpg_mat->_matrix(0, 2), 7.0f);
+
+  trx->remove_dpg("g2", "dpg_vec");
+  EXPECT_EQ(trx->get_dpg("g2", "dpg_vec"), nullptr);
+
+  trx->remove_dpg_group("g2");
+  EXPECT_TRUE(trx->list_dpg_fields("g2").empty());
+
+  trx->close();
+}
+
+TEST(TrxFileMemmap, dpg_api_invalid_inputs) {
+  auto trx = create_small_trx();
+
+  std::vector<float> values{1.0f, 2.0f, 3.0f};
+  EXPECT_THROW(trx->add_dpg_from_vector("", "dpg", "float32", values), trx::TrxError);
+  EXPECT_THROW(trx->add_dpg_from_vector("g1", "", "float32", values), trx::TrxError);
+  EXPECT_THROW(trx->add_dpg_from_vector("g1", "dpg", "int8", values), trx::TrxError);
+  EXPECT_THROW(trx->add_dpg_from_vector("g1", "dpg", "float32", values, 2, 2), trx::TrxError);
+
+  trx->close();
+}
+
+int main(int argc, char **argv) { // check_syntax off
+  ::testing::InitGoogleTest(&argc, argv);
+  return RUN_ALL_TESTS();
+}

@@ -16,12 +16,3 @@
 [submodule "external/simde"]
 	path = external/simde
 	url = https://github.com/simd-everywhere/simde.git
-[submodule "external/dcm2niix"]
-	path = external/dcm2niix
-	url = git@github.com:rordenlab/dcm2niix.git
-[submodule "external/trx-cpp"]
-	path = external/trx-cpp
-	url = git@github.com:tee-ar-ex/trx-cpp.git
-[submodule "external/libzip"]
-	path = external/libzip
-	url = https://github.com/nih-at/libzip.git

@@ -1,5 +1,12 @@
 #include "base/nibr.h"      // For disp, SGNTR
+#if defined(__clang__)
+    #pragma clang diagnostic push
+    #pragma clang diagnostic ignored "-Wnullability-extension"
+#endif
 #include "zip.h"
+#if defined(__clang__)
+    #pragma clang diagnostic pop
+#endif
 #include "tractogramWriter_trx.h"
 
 namespace NIBR {

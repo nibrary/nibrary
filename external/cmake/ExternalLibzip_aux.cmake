@@ -14,17 +14,6 @@ conditional_copy_file("${CMAKE_INSTALL_PREFIX}/include/zip.h" "${NIBRARY_CMAKE_I
 if (NOT BUILD_SHARED_LIBS)
     conditional_copy_file("${CMAKE_INSTALL_PREFIX}/lib/libzip.a" "${NIBRARY_CMAKE_INSTALL_PREFIX}/lib/${nibrary}/libzip.a")
     conditional_copy_file("${CMAKE_INSTALL_PREFIX}/lib/zipstatic.lib" "${NIBRARY_CMAKE_INSTALL_PREFIX}/lib/${nibrary}/zipstatic.lib")
-
-    conditional_remove_file("${CMAKE_INSTALL_PREFIX}/lib/libzip.so")
-    conditional_remove_file("${CMAKE_INSTALL_PREFIX}/lib/libzip.so.1")
-    conditional_remove_file("${CMAKE_INSTALL_PREFIX}/lib/libzip.so.${LIBZIP_MIN_VERSION}")
-
-    conditional_remove_file("${CMAKE_INSTALL_PREFIX}/lib/libzip.dylib")
-    conditional_remove_file("${CMAKE_INSTALL_PREFIX}/lib/libzip.1.dylib")
-    conditional_remove_file("${CMAKE_INSTALL_PREFIX}/lib/libzip.${LIBZIP_MIN_VERSION}.dylib")
-
-    conditional_remove_file("${CMAKE_INSTALL_PREFIX}/lib/zip.lib")
-    conditional_remove_file("${CMAKE_INSTALL_PREFIX}/lib/zip1.dll")
 else()
     conditional_copy_file("${CMAKE_INSTALL_PREFIX}/lib/libzip.so" "${NIBRARY_CMAKE_INSTALL_PREFIX}/lib/${nibrary}/libzip.so")
     conditional_copy_file("${CMAKE_INSTALL_PREFIX}/lib/libzip.so.1" "${NIBRARY_CMAKE_INSTALL_PREFIX}/lib/${nibrary}/libzip.so.1")

@@ -58,29 +58,25 @@ if(MSVC)
     add_compile_definitions(NOMINMAX)
 endif()
 
-set(TRX_LIBZIP_INCLUDE_DIR "" CACHE PATH "Preferred libzip include directory (overrides detection)")
-set(TRX_LIBZIP_LIBRARY "" CACHE FILEPATH "Preferred libzip library to link against (overrides detection)")
-
-# Try to find libzip but allow overrides via TRX_LIBZIP_LIBRARY / TRX_LIBZIP_INCLUDE_DIR
-find_package(libzip QUIET)
+find_package(libzip REQUIRED)
 set(TRX_LIBZIP_TARGET "")
-if(TRX_LIBZIP_LIBRARY)
-    # Caller provided a full library path or linkable name
-    set(TRX_LIBZIP_TARGET "${TRX_LIBZIP_LIBRARY}")
-elseif(TARGET libzip::libzip)
+if(TARGET libzip::libzip)
     set(TRX_LIBZIP_TARGET libzip::libzip)
 elseif(TARGET libzip::zip)
     set(TRX_LIBZIP_TARGET libzip::zip)
 elseif(TARGET zip::zip)
     set(TRX_LIBZIP_TARGET zip::zip)
 else()
-    # Defer fatal errors until include/library lookup below.
-    set(TRX_LIBZIP_TARGET "")
+    message(FATAL_ERROR "No suitable libzip target (expected libzip::libzip or zip::zip)")
 endif()
-
-# Eigen3
-set(EIGEN3_INCLUDE_DIR "${TRX_EIGEN3_INCLUDE_DIR}" CACHE PATH "Eigen3 include dir" FORCE)
-
+# Prefer Eigen3_ROOT so -DEigen3_ROOT=/path/to/eigen-3.4 is used over system Eigen
+if(Eigen3_ROOT)
+  list(PREPEND CMAKE_PREFIX_PATH "${Eigen3_ROOT}")
+endif()
+find_package(Eigen3 3.4 CONFIG QUIET)
+if (NOT Eigen3_FOUND)
+    find_package(Eigen3 REQUIRED) # try module mode
+endif()
 # Create an imported target if the package did not provide one (module mode)
 if (NOT TARGET Eigen3::Eigen AND EXISTS "${EIGEN3_INCLUDE_DIR}")
     add_library(Eigen3::Eigen INTERFACE IMPORTED)
@@ -113,20 +109,12 @@ elseif(TRX_USE_CONAN)
 endif()
 
 # Fallback for libzip packages that don't expose include dirs via CMake targets.
-set(TRX_LIBZIP_INCLUDE_DIR "${TRX_LIBZIP_INCLUDE_DIR}" CACHE PATH "Preferred libzip include directory (overrides detection)")
-set(_trx_libzip_includes "")
-if(TRX_LIBZIP_TARGET AND TARGET ${TRX_LIBZIP_TARGET})
-    get_target_property(_trx_libzip_includes ${TRX_LIBZIP_TARGET} INTERFACE_INCLUDE_DIRECTORIES)
-endif()
+set(TRX_LIBZIP_INCLUDE_DIR "")
+get_target_property(_trx_libzip_includes ${TRX_LIBZIP_TARGET} INTERFACE_INCLUDE_DIRECTORIES)
 if(NOT _trx_libzip_includes)
-    if(TRX_LIBZIP_INCLUDE_DIR)
-        set(_trx_libzip_includes "${TRX_LIBZIP_INCLUDE_DIR}")
-    else()
-        find_path(TRX_LIBZIP_INCLUDE_DIR zip.h)
-        if(NOT TRX_LIBZIP_INCLUDE_DIR)
-            message(FATAL_ERROR "libzip headers not found. Set TRX_LIBZIP_INCLUDE_DIR or provide TRX_LIBZIP_LIBRARY or fix libzip CMake targets.")
-        endif()
-        set(_trx_libzip_includes "${TRX_LIBZIP_INCLUDE_DIR}")
+    find_path(TRX_LIBZIP_INCLUDE_DIR zip.h)
+    if(NOT TRX_LIBZIP_INCLUDE_DIR)
+        message(FATAL_ERROR "libzip headers not found. Set TRX_LIBZIP_INCLUDE_DIR or fix libzip CMake targets.")
     endif()
 endif()
 

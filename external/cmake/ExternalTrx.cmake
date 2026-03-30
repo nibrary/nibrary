@@ -30,6 +30,12 @@ if (NOT trx_FOUND)
             conditional_move("${JSON11_TARGET}" "${JSON11_BACKUP}")
             conditional_copy_file("${TRX_PATCH_DIR}/json11.cpp" "${JSON11_TARGET}")
         endif()
+        if(EXISTS "${TRX_PATCH_DIR}/CMakeLists.txt")
+            set(CMAKELists_TARGET "${TRX_SOURCE_DIR}/CMakeLists.txt")
+            set(CMAKELists_BACKUP "${TRX_SOURCE_DIR}/CMakeLists.txt_bak")
+            conditional_move("${CMAKELists_TARGET}" "${CMAKELists_BACKUP}")
+            conditional_copy_file("${TRX_PATCH_DIR}/CMakeLists.txt" "${CMAKELists_TARGET}")
+        endif()
 
         set(BUILDING_TRX_CPP_FROM_SOURCE TRUE CACHE INTERNAL "trx-cpp will be built from local source")
 
@@ -89,13 +95,9 @@ if(BUILDING_TRX_CPP_FROM_SOURCE)
         -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
         -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
         -DCMAKE_INSTALL_PREFIX=${NIBRARY_EXTERNAL_CMAKE_INSTALL_PREFIX}
-        # Prefer the nibrary install layout so trx's find_package() prefers our internal libs
-        -DCMAKE_PREFIX_PATH=${NIBRARY_CMAKE_INSTALL_PREFIX}
-        # Help trx find our internal Eigen (trx checks Eigen3_ROOT first)
-        -DEigen3_ROOT=${NIBRARY_CMAKE_INSTALL_PREFIX}
-        -DEIGEN3_INCLUDE_DIR=${NIBRARY_CMAKE_INSTALL_PREFIX}/include
-        # Provide libzip include path (trx will use TRX_LIBZIP_INCLUDE_DIR as a fallback)
-        -DTRX_LIBZIP_INCLUDE_DIR=${NIBRARY_CMAKE_INSTALL_PREFIX}/include/${nibrary}/libzip
+        -DTRX_EIGEN3_INCLUDE_DIR=${EIGEN_INCLUDE_DIR}
+        -DTRX_LIBZIP_INCLUDE_DIR=${LIBZIP_INCLUDE_DIR}
+        -DTRX_LIBZIP_LIBRARY=${LIBZIP_LIBRARY}
         -DTRX_BUILD_TESTS=OFF
         -DTRX_BUILD_EXAMPLES=OFF
         -DTRX_ENABLE_INSTALL=ON

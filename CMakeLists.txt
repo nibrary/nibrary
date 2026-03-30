@@ -198,6 +198,7 @@ elseif (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
 
     message(STATUS ">> Nibrary::Building for MacOs")
     add_compile_definitions(APPLE __APPLE__ MACH __MACH__)
+    add_compile_options(-Wno-nullability-extension)
 
 elseif (CMAKE_SYSTEM_NAME STREQUAL "Windows")
 

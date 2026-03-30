@@ -778,19 +778,9 @@ mio::shared_mmap_sink _create_memmap(std::string filename,
     return mio::shared_mmap_sink();
   }
 
-  // Establish mapping without relying on exception-based constructor (MSVC may
-  // compile without exception unwind semantics). Use explicit map() and report
-  // errors via std::error_code.
-  std::error_code mmap_error;
-  mio::shared_mmap_sink rw_mmap;
-  rw_mmap.map(filename, offset, filesize, mmap_error);
-  if (mmap_error) {
-#ifdef __cpp_exceptions
-    throw std::system_error(mmap_error);
-#else
-    std::cerr << "Failed to mmap file '" << filename << "': " << mmap_error.message() << "\n";
-#endif
-  }
+  // std::error_code error;
+
+  mio::shared_mmap_sink rw_mmap(filename, offset, filesize);
 
   return rw_mmap;
 }

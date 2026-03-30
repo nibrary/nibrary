@@ -154,7 +154,7 @@ if(OpenMP_FOUND)
     target_include_directories(${libNibrary} PUBLIC ${OpenMP_CXX_INCLUDE_DIRS})
 endif()
 
-target_link_libraries(${libNibrary} PUBLIC ${ZLIB_LIBRARIES} ${GEOGRAM_LIBRARY} ${TRX_LIBRARY})
+target_link_libraries(${libNibrary} PUBLIC ${ZLIB_LIBRARIES} ${GEOGRAM_LIBRARY} ${TRX_LIBRARY} ${LIBZIP_LIBRARY})
 
 if (BUILD_DCM2NIIX)
     target_link_libraries(${libNibrary} PUBLIC ${DCM2NIIX_LIBRARY})

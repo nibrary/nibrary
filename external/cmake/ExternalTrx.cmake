@@ -89,7 +89,13 @@ if(BUILDING_TRX_CPP_FROM_SOURCE)
         -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
         -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
         -DCMAKE_INSTALL_PREFIX=${NIBRARY_EXTERNAL_CMAKE_INSTALL_PREFIX}
-        -DCMAKE_PREFIX_PATH=${NIBRARY_EXTERNAL_CMAKE_INSTALL_PREFIX}
+        # Prefer the nibrary install layout so trx's find_package() prefers our internal libs
+        -DCMAKE_PREFIX_PATH=${NIBRARY_CMAKE_INSTALL_PREFIX}
+        # Help trx find our internal Eigen (trx checks Eigen3_ROOT first)
+        -DEigen3_ROOT=${NIBRARY_CMAKE_INSTALL_PREFIX}
+        -DEIGEN3_INCLUDE_DIR=${NIBRARY_CMAKE_INSTALL_PREFIX}/include
+        # Provide libzip include path (trx will use TRX_LIBZIP_INCLUDE_DIR as a fallback)
+        -DTRX_LIBZIP_INCLUDE_DIR=${NIBRARY_CMAKE_INSTALL_PREFIX}/include/${nibrary}/libzip
         -DTRX_BUILD_TESTS=OFF
         -DTRX_BUILD_EXAMPLES=OFF
         -DTRX_ENABLE_INSTALL=ON

@@ -83,6 +83,8 @@ if(BUILDING_LIBZIP_FROM_SOURCE)
                     -DCMAKE_INSTALL_PREFIX=${NIBRARY_EXTERNAL_CMAKE_INSTALL_PREFIX}
                     -DZLIB_INCLUDE_DIR:PATH=${ZLIB_INCLUDE_DIRS}
                     -DZLIB_LIBRARY:PATH=${ZLIB_LIBRARIES}
+                    -DCMAKE_CXX_FLAGS=-Wno-nullability-extension
+                    -DCMAKE_C_FLAGS=-Wno-nullability-extension
                     -DBUILD_EXAMPLES=OFF
                     -DBUILD_DOC=OFF
                     -DBUILD_TOOLS=OFF
@@ -114,6 +116,8 @@ if(BUILDING_LIBZIP_FROM_SOURCE)
                     -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
                     -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
                     -DCMAKE_INSTALL_PREFIX=${NIBRARY_EXTERNAL_CMAKE_INSTALL_PREFIX}
+                    -DCMAKE_CXX_FLAGS=-Wno-nullability-extension
+                    -DCMAKE_C_FLAGS=-Wno-nullability-extension
                     -DBUILD_EXAMPLES=OFF
                     -DBUILD_DOC=OFF
                     -DBUILD_TOOLS=OFF

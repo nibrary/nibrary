@@ -36,7 +36,7 @@ if(NOT libzip_FOUND)
         set(LIBZIP_SOURCE_DIR "${CMAKE_BINARY_DIR}/external/libzip-${LIBZIP_MIN_VERSION}")
 
         set(DOWNLOAD_FNAME "libzip-${LIBZIP_MIN_VERSION}.tar.gz")
-        set(DOWNLOAD_URL   "https://github.com/nih-aist/libzip/releases/download/v${LIBZIP_MIN_VERSION}/${DOWNLOAD_FNAME}")
+        set(DOWNLOAD_URL   "https://github.com/nih-at/libzip/releases/download/v${LIBZIP_MIN_VERSION}/${DOWNLOAD_FNAME}")
         set(DOWNLOAD_PATH  "${CMAKE_BINARY_DIR}/external/download/${DOWNLOAD_FNAME}")
         
         if (NOT EXISTS ${DOWNLOAD_PATH})

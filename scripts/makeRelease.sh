@@ -92,6 +92,10 @@ GEOGRAM_GIT_FOLDER="${RELEASE_FOLDER}/external/geogram/.git"
 echo "Removing geogram .git folder: $GEOGRAM_GIT_FOLDER"
 rm -rf $GEOGRAM_GIT_FOLDER
 
+LIBZIP_GIT_FOLDER="${RELEASE_FOLDER}/external/libzip/.git"
+echo "Removing libzip .git folder: $LIBZIP_GIT_FOLDER"
+rm -rf $LIBZIP_GIT_FOLDER
+
 
 
 # ======================================================

@@ -222,6 +222,8 @@ elseif (CMAKE_SYSTEM_NAME STREQUAL "Windows")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${DISABLED_WARNINGS}")
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${DISABLED_WARNINGS}")
 
+    add_compile_definitions(NOMINMAX)
+
     set_target_properties(${libNibrary} PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS TRUE)    
 
 else()

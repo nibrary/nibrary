@@ -85,12 +85,22 @@ if(TRX_LIBZIP_LIBRARY OR NOT TRX_LIBZIP_TARGET)
     endif()
 
     if(TRX_LIBZIP_LIBRARY AND TRX_LIBZIP_INCLUDE_DIR)
-        add_library(trx_libzip_custom UNKNOWN IMPORTED)
+        # Choose imported target type based on library file extension so the linker
+        # behavior is correct on each platform (STATIC vs SHARED).
+        if(TRX_LIBZIP_LIBRARY MATCHES "\\.a$" OR TRX_LIBZIP_LIBRARY MATCHES "\\.lib$")
+            add_library(trx_libzip_custom STATIC IMPORTED)
+        elseif(TRX_LIBZIP_LIBRARY MATCHES "\\.so$" OR TRX_LIBZIP_LIBRARY MATCHES "\\.dylib$")
+            add_library(trx_libzip_custom SHARED IMPORTED)
+        else()
+            add_library(trx_libzip_custom UNKNOWN IMPORTED)
+        endif()
         set_target_properties(trx_libzip_custom PROPERTIES
             IMPORTED_LOCATION "${TRX_LIBZIP_LIBRARY}"
+            IMPORTED_IMPLIB "${TRX_LIBZIP_LIBRARY}"
             INTERFACE_INCLUDE_DIRECTORIES "${TRX_LIBZIP_INCLUDE_DIR}"
         )
         set(TRX_LIBZIP_TARGET trx_libzip_custom)
+        message(STATUS "Using libzip from ${TRX_LIBZIP_LIBRARY} (includes: ${TRX_LIBZIP_INCLUDE_DIR})")
     else()
         message(FATAL_ERROR "libzip not found. Please install libzip or manually set TRX_LIBZIP_LIBRARY and TRX_LIBZIP_INCLUDE_DIR.")
     endif()

@@ -2,6 +2,7 @@
 
 #include "base/nibr.h"
 #include "math/core.h"
+#include "math/sphericalHarmonics_aux.h"
 #include "math/sphericalHarmonics.h"
 #include "image/image.h"
 #include "vector"
@@ -14,10 +15,10 @@ namespace NIBR
     public:
         FOD_Image();
         FOD_Image(std::string _filePath);
-        FOD_Image(const char* _filePath) {FOD_Image(std::string(_filePath));}
+        FOD_Image(const char* _filePath) : FOD_Image(std::string(_filePath)) {}
 
         FOD_Image(std::string _filePath,std::string _sphereFilePath);
-        FOD_Image(const char* _filePath,const char* _sphereFilePath) {FOD_Image(std::string(_filePath), std::string(_sphereFilePath));}
+        FOD_Image(const char* _filePath,const char* _sphereFilePath) : FOD_Image(std::string(_filePath), std::string(_sphereFilePath)) {}
 
 
         ~FOD_Image();
@@ -26,11 +27,11 @@ namespace NIBR
         float   getFODamp(float *p, float* tan) { return fodAmp(this,p,tan);}
         int     getSHorder() {return shOrder;}
         
-        void                            setOrderOfDirections(NIBR::OrderOfDirections ord) {orderOfDirections=ord;}
-        NIBR::OrderOfDirections         getOrderOfDirections()                      {return orderOfDirections;}  
+        void                            setOrderOfDirections(NIBR::OrderOfDirections ord)   {orderOfDirections=ord;}
+        NIBR::OrderOfDirections         getOrderOfDirections()                              {return orderOfDirections;}  
         
-        void                            setSHprecomputationResolution(int num)  {SHprecomputationResolution=num;}
-        int                             getSHprecomputationResolution()         {return SHprecomputationResolution;}  
+        void                            setSHprecomputationResolution(int num)              {SHprecomputationResolution=num;}
+        int                             getSHprecomputationResolution()                     {return SHprecomputationResolution;}  
         
         void                            setdiscretizationFlag(bool f) {discretizationFlag=f;}
         bool                            getdiscretizationFlag()       {return discretizationFlag;}
@@ -38,21 +39,23 @@ namespace NIBR
         bool                            getIsSphereSliced() {return isspheresliced;}        
         std::string                     getSphereFileName() {return sphereFileName;}
 
-        void                            fodIsAsym()   {iseven = false;}
-        void                            fodIsSym()    {iseven = true;}
-        bool                            isFodAsym()   {return !iseven;}
-        bool                            isFodsym()    {return  iseven;}
+        void                            fodIsAsym()   {isAsym = true;}
+        void                            fodIsSym()    {isAsym = false;}
+        bool                            isFodAsym()   {return  isAsym;}
+        bool                            isFodSym()    {return !isAsym;}
 
         std::vector<Point3D>            getCoordinates() { return isspheresliced ? sphereCoords : discVolSphCoords;}
 
 
     private:
-        bool                                iseven;
+        bool                                isAsym;
+        bool                                hasNoOddCoeffs;
         int                                 shOrder;
         int                                 SHprecomputationResolution;
         NIBR::OrderOfDirections             orderOfDirections;
         bool                                discretizationFlag;
-        void                                setSHorder();
+        SH*                                 sh;
+        void                                setSH();
         
         int                                 discVolSphDim;
         int*                                discVolSphInds;

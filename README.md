@@ -111,7 +111,7 @@ nibrary is licensed under the [BSD 3-Clause License](LICENSE.md). Third-party so
 
 
 
-&copy; 2025 Dogu Baran Aydogan, baran.aydogan@uef.fi
+&copy; 2026 Dogu Baran Aydogan, baran.aydogan@uef.fi
 
 
 

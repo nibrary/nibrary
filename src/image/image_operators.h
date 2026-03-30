@@ -15,7 +15,7 @@ typedef unsigned int uint;
 namespace NIBR
 {
 
-    void sf2sh(NIBR::Image<float>* out, NIBR::Image<float>* inp, std::vector<Point3D>& coords, int shOrder);
+    void sf2sh(NIBR::Image<float>* out, NIBR::Image<float>* inp, std::vector<Point3D>& coords, int shOrder, bool ignoreOddCoeffs);
     void sh2sf(NIBR::Image<float>* out, NIBR::Image<float>* inp, std::vector<Point3D>& coords);
 
     void reorientSH(NIBR::Image<float>* img, OrderOfDirections ood);
@@ -167,37 +167,23 @@ namespace NIBR
     template<typename T>
     std::vector<std::vector<int64_t>> getNonZero3DVoxelSubs(NIBR::Image<T>* img) {
 
-        std::vector<std::vector<int64_t>>* nnzVoxelSubs;
-        nnzVoxelSubs = new std::vector<std::vector<int64_t>>[MT::MAXNUMBEROFTHREADS()];
+        std::vector<std::vector<int64_t>> subs;
+        subs.reserve(img->voxCnt);
+        auto data = img->data;
 
-        auto data    = img->data;
-
-        auto findVoxels = [&](const NIBR::MT::TASK& task)->void {
-        
-            int64_t i   = task.no;
-            
-            for (int64_t j=0; j<img->imgDims[1]; j++)
-                for (int64_t k=0; k<img->imgDims[2]; k++)
+        for (int64_t i=0; i<img->imgDims[0]; i++) {
+            for (int64_t j=0; j<img->imgDims[1]; j++) {
+                for (int64_t k=0; k<img->imgDims[2]; k++) {
                     for (int64_t t=0; t<img->imgDims[3]; t++) {
-
-                        if (data[img->sub2ind(i,j,k,t)]!=0){
-                            std::vector<int64_t> tmp{i,j,k};
-                            nnzVoxelSubs[task.threadId].push_back(tmp);
+                        if (data[img->sub2ind(i,j,k,t)] != 0) {
+                            subs.push_back({i,j,k});
                             break;
                         }
-                        
                     }
-        
-        };
-        NIBR::MT::MTRUN(img->imgDims[0], MT::MAXNUMBEROFTHREADS(), findVoxels);  
-
-        std::vector<std::vector<int64_t>> subs;
-
-        for (int i=0; i<MT::MAXNUMBEROFTHREADS(); i++) {
-            subs.insert(subs.end(),nnzVoxelSubs[i].begin(),nnzVoxelSubs[i].end());
+                }
+            }
         }
-        delete[] nnzVoxelSubs;
-
+        // disp(MSG_DETAIL,"Number of non-zero voxels: %d", subs.size());
         return subs;
 
     }

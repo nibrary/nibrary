@@ -1,8 +1,62 @@
 #include "tractogramField.h"
 #include <type_traits>
-#include <cctype> // For toupper
+#include <cctype>      // For toupper
+#include <unordered_map>
 
 using namespace NIBR;
+
+// ---------------------------------------------------------------------------
+// Internal helpers for TRX field deep-copy and subsetting
+// ---------------------------------------------------------------------------
+
+// Deep-copy a vector of TractogramFields (as produced by loadTrxFields).
+// Caller owns the returned allocations and must clearField() each one.
+static std::vector<NIBR::TractogramField> deepCopyTrxFields(
+    const std::vector<NIBR::TractogramField>& src,
+    NIBR::TractogramReader& reader)
+{
+    const auto& cumLen = reader.getNumberOfPoints();
+    std::vector<NIBR::TractogramField> result;
+    result.reserve(src.size());
+
+    for (const auto& f : src) {
+        NIBR::TractogramField dst;
+        dst.owner     = f.owner;
+        dst.name      = f.name;
+        dst.datatype  = f.datatype;
+        dst.dimension = f.dimension;
+        dst.data      = nullptr;
+
+        if (f.data == nullptr || f.datatype != NIBR::FLOAT32_DT) {
+            result.push_back(dst);
+            continue;
+        }
+
+        if (f.owner == NIBR::STREAMLINE_OWNER) {
+            float** s = reinterpret_cast<float**>(f.data);
+            float** d = new float*[reader.numberOfStreamlines];
+            for (size_t i = 0; i < reader.numberOfStreamlines; ++i) {
+                d[i] = new float[f.dimension];
+                for (int k = 0; k < f.dimension; ++k) d[i][k] = s[i][k];
+            }
+            dst.data = reinterpret_cast<void*>(d);
+        } else if (f.owner == NIBR::POINT_OWNER) {
+            float*** s = reinterpret_cast<float***>(f.data);
+            float*** d = new float**[reader.numberOfStreamlines];
+            for (size_t i = 0; i < reader.numberOfStreamlines; ++i) {
+                size_t np = cumLen[i+1] - cumLen[i];
+                d[i] = new float*[np];
+                for (size_t p = 0; p < np; ++p) {
+                    d[i][p] = new float[f.dimension];
+                    for (int k = 0; k < f.dimension; ++k) d[i][p][k] = s[i][p][k];
+                }
+            }
+            dst.data = reinterpret_cast<void*>(d);
+        }
+        result.push_back(dst);
+    }
+    return result;
+}
 
 FILE* initFieldReader(TractogramReader& tractogram) {
 
@@ -62,8 +116,21 @@ std::vector<NIBR::TractogramField> NIBR::findTractogramFields(TractogramReader& 
 {
     std::vector<NIBR::TractogramField> fieldList;
 
+    if (tractogram.fileFormat == TRX) {
+        for (const auto& f : tractogram.getTrxFields()) {
+            TractogramField stub;
+            stub.owner     = f.owner;
+            stub.name      = f.name;
+            stub.datatype  = f.datatype;
+            stub.dimension = f.dimension;
+            stub.data      = nullptr;
+            fieldList.push_back(stub);
+        }
+        return fieldList;
+    }
+
     if (tractogram.fileFormat != VTK_BINARY_3) {
-        disp(MSG_ERROR,"Can only read binary vtk v3 fields.");
+        disp(MSG_ERROR,"Can only read trx or binary vtk v3 fields.");
         return fieldList;
     }
 
@@ -139,8 +206,12 @@ std::vector<NIBR::TractogramField> NIBR::readTractogramFields(TractogramReader& 
 
     std::vector<NIBR::TractogramField> fieldList;
 
+    if (tractogram.fileFormat == TRX) {
+        return deepCopyTrxFields(tractogram.getTrxFields(), tractogram);
+    }
+
     if (tractogram.fileFormat != VTK_BINARY_3) {
-        disp(MSG_ERROR,"Can only read binary vtk v3 fields.");
+        disp(MSG_ERROR,"Can only read trx or binary vtk v3 fields.");
         return fieldList;
     }
 
@@ -298,8 +369,18 @@ std::vector<NIBR::TractogramField> NIBR::readTractogramFields(TractogramReader& 
 }
 
 TractogramField NIBR::readTractogramField(TractogramReader& tractogram,std::string fieldName) {
-    
+
     TractogramField field;
+
+    if (tractogram.fileFormat == TRX) {
+        for (const auto& f : tractogram.getTrxFields()) {
+            if (f.name == fieldName) {
+                auto copies = deepCopyTrxFields({f}, tractogram);
+                return copies.empty() ? TractogramField{} : copies[0];
+            }
+        }
+        return field; // not found
+    }
 
     if (tractogram.fileFormat != VTK_BINARY_3) {
         disp(MSG_ERROR,"Can only read binary vtk v3 fields.");
@@ -653,5 +734,81 @@ TractogramField NIBR::makeTractogramFieldFromFile(TractogramReader& tractogram, 
     disp(MSG_DEBUG, "Read field");
 
     return field;
-    
+
+}
+
+// ---------------------------------------------------------------------------
+// Field and group subsetting (used by trekker select and filter commands)
+// ---------------------------------------------------------------------------
+
+std::vector<NIBR::TractogramField> NIBR::subsetTractogramFields(
+    const std::vector<TractogramField>& fields,
+    const std::vector<size_t>& indices,
+    TractogramReader& reader)
+{
+    const auto& cumLen = reader.getNumberOfPoints();
+    std::vector<TractogramField> result;
+    result.reserve(fields.size());
+
+    for (const auto& f : fields) {
+        TractogramField dst;
+        dst.owner     = f.owner;
+        dst.name      = f.name;
+        dst.datatype  = f.datatype;
+        dst.dimension = f.dimension;
+        dst.data      = nullptr;
+
+        if (f.data == nullptr || f.datatype != FLOAT32_DT) {
+            result.push_back(dst);
+            continue;
+        }
+
+        if (f.owner == STREAMLINE_OWNER) {
+            float** src = reinterpret_cast<float**>(f.data);
+            float** d   = new float*[indices.size()];
+            for (size_t j = 0; j < indices.size(); ++j) {
+                size_t i = indices[j];
+                d[j] = new float[f.dimension];
+                for (int k = 0; k < f.dimension; ++k) d[j][k] = src[i][k];
+            }
+            dst.data = reinterpret_cast<void*>(d);
+        } else if (f.owner == POINT_OWNER) {
+            float*** src = reinterpret_cast<float***>(f.data);
+            float*** d   = new float**[indices.size()];
+            for (size_t j = 0; j < indices.size(); ++j) {
+                size_t i  = indices[j];
+                size_t np = cumLen[i+1] - cumLen[i];
+                d[j] = new float*[np];
+                for (size_t p = 0; p < np; ++p) {
+                    d[j][p] = new float[f.dimension];
+                    for (int k = 0; k < f.dimension; ++k) d[j][p][k] = src[i][p][k];
+                }
+            }
+            dst.data = reinterpret_cast<void*>(d);
+        }
+        result.push_back(dst);
+    }
+    return result;
+}
+
+std::map<std::string, std::vector<uint32_t>> NIBR::subsetGroups(
+    const std::map<std::string, std::vector<uint32_t>>& groups,
+    const std::vector<size_t>& indices)
+{
+    // Build reverse map: original_index -> new_index
+    std::unordered_map<uint32_t, uint32_t> remap;
+    remap.reserve(indices.size());
+    for (size_t j = 0; j < indices.size(); ++j)
+        remap[static_cast<uint32_t>(indices[j])] = static_cast<uint32_t>(j);
+
+    std::map<std::string, std::vector<uint32_t>> result;
+    for (const auto& kv : groups) {
+        std::vector<uint32_t> remapped;
+        for (uint32_t orig : kv.second) {
+            auto it = remap.find(orig);
+            if (it != remap.end()) remapped.push_back(it->second);
+        }
+        if (!remapped.empty()) result[kv.first] = std::move(remapped);
+    }
+    return result;
 }

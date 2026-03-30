@@ -41,6 +41,7 @@ include_directories(${CMAKE_SOURCE_DIR}/external/expat)
 include_directories(${CMAKE_SOURCE_DIR}/external/marchingCubes)
 include_directories(${CMAKE_SOURCE_DIR}/external/triangleVoxelIntersection)
 include_directories(${CMAKE_SOURCE_DIR}/external/unordered_dense)
+include_directories(${CMAKE_SOURCE_DIR}/external/trx-cpp/include)
 
 # List source files
 file(GLOB_RECURSE SRCS CONFIGURE_DEPENDS RELATIVE ${CMAKE_SOURCE_DIR}
@@ -87,7 +88,7 @@ include_directories(${ZLIB_INCLUDE_DIRS})
 include_directories(${GEOGRAM_INCLUDE_DIR})
 include_directories(${LIBIGL_INCLUDE_DIR})
 include_directories(${SIMDE_INCLUDE_DIR})
-include_directories(SYSTEM ${PROXSUITE_INCLUDE_DIR})
+include_directories(${PROXSUITE_INCLUDE_DIR})
 include_directories(${CUDA_INCLUDE_DIR})
 include_directories(${LIBZIP_INCLUDE_DIR})
 include_directories(${TRX_INCLUDE_DIR})
@@ -158,22 +159,6 @@ target_link_libraries(${libNibrary} PUBLIC ${ZLIB_LIBRARIES} ${GEOGRAM_LIBRARY} 
 if (BUILD_DCM2NIIX)
     target_link_libraries(${libNibrary} PUBLIC ${DCM2NIIX_LIBRARY})
 endif()
-
-# if(DEFINED TRX_LIBRARY)
-
-#     if (USE_SYSTEM_LIBZIP)
-#         find_package(libzip QUIET)
-#     else()
-#         add_subdirectory(external/libzip)
-#     endif()
-
-#     if(libzip_FOUND)
-#         get_target_property(_libzip_includes libzip::zip INTERFACE_INCLUDE_DIRECTORIES)
-#         include_directories(SYSTEM ${_libzip_includes})
-#         target_link_libraries(${libNibrary} PUBLIC libzip::zip)
-#     endif()
-#     target_link_libraries(${libNibrary} PUBLIC ${TRX_LIBRARY})
-# endif()
 
 IF(ENABLE_CUDA)
     add_library(CUDA_OBJS OBJECT ${CUDA_SRCS})

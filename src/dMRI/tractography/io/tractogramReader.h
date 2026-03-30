@@ -11,7 +11,15 @@
 #include "math/core.h"
 #include "image/image.h"
 #include "dMRI/tractography/tractogram.h"
+
+#if defined(__clang__)
+    #pragma clang diagnostic push
+    #pragma clang diagnostic ignored "-Wnullability-extension"
+#endif
 #include <trx/trx.h>
+#if defined(__clang__)
+    #pragma clang diagnostic pop
+#endif
 
 namespace NIBR
 {

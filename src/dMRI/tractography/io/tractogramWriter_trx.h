@@ -6,7 +6,16 @@
 #include <vector>
 #include <cstdint>
 #include <Eigen/Dense>
+
+#if defined(__clang__)
+    #pragma clang diagnostic push
+    #pragma clang diagnostic ignored "-Wnullability-extension"
+#endif
 #include <trx/trx.h>
+#if defined(__clang__)
+    #pragma clang diagnostic pop
+#endif
+
 #include "tractogramWriter.h"   // For IBatchWriter, StreamlineBatch
 #include "tractogramField.h"
 

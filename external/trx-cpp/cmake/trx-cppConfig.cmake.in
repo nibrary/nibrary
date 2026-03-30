@@ -1,0 +1,10 @@
+@PACKAGE_INIT@
+
+include(CMakeFindDependencyMacro)
+find_dependency(libzip)
+find_dependency(Eigen3)
+# mio is header-only and vendored; no package required
+
+include("${CMAKE_CURRENT_LIST_DIR}/trx-cppTargets.cmake")
+
+check_required_components("trx-cpp")

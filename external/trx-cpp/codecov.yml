@@ -1,0 +1,17 @@
+coverage:
+  ignore:
+    - "third_party"
+    - "examples"
+    - "bench"
+  status:
+    project:
+      default:
+        paths:
+          - "include/trx"
+          - "src"
+    patch:
+      default:
+        informational: true
+        paths:
+          - "include/trx"
+          - "src"

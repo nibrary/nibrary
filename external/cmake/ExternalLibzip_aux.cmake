@@ -22,6 +22,8 @@ else()
     conditional_copy_file("${CMAKE_INSTALL_PREFIX}/lib/libzip.dylib" "${NIBRARY_CMAKE_INSTALL_PREFIX}/lib/${nibrary}/libzip.dylib")
     conditional_copy_file("${CMAKE_INSTALL_PREFIX}/lib/libzip.1.dylib" "${NIBRARY_CMAKE_INSTALL_PREFIX}/lib/${nibrary}/libzip.1.dylib")
     conditional_copy_file("${CMAKE_INSTALL_PREFIX}/lib/libzip.${LIBZIP_MIN_VERSION}.dylib" "${NIBRARY_CMAKE_INSTALL_PREFIX}/lib/${nibrary}/libzip.${LIBZIP_MIN_VERSION}.dylib")
+    conditional_copy_file("${CMAKE_INSTALL_PREFIX}/lib/libzip.5.dylib" "${NIBRARY_CMAKE_INSTALL_PREFIX}/lib/${nibrary}/libzip.5.dylib")
+    conditional_copy_file("${CMAKE_INSTALL_PREFIX}/lib/libzip.5.5.dylib" "${NIBRARY_CMAKE_INSTALL_PREFIX}/lib/${nibrary}/libzip.5.5.dylib")
 
     conditional_copy_file("${CMAKE_INSTALL_PREFIX}/lib/zip.lib" "${NIBRARY_CMAKE_INSTALL_PREFIX}/lib/${nibrary}/zip.lib")
     conditional_copy_file("${CMAKE_INSTALL_PREFIX}/lib/zip1.dll" "${NIBRARY_CMAKE_INSTALL_PREFIX}/lib/${nibrary}/zip1.dll")

@@ -41,7 +41,6 @@ include_directories(${CMAKE_SOURCE_DIR}/external/expat)
 include_directories(${CMAKE_SOURCE_DIR}/external/marchingCubes)
 include_directories(${CMAKE_SOURCE_DIR}/external/triangleVoxelIntersection)
 include_directories(${CMAKE_SOURCE_DIR}/external/unordered_dense)
-include_directories(${CMAKE_SOURCE_DIR}/external/trx-cpp/include)
 
 # List source files
 file(GLOB_RECURSE SRCS CONFIGURE_DEPENDS RELATIVE ${CMAKE_SOURCE_DIR}
@@ -109,6 +108,7 @@ endif()
 # trx-cpp
 if(BUILDING_TRX_CPP_FROM_SOURCE)
     include_directories(${TRX_INCLUDE_DIR})
+    include_directories(${CMAKE_SOURCE_DIR}/external/trx-cpp/include)
     add_dependencies(OBJS build_trx_cpp)
     # libzip: Depends on zlib. Dependency of trx-cpp.
     if(BUILDING_LIBZIP_FROM_SOURCE)

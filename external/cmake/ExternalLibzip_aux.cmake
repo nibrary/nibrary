@@ -14,6 +14,7 @@ conditional_copy_file("${CMAKE_INSTALL_PREFIX}/include/zip.h" "${NIBRARY_CMAKE_I
 if (NOT BUILD_SHARED_LIBS)
     conditional_copy_file("${CMAKE_INSTALL_PREFIX}/lib/libzip.a" "${NIBRARY_CMAKE_INSTALL_PREFIX}/lib/${nibrary}/libzip.a")
     conditional_copy_file("${CMAKE_INSTALL_PREFIX}/lib/zipstatic.lib" "${NIBRARY_CMAKE_INSTALL_PREFIX}/lib/${nibrary}/zipstatic.lib")
+    conditional_copy_file("${CMAKE_INSTALL_PREFIX}/lib/zip.lib" "${NIBRARY_CMAKE_INSTALL_PREFIX}/lib/${nibrary}/zip.lib")
 else()
     conditional_copy_file("${CMAKE_INSTALL_PREFIX}/lib/libzip.so" "${NIBRARY_CMAKE_INSTALL_PREFIX}/lib/${nibrary}/libzip.so")
     conditional_copy_file("${CMAKE_INSTALL_PREFIX}/lib/libzip.so.1" "${NIBRARY_CMAKE_INSTALL_PREFIX}/lib/${nibrary}/libzip.so.1")

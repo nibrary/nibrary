@@ -177,9 +177,15 @@ endif()
 
 if (UNIX)
 
-    # Optimize for native architecture
-    if (BUILD_NATIVE)
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native")
+    # Architecture optimization
+    if(BUILD_NATIVE)
+        if(APPLE)
+            target_compile_options(${libNibrary} PRIVATE -mcpu=native)  # Apple Silicon (ARM) Clang
+        else()
+            target_compile_options(${libNibrary} PRIVATE -march=native) # Standard Linux x86/ARM
+        endif()
+    else()
+        target_compile_options(${libNibrary} PRIVATE -mtune=generic)
     endif()
 
     # Debug messages

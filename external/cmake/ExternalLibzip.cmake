@@ -65,7 +65,7 @@ endif()
 
 set(LIBZIP_FLAGS "")
 if(NOT MSVC)
-    set(LIBZIP_FLAGS "-Wno-nullability-extension")
+    set(LIBZIP_FLAGS "-Wno-nullability-extension -D_CRT_NONSTDC_NO_DEPRECATE -D_CRT_SECURE_NO_WARNINGS")
 endif()
 
 if(BUILDING_LIBZIP_FROM_SOURCE)
@@ -83,8 +83,11 @@ if(BUILDING_LIBZIP_FROM_SOURCE)
 
         CMAKE_ARGS  -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
                     -DBUILD_SHARED_LIBS=${BUILD_SHARED_LIBS}
+                    -DBUILD_NATIVE=${BUILD_NATIVE}
                     -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
                     -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
+                    -DCMAKE_POLICY_DEFAULT_CMP0091=NEW
+                    -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded$<$<CONFIG:Debug>:Debug>
                     -DCMAKE_INSTALL_PREFIX=${NIBRARY_EXTERNAL_CMAKE_INSTALL_PREFIX}
                     -DZLIB_INCLUDE_DIR:PATH=${ZLIB_INCLUDE_DIRS}
                     -DZLIB_LIBRARY:PATH=${ZLIB_LIBRARIES}
@@ -118,8 +121,11 @@ if(BUILDING_LIBZIP_FROM_SOURCE)
 
         CMAKE_ARGS  -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
                     -DBUILD_SHARED_LIBS=${BUILD_SHARED_LIBS}
+                    -DBUILD_NATIVE=${BUILD_NATIVE}
                     -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}
                     -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
+                    -DCMAKE_POLICY_DEFAULT_CMP0091=NEW
+                    -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded$<$<CONFIG:Debug>:Debug>
                     -DCMAKE_INSTALL_PREFIX=${NIBRARY_EXTERNAL_CMAKE_INSTALL_PREFIX}
                     -DCMAKE_CXX_FLAGS=${LIBZIP_FLAGS}
                     -DCMAKE_C_FLAGS=${LIBZIP_FLAGS}

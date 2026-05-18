@@ -5,12 +5,6 @@ include("${CMAKE_CURRENT_LIST_DIR}/utils.cmake")
 
 # Create directories
 conditional_make_directory("${NIBRARY_CMAKE_INSTALL_PREFIX}/lib/${nibrary}")
-conditional_make_directory("${NIBRARY_CMAKE_INSTALL_PREFIX}/include/${nibrary}/trx-cpp/trx")
-
-# Rename/Copy headers
-conditional_copy_directory("${CMAKE_INSTALL_PREFIX}/include/trx" "${NIBRARY_CMAKE_INSTALL_PREFIX}/include/${nibrary}/trx-cpp/trx")
-conditional_copy_directory("${CMAKE_INSTALL_PREFIX}/include/mio" "${NIBRARY_CMAKE_INSTALL_PREFIX}/include/${nibrary}/trx-cpp/mio")
-conditional_copy_file("${CMAKE_INSTALL_PREFIX}/include/json11.hpp" "${NIBRARY_CMAKE_INSTALL_PREFIX}/include/${nibrary}/trx-cpp/json11.hpp")
 
 # Copy libraries
 if (NOT BUILD_SHARED_LIBS)

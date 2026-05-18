@@ -53,13 +53,12 @@ std::vector<float> NIBR::getTractogramBBox(NIBR::TractogramReader* tractogram) {
 
     tractogram->reset();
 
-    auto [success,firstStreamline,streamlineId] = tractogram->getNextStreamline();
-    bb[0] = firstStreamline[0][0];
-    bb[1] = firstStreamline[0][0];
-    bb[2] = firstStreamline[0][1];
-    bb[3] = firstStreamline[0][1];
-    bb[4] = firstStreamline[0][2];
-    bb[5] = firstStreamline[0][2];
+    bb[0] = std::numeric_limits<float>::max();
+    bb[1] = std::numeric_limits<float>::min();
+    bb[2] = std::numeric_limits<float>::max();
+    bb[3] = std::numeric_limits<float>::min();
+    bb[4] = std::numeric_limits<float>::max();
+    bb[5] = std::numeric_limits<float>::min();
 
     std::mutex modifier;
 
@@ -97,7 +96,7 @@ std::vector<float> NIBR::getTractogramBBox(NIBR::TractogramReader* tractogram) {
         
     };
         
-    NIBR::MT::MTRUN(N-1, NIBR::MT::MAXNUMBEROFTHREADS(), "Finding tractogram bounding box", findBB);
+    NIBR::MT::MTRUN(N, "Finding tractogram bounding box", findBB);
 
     return bb;
 

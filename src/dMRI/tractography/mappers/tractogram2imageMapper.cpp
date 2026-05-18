@@ -1,4 +1,5 @@
 #include "dMRI/tractography/mappers/tractogram2imageMapper.h"
+#include "dMRI/tractography/utility/parallelStreamlineGenerator.h"
 #include <atomic>
 #include <set>
 #include <cfenv>
@@ -289,78 +290,12 @@ bool NIBR::Tractogram2ImageMapper<T1>::processStreamline(StreamlineBatch& kernel
     double p0[3], p1[3], dir[3], length, lengthR, lengthScale, t;
 
     int32_t A[3], B[3];
-    
-    if (std::get<0>(smoothing) > 0 ) {
 
-        // Prepare points to track
-        std::vector<float> scale_N;
-        std::vector<float> scale_B;
-        for (int n=0; n<std::get<1>(smoothing); n++) {
-            scale_N.push_back(NIBR::MT::RNDM()[threadNo]->normal_m0_s1()*std::get<0>(smoothing));
-            scale_B.push_back(NIBR::MT::RNDM()[threadNo]->normal_m0_s1()*std::get<0>(smoothing));
-        }
-
-        // To make the kernel, we will compute the parallel transport frame
-        float T[3], N[3], B[3], curr_T[3];
-        float R_axis[3], R_angle;
-        float R[4][4];
-
-        // Get a random initial PTF and handle the initial point
-        vec3sub(T,kernel[0][1],kernel[0][0]);
-        normalize(T);
-        NIBR::MT::RNDM()[threadNo]->getAUnitRandomPerpVector(N,T);
-        normalize(N);
-        cross(B,T,N);
-
-        for (int n=0; n<std::get<1>(smoothing); n++)
-            for (int i=0; i<3; i++)
-                kernel[n+1][0][i] = kernel[0][0][i] + N[i]*scale_N[n] + + B[i]*scale_B[n];
-
-        for (auto l=1; l<(len-1); l++) {
-
-            vec3sub(curr_T,kernel[0][l+1],kernel[0][l]);
-            normalize(curr_T);
-
-            R_angle = std::acos(std::clamp(dot(T,curr_T),-1.0,1.0));
-
-            curr_T[0] += EPS4;  // for numerical stability reasons
-            curr_T[1] += EPS4;
-            curr_T[2] += EPS4;
-            
-            cross(R_axis,T,curr_T);
-            normalize(R_axis);
-
-            axisangle2Rotation(R_axis, R_angle, R);
-            rotate(curr_T,T,R); // curr_T is used as a temp var
-            rotate(R_axis,N,R); // R_axis is used as a temp var
-
-            T[0] = curr_T[0];
-            T[1] = curr_T[1];
-            T[2] = curr_T[2];
-            normalize(T);
-
-            N[0] = R_axis[0];
-            N[1] = R_axis[1];
-            N[2] = R_axis[2];
-            normalize(N);
-
-            cross(B,T,N);
-
-            for (int n=0; n<std::get<1>(smoothing); n++)
-                for (int i=0; i<3; i++)
-                    kernel[n+1][l][i] = kernel[0][l][i] + N[i]*scale_N[n] + + B[i]*scale_B[n];
-
-        }
-
-        // Repeat the last N, B for the last segment
-        for (int n=0; n<std::get<1>(smoothing); n++)
-            for (int i=0; i<3; i++)
-                kernel[n+1][len-1][i] = kernel[0][len-1][i] + N[i]*scale_N[n] + + B[i]*scale_B[n];
-
-        
+    // Apply anisotropic smoothing
+    if (std::get<1>(smoothing)>1) {
+        const Streamline tmp = kernel[0];
+        kernel = getParallelStreamlines(tmp, std::get<0>(smoothing), std::get<1>(smoothing), threadNo);
     }
-
-    // NIBR::disp(MSG_DETAIL,"Streamline: %d: len: %d", streamlineId, tractogram[threadNo].len[streamlineId]);
 
     for (const auto& streamline : kernel) {
     

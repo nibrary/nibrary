@@ -4,11 +4,6 @@ include("${CMAKE_CURRENT_LIST_DIR}/utils.cmake")
 
 # Create directories
 conditional_make_directory("${NIBRARY_CMAKE_INSTALL_PREFIX}/lib/${nibrary}")
-conditional_make_directory("${NIBRARY_CMAKE_INSTALL_PREFIX}/include/${nibrary}/libzip")
-
-# Rename headers
-conditional_copy_file("${CMAKE_INSTALL_PREFIX}/include/zipconf.h" "${NIBRARY_CMAKE_INSTALL_PREFIX}/include/${nibrary}/libzip/zipconf.h")
-conditional_copy_file("${CMAKE_INSTALL_PREFIX}/include/zip.h" "${NIBRARY_CMAKE_INSTALL_PREFIX}/include/${nibrary}/libzip/zip.h")
 
 # Rename libraries
 if (NOT BUILD_SHARED_LIBS)

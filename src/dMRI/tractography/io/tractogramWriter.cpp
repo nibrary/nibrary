@@ -3,6 +3,7 @@
 #include "base/vectorOperations.h" // For removeIdx
 #include "math/core.h"             // For inverseAffine if needed
 #include "tractogramWriter.h"
+#include "tractogramField.h"
 #include "tractogramWriter_tck.h"
 #include "tractogramWriter_trk.h"
 #include "tractogramWriter_trx.h"
@@ -520,7 +521,9 @@ bool writeTractogram(std::string out_fname, NIBR::TractogramReader* reader, cons
         TractogramWriter writer(out_fname);
         if (!writer.isValid()) return false;
         
-        if (getFileExtension(out_fname) == "trk") {
+        std::string ext = getFileExtension(out_fname);        
+
+        if (ext == "trk") {
             disp(MSG_FATAL, "Can't output selected streamlines with trk format.");
             return false;
         }
@@ -541,8 +544,21 @@ bool writeTractogram(std::string out_fname, NIBR::TractogramReader* reader, cons
         disp(MSG_FATAL, "Can't output selected streamlines with trk format.");
         return false;
     }
-    // TODO: Handle VTK fields if subsetting. This is complex as field data also needs subsetting.
-    // Current implementation does not transfer fields for indexed writing.
+
+    // Handle fields for VTK and TRX formats
+    std::string ext = getFileExtension(out_fname);
+    if (ext == "vtk" || ext == "trx") {
+        std::vector<NIBR::TractogramField> fields_to_keep = NIBR::readTractogramFields(*reader, idx_to_keep);
+        
+        if (ext == "vtk") {
+            writer.setVTKFields(fields_to_keep);
+        } else if (ext == "trx") {
+            writer.setTRXFields(fields_to_keep);
+        }
+
+    }
+    
+
     if (!writer.open())   return false;
 
     reader->reset();
@@ -621,7 +637,15 @@ bool writeTractogram(std::string out_fname, NIBR::TractogramReader* reader, cons
         }
     }
 
-    return writer.close();
+    if (writer.close()) {
+        if (ext == "trx") {
+            auto subGroups = NIBR::subsetGroups(reader->getGroups(), idx_to_keep);
+            trx::append_groups_to_zip(out_fname, subGroups);
+        }
+        return true;
+    }
+    
+    return false;
 }
 
 

@@ -162,7 +162,7 @@ if(BUILDING_LIBZIP_FROM_SOURCE)
         ALWAYS 0 # This ensures the step is only run when the DEPENDEES are updated, not every build
     )
 
-    set(LIBZIP_INCLUDE_DIR ${CMAKE_INSTALL_PREFIX}/include/${nibrary}/libzip CACHE INTERNAL "Libzip include directory")
+    set(LIBZIP_INCLUDE_DIR ${NIBRARY_EXTERNAL_CMAKE_INSTALL_PREFIX}/include CACHE INTERNAL "Libzip include directory")
     
     if(BUILD_SHARED_LIBS)
 

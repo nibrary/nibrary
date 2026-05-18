@@ -85,6 +85,8 @@
 #include "surface/surface2imageMapper.h"
 #include "surface/surface_operators.h"
 #include "surface/surface.h"
+#include "surface/shapes/shapePrimitives.h"
+#include "surface/shapes/shapes.h"
 
 // utility
 #include "utility/seeder/seeder.h"

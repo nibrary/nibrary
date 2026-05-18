@@ -11,15 +11,12 @@
 #include "math/core.h"
 #include "image/image.h"
 #include "dMRI/tractography/tractogram.h"
+#include <Eigen/Core>
 
-#if defined(__clang__)
-    #pragma clang diagnostic push
-    #pragma clang diagnostic ignored "-Wnullability-extension"
-#endif
-#include <trx/trx.h>
-#if defined(__clang__)
-    #pragma clang diagnostic pop
-#endif
+namespace trx {
+    enum class TrxScalarType;
+    template <typename DT> class TrxFile;
+}
 
 namespace NIBR
 {
@@ -171,11 +168,11 @@ namespace NIBR
             short           n_properties_trk;       // TRK file format extension
 
             // TRX specific
-            trx::TrxScalarType     trx_scalar_type = trx::TrxScalarType::Float32;
-            trx::TrxFile<Eigen::half>*  trx_half   = nullptr;
-            trx::TrxFile<float>*        trx_float  = nullptr;
-            trx::TrxFile<double>*       trx_double = nullptr;
-            std::vector<TractogramField>    trxFields;
+            trx::TrxScalarType           trx_scalar_type;
+            trx::TrxFile<Eigen::half>*   trx_half        = nullptr;
+            trx::TrxFile<float>*         trx_float       = nullptr;
+            trx::TrxFile<double>*        trx_double      = nullptr;
+            std::vector<TractogramField> trxFields;
 
     };
 

@@ -4,6 +4,16 @@
 #include <cstring>
 #include <iterator>
 
+#if defined(__clang__)
+    #pragma clang diagnostic push
+    #pragma clang diagnostic ignored "-Wnullability-extension"
+#endif
+#include <trx/trx.h>
+#if defined(__clang__)
+    #pragma clang diagnostic pop
+#endif
+
+
 // Default buffer size for streaming mode
 #define BUFFER_CAPACITY         1000000
 #define DISC_IO_BATCH_SIZE      100000
@@ -133,6 +143,7 @@ void loadTrxFields(trx::TrxFile<DT>* trx,
 			
 NIBR::TractogramReader::TractogramReader(std::string _fileName, bool _preload, bool _loadTrxFields) 
 {
+    trx_scalar_type = trx::TrxScalarType::Float32;
     initReader(_fileName, _preload, _loadTrxFields);
 }
 

@@ -368,6 +368,239 @@ std::vector<NIBR::TractogramField> NIBR::readTractogramFields(TractogramReader& 
 
 }
 
+std::vector<NIBR::TractogramField> NIBR::readTractogramFields(TractogramReader& tractogram, const std::vector<size_t>& indices)
+{
+    std::vector<NIBR::TractogramField> fieldList;
+
+    // TRX: subset in-memory fields
+    if (tractogram.fileFormat == TRX) {
+        const auto& trx = tractogram.getTrxFields();
+        const auto& cumLen = tractogram.getNumberOfPoints();
+
+        for (const auto& f : trx) {
+            TractogramField field;
+            field.name = f.name;
+            field.owner = f.owner;
+            field.datatype = f.datatype;
+            field.dimension = f.dimension;
+            field.data = nullptr;
+
+            if (f.data == nullptr) {
+                fieldList.push_back(field);
+                continue;
+            }
+
+            if (f.datatype == FLOAT32_DT) {
+                if (f.owner == STREAMLINE_OWNER) {
+                    float** src = reinterpret_cast<float**>(f.data);
+                    float** dst = new float*[indices.size()];
+                    for (size_t j = 0; j < indices.size(); ++j) {
+                        size_t sidx = indices[j];
+                        dst[j] = new float[f.dimension];
+                        for (int d = 0; d < f.dimension; ++d) dst[j][d] = src[sidx][d];
+                    }
+                    field.data = reinterpret_cast<void*>(dst);
+                } else if (f.owner == POINT_OWNER) {
+                    float*** src = reinterpret_cast<float***>(f.data);
+                    float*** dst = new float**[indices.size()];
+                    for (size_t j = 0; j < indices.size(); ++j) {
+                        size_t sidx = indices[j];
+                        size_t len = static_cast<size_t>(cumLen[sidx+1] - cumLen[sidx]);
+                        dst[j] = new float*[len];
+                        for (size_t p = 0; p < len; ++p) {
+                            dst[j][p] = new float[f.dimension];
+                            for (int d = 0; d < f.dimension; ++d) dst[j][p][d] = src[sidx][p][d];
+                        }
+                    }
+                    field.data = reinterpret_cast<void*>(dst);
+                }
+            } else if (f.datatype == INT32_DT) {
+                if (f.owner == STREAMLINE_OWNER) {
+                    int** src = reinterpret_cast<int**>(f.data);
+                    int** dst = new int*[indices.size()];
+                    for (size_t j = 0; j < indices.size(); ++j) {
+                        size_t sidx = indices[j];
+                        dst[j] = new int[f.dimension];
+                        for (int d = 0; d < f.dimension; ++d) dst[j][d] = src[sidx][d];
+                    }
+                    field.data = reinterpret_cast<void*>(dst);
+                } else if (f.owner == POINT_OWNER) {
+                    int*** src = reinterpret_cast<int***>(f.data);
+                    int*** dst = new int**[indices.size()];
+                    for (size_t j = 0; j < indices.size(); ++j) {
+                        size_t sidx = indices[j];
+                        size_t len = static_cast<size_t>(cumLen[sidx+1] - cumLen[sidx]);
+                        dst[j] = new int*[len];
+                        for (size_t p = 0; p < len; ++p) {
+                            dst[j][p] = new int[f.dimension];
+                            for (int d = 0; d < f.dimension; ++d) dst[j][p][d] = src[sidx][p][d];
+                        }
+                    }
+                    field.data = reinterpret_cast<void*>(dst);
+                }
+            }
+
+            fieldList.push_back(field);
+        }
+
+        return fieldList;
+    }
+
+    if (tractogram.fileFormat != VTK_BINARY_3) {
+        disp(MSG_ERROR,"Can only read trx or binary vtk v3 fields.");
+        return fieldList;
+    }
+
+    auto input = initFieldReader(tractogram);
+    const auto& cumLen = tractogram.getNumberOfPoints();
+    auto numberOfPoints = cumLen.back();
+
+    const size_t strLength = 256;
+    char  dummy[strLength];
+    char* cname = new char[128];
+    char* type = new char[128];
+    int   dimension;
+    bool  cellDataFound  = false;
+    bool  pointDataFound = false;
+    float tmpf;
+    int   tmpi;
+
+    while(feof(input) == 0) {
+        std::fgets(dummy,strLength,input);
+
+        if (std::string(dummy).find("CELL_DATA")!=std::string::npos) {
+            cellDataFound   = true;
+            pointDataFound  = false;
+            continue;
+        }
+
+        if (std::string(dummy).find("POINT_DATA")!=std::string::npos)  {
+            cellDataFound  = false;
+            pointDataFound = true;
+            continue;
+        }
+
+        if (std::string(dummy).find("SCALARS")!=std::string::npos) {
+
+            std::sscanf(dummy,"SCALARS %s %s %d\n", cname, type, &dimension);
+            std::fgets(dummy,strLength,input); // skip LOOKUP_TABLE
+
+            disp(MSG_DEBUG,"Reading %s (subset)", cname);
+
+            // start of raw data for this field
+            long dataStart = std::ftell(input);
+
+            TractogramField field;
+            field.name = cname;
+            field.dimension = dimension;
+
+            if (cellDataFound==true) {
+
+                field.owner = STREAMLINE_OWNER;
+
+                if (std::string(type)=="float") {
+                    field.datatype = FLOAT32_DT;
+                    float** fdata = new float*[indices.size()];
+                    for (size_t j=0;j<indices.size();++j) {
+                        fdata[j] = new float[dimension];
+                        long offset = dataStart + static_cast<long>(indices[j]) * sizeof(float) * dimension;
+                        std::fseek(input, offset, SEEK_SET);
+                        for (int d=0; d<dimension; ++d) {
+                            std::fread(&tmpf,sizeof(float),1,input);
+                            swapByteOrder(tmpf);
+                            fdata[j][d] = tmpf;
+                        }
+                    }
+                    // seek to end of this full field block
+                    std::fseek(input, dataStart + static_cast<long>(tractogram.numberOfStreamlines) * sizeof(float) * dimension, SEEK_SET);
+                    field.data = reinterpret_cast<void*>(fdata);
+                }
+
+                if (std::string(type)=="int") {
+                    field.datatype = INT32_DT;
+                    int** fdata = new int*[indices.size()];
+                    for (size_t j=0;j<indices.size();++j) {
+                        fdata[j] = new int[dimension];
+                        long offset = dataStart + static_cast<long>(indices[j]) * sizeof(int) * dimension;
+                        std::fseek(input, offset, SEEK_SET);
+                        for (int d=0; d<dimension; ++d) {
+                            std::fread(&tmpi,sizeof(int),1,input);
+                            swapByteOrder(tmpi);
+                            fdata[j][d] = tmpi;
+                        }
+                    }
+                    std::fseek(input, dataStart + static_cast<long>(tractogram.numberOfStreamlines) * sizeof(int) * dimension, SEEK_SET);
+                    field.data = reinterpret_cast<void*>(fdata);
+                }
+
+                tmpi = std::fgetc(input); if (tmpi != '\n') std::ungetc(tmpi,input);
+                fieldList.push_back(field);
+            }
+
+            if (pointDataFound==true) {
+
+                field.owner = POINT_OWNER;
+
+                if (std::string(type)=="float") {
+                    field.datatype = FLOAT32_DT;
+                    float*** fdata = new float**[indices.size()];
+                    for (size_t j=0;j<indices.size();++j) {
+                        size_t s = indices[j];
+                        size_t len = static_cast<size_t>(cumLen[s+1]-cumLen[s]);
+                        fdata[j] = new float*[len];
+                        size_t startPoint = static_cast<size_t>(cumLen[s]);
+                        long offset = dataStart + static_cast<long>(startPoint) * sizeof(float) * dimension;
+                        std::fseek(input, offset, SEEK_SET);
+                        for (size_t l=0; l<len; ++l) {
+                            fdata[j][l] = new float[dimension];
+                            for (int d=0; d<dimension; ++d) {
+                                std::fread(&tmpf,sizeof(float),1,input);
+                                swapByteOrder(tmpf);
+                                fdata[j][l][d] = tmpf;
+                            }
+                        }
+                    }
+                    // seek to end of full point-data block
+                    std::fseek(input, dataStart + static_cast<long>(numberOfPoints) * sizeof(float) * dimension, SEEK_SET);
+                    field.data = reinterpret_cast<void*>(fdata);
+                }
+
+                if (std::string(type)=="int") {
+                    field.datatype = INT32_DT;
+                    int*** fdata = new int**[indices.size()];
+                    for (size_t j=0;j<indices.size();++j) {
+                        size_t s = indices[j];
+                        size_t len = static_cast<size_t>(cumLen[s+1]-cumLen[s]);
+                        fdata[j] = new int*[len];
+                        size_t startPoint = static_cast<size_t>(cumLen[s]);
+                        long offset = dataStart + static_cast<long>(startPoint) * sizeof(int) * dimension;
+                        std::fseek(input, offset, SEEK_SET);
+                        for (size_t l=0; l<len; ++l) {
+                            fdata[j][l] = new int[dimension];
+                            for (int d=0; d<dimension; ++d) {
+                                std::fread(&tmpi,sizeof(int),1,input);
+                                swapByteOrder(tmpi);
+                                fdata[j][l][d] = tmpi;
+                            }
+                        }
+                    }
+                    std::fseek(input, dataStart + static_cast<long>(numberOfPoints) * sizeof(int) * dimension, SEEK_SET);
+                    field.data = reinterpret_cast<void*>(fdata);
+                }
+
+                tmpi = std::fgetc(input); if (tmpi != '\n') std::ungetc(tmpi,input);
+                fieldList.push_back(field);
+            }
+
+        }
+    }
+
+    delete[] cname; delete[] type;
+    fclose(input);
+
+    return fieldList;
+}
+
 TractogramField NIBR::readTractogramField(TractogramReader& tractogram,std::string fieldName) {
 
     TractogramField field;
@@ -546,6 +779,239 @@ TractogramField NIBR::readTractogramField(TractogramReader& tractogram,std::stri
     return field;
 }
 
+TractogramField readTractogramField(TractogramReader& tractogram, std::string name, const std::vector<size_t>& indices)
+{
+    // Efficiently read only the field data for the selected streamlines for given indices
+    TractogramField field;
+
+    // Handle TRX (in-memory) case by copying only requested indices
+    if (tractogram.fileFormat == TRX) {
+        const auto& trx = tractogram.getTrxFields();
+        for (const auto& f : trx) {
+            if (f.name == name) {
+                field.name      = f.name;
+                field.owner     = f.owner;
+                field.datatype  = f.datatype;
+                field.dimension = f.dimension;
+
+                if (f.data == nullptr) return field;
+
+                if (f.datatype == FLOAT32_DT) {
+                    if (f.owner == STREAMLINE_OWNER) {
+                        float** src = reinterpret_cast<float**>(f.data);
+                        float** dst = new float*[indices.size()];
+                        for (size_t j = 0; j < indices.size(); ++j) {
+                            size_t sidx = indices[j];
+                            dst[j] = new float[f.dimension];
+                            for (int d = 0; d < f.dimension; ++d) dst[j][d] = src[sidx][d];
+                        }
+                        field.data = reinterpret_cast<void*>(dst);
+                    } else if (f.owner == POINT_OWNER) {
+                        float*** src = reinterpret_cast<float***>(f.data);
+                        const auto& cumLen = tractogram.getNumberOfPoints();
+                        float*** dst = new float**[indices.size()];
+                        for (size_t j = 0; j < indices.size(); ++j) {
+                            size_t sidx = indices[j];
+                            size_t len = static_cast<size_t>(cumLen[sidx+1] - cumLen[sidx]);
+                            dst[j] = new float*[len];
+                            for (size_t p = 0; p < len; ++p) {
+                                dst[j][p] = new float[f.dimension];
+                                for (int d = 0; d < f.dimension; ++d) dst[j][p][d] = src[sidx][p][d];
+                            }
+                        }
+                        field.data = reinterpret_cast<void*>(dst);
+                    }
+                } else if (f.datatype == INT32_DT) {
+                    if (f.owner == STREAMLINE_OWNER) {
+                        int** src = reinterpret_cast<int**>(f.data);
+                        int** dst = new int*[indices.size()];
+                        for (size_t j = 0; j < indices.size(); ++j) {
+                            size_t sidx = indices[j];
+                            dst[j] = new int[f.dimension];
+                            for (int d = 0; d < f.dimension; ++d) dst[j][d] = src[sidx][d];
+                        }
+                        field.data = reinterpret_cast<void*>(dst);
+                    } else if (f.owner == POINT_OWNER) {
+                        int*** src = reinterpret_cast<int***>(f.data);
+                        const auto& cumLen = tractogram.getNumberOfPoints();
+                        int*** dst = new int**[indices.size()];
+                        for (size_t j = 0; j < indices.size(); ++j) {
+                            size_t sidx = indices[j];
+                            size_t len = static_cast<size_t>(cumLen[sidx+1] - cumLen[sidx]);
+                            dst[j] = new int*[len];
+                            for (size_t p = 0; p < len; ++p) {
+                                dst[j][p] = new int[f.dimension];
+                                for (int d = 0; d < f.dimension; ++d) dst[j][p][d] = src[sidx][p][d];
+                            }
+                        }
+                        field.data = reinterpret_cast<void*>(dst);
+                    }
+                }
+
+                return field;
+            }
+        }
+        return field; // not found
+    }
+
+    // VTK binary case: seek and read only requested indices
+    if (tractogram.fileFormat != VTK_BINARY_3) {
+        disp(MSG_ERROR,"Can only read trx or binary vtk v3 fields.");
+        return field;
+    }
+
+    field.name = name;
+
+    auto    input           = initFieldReader(tractogram);
+    auto&   cumLen          = tractogram.getNumberOfPoints();
+    auto    numberOfPoints  = cumLen.back();
+
+    const size_t strLength = 256;
+
+    char    dummy[strLength];
+    char*   cname   = new char[128];
+    char*   type    = new char[128];
+    int     dimension;
+    bool    cellDataFound  = false;
+    bool    pointDataFound = false;
+    float   tmpf;
+    int     tmpi;
+
+    while (feof(input) == 0) {
+        std::fgets(dummy, strLength, input);
+
+        if (std::string(dummy).find("CELL_DATA") != std::string::npos) {
+            cellDataFound = true;
+            pointDataFound = false;
+            continue;
+        }
+
+        if (std::string(dummy).find("POINT_DATA") != std::string::npos) {
+            cellDataFound = false;
+            pointDataFound = true;
+            continue;
+        }
+
+        if (std::string(dummy).find("SCALARS") != std::string::npos) {
+            std::sscanf(dummy, "SCALARS %s %s %d\n", cname, type, &dimension);
+            std::fgets(dummy, strLength, input); // skip LOOKUP_TABLE line
+
+            if (std::string(cname) == name) {
+
+                // File position is start of raw data for this field
+                long dataStart = std::ftell(input);
+
+                if (cellDataFound) {
+                    // STREAMLINE_OWNER: there are tractogram.numberOfStreamlines entries
+                    field.owner = STREAMLINE_OWNER;
+                    field.dimension = dimension;
+
+                    if (std::string(type) == "float") {
+                        field.datatype = FLOAT32_DT;
+                        float** dst = new float*[indices.size()];
+                        for (size_t j = 0; j < indices.size(); ++j) {
+                            dst[j] = new float[dimension];
+                            long offset = dataStart + static_cast<long>(indices[j]) * sizeof(float) * dimension;
+                            std::fseek(input, offset, SEEK_SET);
+                            for (int d = 0; d < dimension; ++d) {
+                                std::fread(&tmpf, sizeof(float), 1, input);
+                                swapByteOrder(tmpf);
+                                dst[j][d] = tmpf;
+                            }
+                        }
+                        field.data = reinterpret_cast<void*>(dst);
+                    } else if (std::string(type) == "int") {
+                        field.datatype = INT32_DT;
+                        int** dst = new int*[indices.size()];
+                        for (size_t j = 0; j < indices.size(); ++j) {
+                            dst[j] = new int[dimension];
+                            long offset = dataStart + static_cast<long>(indices[j]) * sizeof(int) * dimension;
+                            std::fseek(input, offset, SEEK_SET);
+                            for (int d = 0; d < dimension; ++d) {
+                                std::fread(&tmpi, sizeof(int), 1, input);
+                                swapByteOrder(tmpi);
+                                dst[j][d] = tmpi;
+                            }
+                        }
+                        field.data = reinterpret_cast<void*>(dst);
+                    }
+
+                    tmpi = std::fgetc(input); if (tmpi != '\n') std::ungetc(tmpi, input);
+                    delete[] cname; delete[] type; fclose(input);
+                    return field;
+                }
+
+                if (pointDataFound) {
+                    // POINT_OWNER: data is concatenated per-point across streamlines
+                    field.owner = POINT_OWNER;
+                    field.dimension = dimension;
+
+                    if (std::string(type) == "float") {
+                        field.datatype = FLOAT32_DT;
+                        float*** dst = new float**[indices.size()];
+                        for (size_t j = 0; j < indices.size(); ++j) {
+                            size_t sidx = indices[j];
+                            size_t len = static_cast<size_t>(cumLen[sidx+1] - cumLen[sidx]);
+                            dst[j] = new float*[len];
+                            // compute start point index
+                            size_t startPoint = static_cast<size_t>(cumLen[sidx]);
+                            long offset = dataStart + static_cast<long>(startPoint) * sizeof(float) * dimension;
+                            std::fseek(input, offset, SEEK_SET);
+                            for (size_t p = 0; p < len; ++p) {
+                                dst[j][p] = new float[dimension];
+                                for (int d = 0; d < dimension; ++d) {
+                                    std::fread(&tmpf, sizeof(float), 1, input);
+                                    swapByteOrder(tmpf);
+                                    dst[j][p][d] = tmpf;
+                                }
+                            }
+                        }
+                        field.data = reinterpret_cast<void*>(dst);
+                    } else if (std::string(type) == "int") {
+                        field.datatype = INT32_DT;
+                        int*** dst = new int**[indices.size()];
+                        for (size_t j = 0; j < indices.size(); ++j) {
+                            size_t sidx = indices[j];
+                            size_t len = static_cast<size_t>(cumLen[sidx+1] - cumLen[sidx]);
+                            dst[j] = new int*[len];
+                            size_t startPoint = static_cast<size_t>(cumLen[sidx]);
+                            long offset = dataStart + static_cast<long>(startPoint) * sizeof(int) * dimension;
+                            std::fseek(input, offset, SEEK_SET);
+                            for (size_t p = 0; p < len; ++p) {
+                                dst[j][p] = new int[dimension];
+                                for (int d = 0; d < dimension; ++d) {
+                                    std::fread(&tmpi, sizeof(int), 1, input);
+                                    swapByteOrder(tmpi);
+                                    dst[j][p][d] = tmpi;
+                                }
+                            }
+                        }
+                        field.data = reinterpret_cast<void*>(dst);
+                    }
+
+                    tmpi = std::fgetc(input); if (tmpi != '\n') std::ungetc(tmpi, input);
+                    delete[] cname; delete[] type; fclose(input);
+                    return field;
+                }
+            } else {
+                // not the requested field, skip as before
+                if (cellDataFound==true) {
+                    if (std::string(type)=="float") std::fseek(input,sizeof(float)*tractogram.numberOfStreamlines*dimension,SEEK_CUR);
+                    if (std::string(type)=="int")   std::fseek(input,sizeof(int)*tractogram.numberOfStreamlines*dimension,SEEK_CUR);
+                }
+                if (pointDataFound==true) {
+                    if (std::string(type)=="float") std::fseek(input,sizeof(float)*numberOfPoints*dimension,SEEK_CUR);
+                    if (std::string(type)=="int")   std::fseek(input,sizeof(int)*numberOfPoints*dimension,SEEK_CUR);
+                }
+                tmpi = std::fgetc(input); if (tmpi != '\n') std::ungetc(tmpi,input);
+            }
+        }
+    }
+
+    delete[] cname; delete[] type; fclose(input);
+    return field;
+}
+
 void NIBR::clearField(TractogramField& field,TractogramReader& tractogram)
 {
 
@@ -596,6 +1062,64 @@ void NIBR::clearField(TractogramField& field, Tractogram& tractogram)
         // case COMPLEX64_DT:     clearFieldWrapper<std::complex<double>>(field,tractogram);            break;
         // case COMPLEX128_DT:    clearFieldWrapper<std::complex<long double>>(field,tractogram);       break;
         // case COMPLEX256_DT:    clearFieldWrapper<std::complex<long long double>>(field,tractogram);  break;
+
+        default:
+            disp(MSG_FATAL,"Unknown datatype");
+            break;
+    }
+
+}
+
+void NIBR::clearField(TractogramField& field,TractogramReader& tractogram, const std::vector<size_t>& indices)
+{
+
+    switch (field.datatype) {
+
+        case UNKNOWN_DT:       break;
+        case BOOL_DT:          clearFieldWrapper<bool>(field,tractogram, indices);           break;
+        case UINT8_DT:         clearFieldWrapper<uint8_t>(field,tractogram, indices);        break;
+        case INT8_DT:          clearFieldWrapper<int8_t>(field,tractogram, indices);         break;
+        case UINT16_DT:        clearFieldWrapper<uint16_t>(field,tractogram, indices);       break;
+        case INT16_DT:         clearFieldWrapper<int16_t>(field,tractogram, indices);        break;
+        case UINT32_DT:        clearFieldWrapper<uint32_t>(field,tractogram, indices);       break;
+        case INT32_DT:         clearFieldWrapper<int32_t>(field,tractogram, indices);        break;
+        case UINT64_DT:        clearFieldWrapper<uint64_t>(field,tractogram, indices);       break;
+        case INT64_DT:         clearFieldWrapper<int64_t>(field,tractogram, indices);        break;
+        case FLOAT32_DT:       clearFieldWrapper<float>(field,tractogram, indices);          break;
+        case FLOAT64_DT:       clearFieldWrapper<double>(field,tractogram, indices);         break;
+        case FLOAT128_DT:      clearFieldWrapper<long double>(field,tractogram, indices);    break;
+        // case COMPLEX64_DT:     clearFieldWrapper<std::complex<double>>(field,tractogram, indices);            break;
+        // case COMPLEX128_DT:    clearFieldWrapper<std::complex<long double>>(field,tractogram, indices);       break;
+        // case COMPLEX256_DT:    clearFieldWrapper<std::complex<long long double>>(field,tractogram, indices);  break;
+
+        default:
+            disp(MSG_FATAL,"Unknown datatype");
+            break;
+    }
+
+}
+
+void NIBR::clearField(TractogramField& field, Tractogram& tractogram, const std::vector<size_t>& indices)
+{
+
+    switch (field.datatype) {
+
+        case UNKNOWN_DT:       break;
+        case BOOL_DT:          clearFieldWrapper<bool>(field,tractogram, indices);           break;
+        case UINT8_DT:         clearFieldWrapper<uint8_t>(field,tractogram, indices);        break;
+        case INT8_DT:          clearFieldWrapper<int8_t>(field,tractogram, indices);         break;
+        case UINT16_DT:        clearFieldWrapper<uint16_t>(field,tractogram, indices);       break;
+        case INT16_DT:         clearFieldWrapper<int16_t>(field,tractogram, indices);        break;
+        case UINT32_DT:        clearFieldWrapper<uint32_t>(field,tractogram, indices);       break;
+        case INT32_DT:         clearFieldWrapper<int32_t>(field,tractogram, indices);        break;
+        case UINT64_DT:        clearFieldWrapper<uint64_t>(field,tractogram, indices);       break;
+        case INT64_DT:         clearFieldWrapper<int64_t>(field,tractogram, indices);        break;
+        case FLOAT32_DT:       clearFieldWrapper<float>(field,tractogram, indices);          break;
+        case FLOAT64_DT:       clearFieldWrapper<double>(field,tractogram, indices);         break;
+        case FLOAT128_DT:      clearFieldWrapper<long double>(field,tractogram, indices);    break;
+        // case COMPLEX64_DT:     clearFieldWrapper<std::complex<double>>(field,tractogram, indices);            break;
+        // case COMPLEX128_DT:    clearFieldWrapper<std::complex<long double>>(field,tractogram, indices);       break;
+        // case COMPLEX256_DT:    clearFieldWrapper<std::complex<long long double>>(field,tractogram, indices);  break;
 
         default:
             disp(MSG_FATAL,"Unknown datatype");
@@ -735,60 +1259,6 @@ TractogramField NIBR::makeTractogramFieldFromFile(TractogramReader& tractogram, 
 
     return field;
 
-}
-
-// ---------------------------------------------------------------------------
-// Field and group subsetting (used by trekker select and filter commands)
-// ---------------------------------------------------------------------------
-
-std::vector<NIBR::TractogramField> NIBR::subsetTractogramFields(
-    const std::vector<TractogramField>& fields,
-    const std::vector<size_t>& indices,
-    TractogramReader& reader)
-{
-    const auto& cumLen = reader.getNumberOfPoints();
-    std::vector<TractogramField> result;
-    result.reserve(fields.size());
-
-    for (const auto& f : fields) {
-        TractogramField dst;
-        dst.owner     = f.owner;
-        dst.name      = f.name;
-        dst.datatype  = f.datatype;
-        dst.dimension = f.dimension;
-        dst.data      = nullptr;
-
-        if (f.data == nullptr || f.datatype != FLOAT32_DT) {
-            result.push_back(dst);
-            continue;
-        }
-
-        if (f.owner == STREAMLINE_OWNER) {
-            float** src = reinterpret_cast<float**>(f.data);
-            float** d   = new float*[indices.size()];
-            for (size_t j = 0; j < indices.size(); ++j) {
-                size_t i = indices[j];
-                d[j] = new float[f.dimension];
-                for (int k = 0; k < f.dimension; ++k) d[j][k] = src[i][k];
-            }
-            dst.data = reinterpret_cast<void*>(d);
-        } else if (f.owner == POINT_OWNER) {
-            float*** src = reinterpret_cast<float***>(f.data);
-            float*** d   = new float**[indices.size()];
-            for (size_t j = 0; j < indices.size(); ++j) {
-                size_t i  = indices[j];
-                size_t np = cumLen[i+1] - cumLen[i];
-                d[j] = new float*[np];
-                for (size_t p = 0; p < np; ++p) {
-                    d[j][p] = new float[f.dimension];
-                    for (int k = 0; k < f.dimension; ++k) d[j][p][k] = src[i][p][k];
-                }
-            }
-            dst.data = reinterpret_cast<void*>(d);
-        }
-        result.push_back(dst);
-    }
-    return result;
 }
 
 std::map<std::string, std::vector<uint32_t>> NIBR::subsetGroups(

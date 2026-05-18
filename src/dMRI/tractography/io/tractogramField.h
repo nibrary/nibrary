@@ -26,11 +26,16 @@ namespace NIBR
 
     void clearField(TractogramField& field, TractogramReader& tractogram);
     void clearField(TractogramField& field, Tractogram& tractogram);
+    void clearField(TractogramField& field, TractogramReader& tractogram, const std::vector<size_t>& indices);
+    void clearField(TractogramField& field, Tractogram& tractogram, const std::vector<size_t>& indices);
 
     std::vector<NIBR::TractogramField> findTractogramFields(TractogramReader& tractogram);
+    
     std::vector<NIBR::TractogramField> readTractogramFields(TractogramReader& tractogram);
+    std::vector<NIBR::TractogramField> readTractogramFields(TractogramReader& tractogram, const std::vector<size_t>& indices);
 
-    TractogramField readTractogramField(TractogramReader& tractogram,std::string name);
+    TractogramField readTractogramField(TractogramReader& tractogram, std::string name);
+    TractogramField readTractogramField(TractogramReader& tractogram, std::string name, const std::vector<size_t>& indices);
 
     TractogramField makeTractogramFieldFromFile(TractogramReader& tractogram, std::string filePath, std::string name, std::string owner, std::string dataType, int dimension, bool isASCII);
 
@@ -38,11 +43,6 @@ namespace NIBR
     template<typename T>
     TractogramField makeTractogramFieldFromVector(TractogramReader& tractogram, std::string name, const std::vector<T>& dataVec);
 
-    // Subset fields and groups by selected streamline indices (for trekker select/filter)
-    std::vector<TractogramField> subsetTractogramFields(
-        const std::vector<TractogramField>& fields,
-        const std::vector<size_t>& indices,
-        TractogramReader& reader);
 
     std::map<std::string, std::vector<uint32_t>> subsetGroups(
         const std::map<std::string, std::vector<uint32_t>>& groups,
@@ -124,6 +124,95 @@ void clearFieldWrapper(TractogramField& field, Tractogram& tractogram) {
 
             for (std::size_t s = 0; s < tractogram.size(); s++) {
                 delete[] toDel[s];
+            }
+            
+            delete[] toDel;
+
+        }
+
+    }
+
+    field.owner     = POINT_OWNER;
+    field.name      = "";
+    field.datatype  = UNKNOWN_DT;
+    field.dimension = 0;
+    field.data      = NULL;
+
+}
+
+template<class T>
+void clearFieldWrapper(TractogramField& field,TractogramReader& tractogram, const std::vector<size_t>& indices) {
+
+    const auto& cumLen  = tractogram.getNumberOfPoints();
+
+    if (field.data != NULL) {
+
+        if (field.owner == POINT_OWNER) {
+
+            T*** toDel = reinterpret_cast<T***>(field.data);
+
+            for (std::size_t j = 0; j < indices.size(); j++) {
+                auto s = indices[j];
+                auto len = cumLen[s+1] - cumLen[s];
+                for (uint32_t l = 0; l < len; l++) {
+                    delete[] toDel[j][l];
+                }
+                delete[] toDel[j];
+            }
+
+            delete[] toDel; 
+
+        }
+
+        if (field.owner == STREAMLINE_OWNER) {
+
+            T** toDel = reinterpret_cast<T**>(field.data);
+
+            for (std::size_t j = 0; j < indices.size(); j++) {
+                delete[] toDel[j];
+            }
+            
+            delete[] toDel;
+
+        }
+
+    }
+
+    field.owner     = POINT_OWNER;
+    field.name      = "";
+    field.datatype  = UNKNOWN_DT;
+    field.dimension = 0;
+    field.data      = NULL;
+
+}
+
+template<class T>
+void clearFieldWrapper(TractogramField& field, Tractogram& tractogram, const std::vector<size_t>& indices) {
+
+    if (field.data != NULL) {
+
+        if (field.owner == POINT_OWNER) {
+
+            T*** toDel = reinterpret_cast<T***>(field.data);
+
+            for (std::size_t j = 0; j < indices.size(); j++) {
+                auto s = indices[j];
+                for (uint32_t l = 0; l < tractogram[s].size(); l++) {
+                    delete[] toDel[j][l];
+                }
+                delete[] toDel[j];
+            }
+
+            delete[] toDel; 
+
+        }
+
+        if (field.owner == STREAMLINE_OWNER) {
+
+            T** toDel = reinterpret_cast<T**>(field.data);
+
+            for (std::size_t j = 0; j < indices.size(); j++) {
+                delete[] toDel[j];
             }
             
             delete[] toDel;

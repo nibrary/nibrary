@@ -2,208 +2,248 @@
 
 using namespace NIBR;
 
-void NIBR::getParallelStreamlines(Tractogram& out, NIBR::TractogramReader* tractogram, float radius, int ringCount, int pointCountPerRing)
+void NIBR::generateParallelStreamlineBatch(
+    const Streamline& streamline, 
+    StreamlineBatch& outBatch, 
+    const std::vector<float>& scale_N, 
+    const std::vector<float>& scale_B,
+    int threadId) 
 {
-    
-    int N   = tractogram->numberOfStreamlines;
-    int par = ringCount*pointCountPerRing+1;
-    
-    // Create output
-    if (N<1)
+    int len = streamline.size();
+    int par = scale_N.size();
+
+    if (len < 2) {
+        outBatch.clear();
         return;
-    else
-        out.resize(N*par);
+    }
 
-    // Prepare rings
-    float radStep = radius/float(ringCount);
-    float angStep = TWOPI/float(pointCountPerRing);
-    std::vector<float> scale_N;
-    std::vector<float> scale_B;
-    scale_N.push_back(0.0f);
-    scale_B.push_back(0.0f);
-    for (float i=1; i<(ringCount+1); i++)
-        for (float j=0; j<pointCountPerRing; j++) {
-            scale_N.push_back(i*radStep*std::sin(angStep*j));
-            scale_B.push_back(i*radStep*std::cos(angStep*j));
-        }
+    outBatch.resize(par);
+    for (int p = 0; p < par; p++) {
+        outBatch[p].resize(len);
+    }
 
-    // Iterate throught the whole tractogram
-    tractogram->reset();
+    float T[3], N[3], B[3], curr_T[3];
+    const int window = 6; 
 
-    auto genParallel = [&](const NIBR::MT::TASK& task)->void{
+    // 1. Initial tangent
+    int lookahead = std::min(len - 1, window);
+    vec3sub(T, streamline[lookahead], streamline[0]);
+    float lenT = norm(T);
 
-        auto [success,streamline,streamlineId] = tractogram->getNextStreamline();
+    while (lenT < EPS6 && lookahead < len - 1) {
+        lookahead++;
+        vec3sub(T, streamline[lookahead], streamline[0]);
+        lenT = norm(T);
+    }
 
-        int len = streamline.size();
+    if (lenT < EPS6) { 
+        lenT = 1.0f; 
+        T[0] = 1.0f; 
+        T[1] = 0.0f; 
+        T[2] = 0.0f; 
+    } 
+    
+    T[0] /= lenT; 
+    T[1] /= lenT; 
+    T[2] /= lenT;
 
-        if (len<2)
-            return;
+    // 2. Initial normal and binormal
+    NIBR::MT::RNDM()[threadId]->getAUnitRandomPerpVector(N, T);
+    normalize(N);
+    cross(B, T, N);
 
-        for (int p=0; p<par; p++) {
-            out[streamlineId*par+p].resize(len);
-        }
+    for (int p = 0; p < par; p++)
+        for (int i = 0; i < 3; i++)
+            outBatch[p][0][i] = streamline[0][i] + N[i] * scale_N[p] + B[i] * scale_B[p];
 
-        // To make cylinders around the streamlines, we will compute the parallel transport frame
-        float T[3], N[3], B[3], curr_T[3];
-        float R_axis[3], R_angle;
-        float R[4][4];
+    for (auto l = 1; l < (len - 1); l++) {
 
-        // Get a random initial PTF and handle the initial point
-        vec3sub(T,streamline[1],streamline[0]);
-        normalize(T);
-        NIBR::MT::RNDM()[task.threadId]->getAUnitRandomPerpVector(N,T);
-        normalize(N);
-        cross(B,T,N);
+        // Take the symmetric chord around this point
+        int prev_idx = std::max(0, l - window);
+        int next_idx = std::min(len - 1, l + window);
+        vec3sub(curr_T, streamline[next_idx], streamline[prev_idx]);
+        float lenCT = norm(curr_T);
+        
+        // If the curve has repeat points or perfect 180 turn inside the window, the chord cancels out. 
+        // In that case, search for the nearest true geometric neighbors.
+        if (lenCT < EPS6) {
 
-        for (int p=0; p<par; p++)
-            for (int i=0; i<3; i++)
-                out[streamlineId*par+p][0][i] = streamline[0][i] + N[i]*scale_N[p] + + B[i]*scale_B[p];
-
-        for (auto l=1; l<(len-1); l++) {
-
-            vec3sub(curr_T,streamline[l+1],streamline[l]);
-            normalize(curr_T);
-
-            R_angle = std::acos(std::clamp(dot(T,curr_T),-1.0,1.0));
-
-            curr_T[0] += EPS4;  // for numerical stability reasons
-            curr_T[1] += EPS4;
-            curr_T[2] += EPS4;
+            // Scan backward for the first distinct point
+            prev_idx = l - 1;
+            while (prev_idx >= 0) {
+                float temp_v[3];
+                vec3sub(temp_v, streamline[l], streamline[prev_idx]);
+                if (norm(temp_v) > EPS6) break;
+                prev_idx--;
+            }
             
-            cross(R_axis,T,curr_T);
-            normalize(R_axis);
+            // Scan forward for the first distinct point
+            next_idx = l + 1;
+            while (next_idx < len) {
+                float temp_v[3];
+                vec3sub(temp_v, streamline[next_idx], streamline[l]);
+                if (norm(temp_v) > EPS6) break;
+                next_idx++;
+            }
 
-            axisangle2Rotation(R_axis, R_angle, R);
-            rotate(curr_T,T,R); // curr_T is used as a temp var
-            rotate(R_axis,N,R); // R_axis is used as a temp var
+            prev_idx = std::max(0, prev_idx);
+            next_idx = std::min(len - 1, next_idx);
+            vec3sub(curr_T, streamline[next_idx], streamline[prev_idx]);
+            lenCT = norm(curr_T);
+        }
 
-            T[0] = curr_T[0];
-            T[1] = curr_T[1];
-            T[2] = curr_T[2];
-            normalize(T);
+        if (lenCT > EPS6) {
+            curr_T[0] /= lenCT; 
+            curr_T[1] /= lenCT; 
+            curr_T[2] /= lenCT;
 
-            N[0] = R_axis[0];
-            N[1] = R_axis[1];
-            N[2] = R_axis[2];
+            float c = dot(T, curr_T);
+
+            // Compute parallel transport
+            if (c < -0.999f) {
+                N[0] = -N[0]; N[1] = -N[1]; N[2] = -N[2];
+            } else {
+                float v[3];
+                cross(v, T, curr_T);
+                float v_cross_N[3];
+                cross(v_cross_N, v, N);
+                float v_dot_N = dot(v, N);
+                float factor = v_dot_N / (1.0f + c);
+
+                N[0] = N[0] * c + v_cross_N[0] + v[0] * factor;
+                N[1] = N[1] * c + v_cross_N[1] + v[1] * factor;
+                N[2] = N[2] * c + v_cross_N[2] + v[2] * factor;
+            }
+
+            // Ensure N is orthogonal to the chord
+            float n_dot_t = dot(N, curr_T);
+            N[0] -= n_dot_t * curr_T[0];
+            N[1] -= n_dot_t * curr_T[1];
+            N[2] -= n_dot_t * curr_T[2];
+            
             normalize(N);
 
-            cross(B,T,N);
-
-            for (int p=0; p<par; p++)
-                for (int i=0; i<3; i++)
-                    out[streamlineId*par+p][l][i] = streamline[l][i] + N[i]*scale_N[p] + + B[i]*scale_B[p];
-
+            T[0] = curr_T[0]; T[1] = curr_T[1]; T[2] = curr_T[2];
         }
 
-        // Repeat the last N, B for the last segment
-        for (int p=0; p<par; p++)
-            for (int i=0; i<3; i++)
-                out[streamlineId*par+p][len-1][i] = streamline[len-1][i] + N[i]*scale_N[p] + + B[i]*scale_B[p];        
+        cross(B, T, N);
 
+        for (int p = 0; p < par; p++) {
+            for (int i = 0; i < 3; i++) {
+                outBatch[p][l][i] = streamline[l][i] + N[i] * scale_N[p] + B[i] * scale_B[p];
+            }
+        }
+    }
+
+    for (int p = 0; p < par; p++)
+        for (int i = 0; i < 3; i++)
+            outBatch[p][len - 1][i] = streamline[len - 1][i] + N[i] * scale_N[p] + B[i] * scale_B[p];        
+}
+
+
+void NIBR::getParallelStreamlines(Tractogram& out, NIBR::TractogramReader* tractogram, float radius, int ringCount, int pointCountPerRing)
+{
+    int numStreamlines = tractogram->numberOfStreamlines;
+    int par = ringCount * pointCountPerRing + 1;
+    
+    if (numStreamlines < 1) return;
+    out.resize(numStreamlines * par);
+
+    // Prepare offsets
+    float radStep = radius / float(ringCount);
+    float angStep = TWOPI / float(pointCountPerRing);
+    
+    std::vector<float> scale_N(1, 0.0f);
+    std::vector<float> scale_B(1, 0.0f);
+    
+    for (float i = 1; i < (ringCount + 1); i++) {
+        for (float j = 0; j < pointCountPerRing; j++) {
+            scale_N.push_back(i * radStep * std::sin(angStep * j));
+            scale_B.push_back(i * radStep * std::cos(angStep * j));
+        }
+    }
+
+    tractogram->reset();
+
+    auto genParallel = [&](const NIBR::MT::TASK& task)->void {
+        auto [success, streamline, streamlineId] = tractogram->getNextStreamline();
+        if (!success || streamline.size() < 2) return;
+
+        StreamlineBatch batch;
+        generateParallelStreamlineBatch(streamline, batch, scale_N, scale_B, task.threadId);
+
+        for (int p = 0; p < par; p++) {
+            out[streamlineId * par + p] = std::move(batch[p]);
+        }
     };
 
-    NIBR::MT::MTRUN(N, "Generating parallel streamlines", genParallel);
+    NIBR::MT::MTRUN(numStreamlines, "Generating parallel streamlines", genParallel);
+}
 
+StreamlineBatch NIBR::getParallelStreamlines(const Streamline& streamline, float radius, int ringCount, int pointCountPerRing, int threadId)
+{
+    StreamlineBatch batch;
+    float radStep = radius / float(ringCount);
+    float angStep = TWOPI / float(pointCountPerRing);
+    
+    std::vector<float> scale_N(1, 0.0f);
+    std::vector<float> scale_B(1, 0.0f);
+    
+    for (float i = 1; i < (ringCount + 1); i++) {
+        for (float j = 0; j < pointCountPerRing; j++) {
+            scale_N.push_back(i * radStep * std::sin(angStep * j));
+            scale_B.push_back(i * radStep * std::cos(angStep * j));
+        }
+    }
+
+    generateParallelStreamlineBatch(streamline, batch, scale_N, scale_B, threadId);
+    return batch;
 }
 
 
 void NIBR::getParallelStreamlines(Tractogram& out, NIBR::TractogramReader* tractogram, float sigma, int par)
 {
+    int numStreamlines = tractogram->numberOfStreamlines;
+
+    if (numStreamlines < 1) return;
+    out.resize(numStreamlines * par);
+
+    std::vector<float> scale_N(1, 0.0f);
+    std::vector<float> scale_B(1, 0.0f);
     
-    int N = tractogram->numberOfStreamlines;
-
-    // Create output
-    if (N<1)
-        return;
-    else
-        out.resize(par*N);
-
-    // Prepare points to track
-    std::vector<float> scale_N;
-    std::vector<float> scale_B;
-    scale_N.push_back(0);
-    scale_B.push_back(0);
-    for (int n=0; n<par; n++) {
-        scale_N.push_back(NIBR::MT::RNDM()[0]->normal_m0_s1()*sigma);
-        scale_B.push_back(NIBR::MT::RNDM()[0]->normal_m0_s1()*sigma);
+    for (int n = 0; n < par; n++) {
+        scale_N.push_back(NIBR::MT::RNDM()[0]->normal_m0_s1() * sigma);
+        scale_B.push_back(NIBR::MT::RNDM()[0]->normal_m0_s1() * sigma);
     }
-
-    // Iterate throught the whole tractogram
 
     tractogram->reset();
 
-    auto genParallel = [&](const NIBR::MT::TASK& task)->void{
+    auto genParallel = [&](const NIBR::MT::TASK& task)->void {
+        auto [success, streamline, streamlineId] = tractogram->getNextStreamline();
+        if (!success || streamline.size() < 2) return;
 
-        auto [success,streamline,streamlineId] = tractogram->getNextStreamline();
+        StreamlineBatch batch;
+        generateParallelStreamlineBatch(streamline, batch, scale_N, scale_B, task.threadId);
 
-        int len = streamline.size();
-        
-        if (len<2)
-            return;
-
-        for (int p=0; p<par; p++) {
-            out[streamlineId*par+p].resize(len);
+        for (int p = 0; p < par; p++) {
+            out[streamlineId * par + p] = std::move(batch[p]);
         }
-
-        // To make cylinders around the streamlines, we will compute the parallel transport frame
-        float T[3], N[3], B[3], curr_T[3];
-        float R_axis[3], R_angle;
-        float R[4][4];
-
-        // Get a random initial PTF and handle the initial point
-        vec3sub(T,streamline[1],streamline[0]);
-        normalize(T);
-        NIBR::MT::RNDM()[task.threadId]->getAUnitRandomPerpVector(N,T);
-        normalize(N);
-        cross(B,T,N);
-
-        for (int p=0; p<par; p++)
-            for (int i=0; i<3; i++)
-                out[streamlineId*par+p][0][i] = streamline[0][i] + N[i]*scale_N[p] + + B[i]*scale_B[p];
-
-        for (auto l=1; l<(len-1); l++) {
-
-            vec3sub(curr_T,streamline[l+1],streamline[l]);
-            normalize(curr_T);
-
-            R_angle = std::acos(std::clamp(dot(T,curr_T),-1.0,1.0));
-
-            curr_T[0] += EPS4;  // for numerical stability reasons
-            curr_T[1] += EPS4;
-            curr_T[2] += EPS4;
-            
-            cross(R_axis,T,curr_T);
-            normalize(R_axis);
-
-            axisangle2Rotation(R_axis, R_angle, R);
-            rotate(curr_T,T,R); // curr_T is used as a temp var
-            rotate(R_axis,N,R); // R_axis is used as a temp var
-
-            T[0] = curr_T[0];
-            T[1] = curr_T[1];
-            T[2] = curr_T[2];
-            normalize(T);
-
-            N[0] = R_axis[0];
-            N[1] = R_axis[1];
-            N[2] = R_axis[2];
-            normalize(N);
-
-            cross(B,T,N);
-
-            for (int p=0; p<par; p++)
-                for (int i=0; i<3; i++)
-                    out[streamlineId*par+p][l][i] = streamline[l][i] + N[i]*scale_N[p] + + B[i]*scale_B[p];
-
-        }
-
-        // Repeat the last N, B for the last segment
-        for (int p=0; p<par; p++)
-            for (int i=0; i<3; i++)
-                out[streamlineId*par+p][len-1][i] = streamline[len-1][i] + N[i]*scale_N[p] + + B[i]*scale_B[p];
-
     };
 
-    NIBR::MT::MTRUN(N, "Generating parallel streamlines", genParallel);
+    NIBR::MT::MTRUN(numStreamlines, "Generating parallel streamlines", genParallel);
+}
 
+StreamlineBatch NIBR::getParallelStreamlines(const Streamline& streamline, float sigma, int N, int threadId)
+{
+    StreamlineBatch batch;
+    std::vector<float> scale_N(1, 0.0f);
+    std::vector<float> scale_B(1, 0.0f);
+    
+    for (int n = 0; n < N; n++) {
+        scale_N.push_back(NIBR::MT::RNDM()[threadId]->normal_m0_s1() * sigma);
+        scale_B.push_back(NIBR::MT::RNDM()[threadId]->normal_m0_s1() * sigma);
+    }
+
+    generateParallelStreamlineBatch(streamline, batch, scale_N, scale_B, threadId);
+    return batch;
 }

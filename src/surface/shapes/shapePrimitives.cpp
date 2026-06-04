@@ -203,7 +203,7 @@ Surface makeCone(float* tip, float* baseCenter, float baseRadius, int radialSegm
 }
 
 // Generate a tube mesh along a given streamline with specified radius and radial segments
-Surface generateTubeFromStreamline(const NIBR::Streamline& streamline, float radius, int radialSegments, bool sphericalCaps, int threadId)
+Surface streamline2tube(const NIBR::Streamline& streamline, float radius, int radialSegments, bool sphericalCaps, int threadId)
 {
     std::vector<std::vector<float>> verts;
     std::vector<std::vector<int>>   faces;
@@ -395,7 +395,7 @@ Surface tractogram2tube(const NIBR::Tractogram& tractogram, float radius, int ra
     // 1. Parallel tube generation
     std::vector<Surface> tubes(N);
     auto genTubes = [&](const NIBR::MT::TASK& task)->void {
-        tubes[task.no] = generateTubeFromStreamline(tractogram[task.no], radius, radialSegments, sphericalCaps, task.threadId);
+        tubes[task.no] = streamline2tube(tractogram[task.no], radius, radialSegments, sphericalCaps, task.threadId);
     };
     NIBR::MT::MTRUN(N, "Generating parallel tube meshes", genTubes);
 

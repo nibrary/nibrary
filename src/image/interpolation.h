@@ -42,11 +42,10 @@ namespace NIBR
         static OUT_T     interp_nearest_4D_att(NIBR::Image<INP_T>* img, OUT_T* , int64_t );
         static void      interp_nearest_4D_all(NIBR::Image<INP_T>*,     OUT_T*, OUT_T*);
         
-        // TODO: Cubic interpolation
-        static INTERPAT  init_interp_cubic    (NIBR::Image<INP_T>* img, OUT_T*, OUT_T*, int64_t*) {return img->outsideVal;}
-        static OUT_T     interp_cubic_3D      (NIBR::Image<INP_T>* img, OUT_T*)                   {return img->outsideVal;}
-        static OUT_T     interp_cubic_4D_att  (NIBR::Image<INP_T>* img, OUT_T* , int64_t )        {return img->outsideVal;}
-        static void      interp_cubic_4D_all  (NIBR::Image<INP_T>*,     OUT_T*, OUT_T*)           {}
+        static INTERPAT  init_interp_cubic    (NIBR::Image<INP_T>* img, OUT_T*, OUT_T*, int64_t*);
+        static OUT_T     interp_cubic_3D      (NIBR::Image<INP_T>* img, OUT_T*);
+        static OUT_T     interp_cubic_4D_att  (NIBR::Image<INP_T>* img, OUT_T* , int64_t );
+        static void      interp_cubic_4D_all  (NIBR::Image<INP_T>*,     OUT_T*, OUT_T*);
     };
 
     // ==========================================
@@ -310,5 +309,288 @@ namespace NIBR
         }
         
     }
+
+    // CUBIC INTERPOLATION
+    // Catmull-Rom / Keys cubic convolution, a = -0.5
+    // cfs layout:
+    //   cfs[0..3]   = x weights for offsets -1, 0, 1, 2
+    //   cfs[4..7]   = y weights for offsets -1, 0, 1, 2
+    //   cfs[8..11]  = z weights for offsets -1, 0, 1, 2
+    // cor_ijk stores floor(ijk) for each axis.
+
+    template<typename OUT_T, typename INP_T>
+    INTERPAT Interpolator<OUT_T,INP_T>::init_interp_cubic(NIBR::Image<INP_T>* img, OUT_T* p, OUT_T* cfs, int64_t* cor_ijk)
+    {
+        OUT_T ijk[3];
+        img->to_ijk(p, ijk);
+
+        cor_ijk[0] = static_cast<int64_t>(std::floor(ijk[0]));
+        cor_ijk[1] = static_cast<int64_t>(std::floor(ijk[1]));
+        cor_ijk[2] = static_cast<int64_t>(std::floor(ijk[2]));
+
+        OUT_T fx = ijk[0] - OUT_T(cor_ijk[0]);
+        OUT_T fy = ijk[1] - OUT_T(cor_ijk[1]);
+        OUT_T fz = ijk[2] - OUT_T(cor_ijk[2]);
+
+        auto cubic_weights = [](OUT_T t, OUT_T* w)
+        {
+            OUT_T t2 = t * t;
+            OUT_T t3 = t2 * t;
+
+            // Catmull-Rom cubic convolution weights for samples:
+            // floor(x)-1, floor(x), floor(x)+1, floor(x)+2
+            w[0] = OUT_T(-0.5) * t + t2 - OUT_T(0.5) * t3;
+            w[1] = OUT_T(1.0) - OUT_T(2.5) * t2 + OUT_T(1.5) * t3;
+            w[2] = OUT_T(0.5) * t + OUT_T(2.0) * t2 - OUT_T(1.5) * t3;
+            w[3] = OUT_T(-0.5) * t2 + OUT_T(0.5) * t3;
+        };
+
+        cubic_weights(fx, cfs);
+        cubic_weights(fy, cfs + 4);
+        cubic_weights(fz, cfs + 8);
+
+        // Full 4x4x4 stencil is inside the image.
+        if (
+            cor_ijk[0] - 1 >= 0 && cor_ijk[0] + 2 < img->imgDims[0] &&
+            cor_ijk[1] - 1 >= 0 && cor_ijk[1] + 2 < img->imgDims[1] &&
+            cor_ijk[2] - 1 >= 0 && cor_ijk[2] + 2 < img->imgDims[2]
+        )
+            return INTERP_INSIDE;
+
+        // The cubic stencil has no overlap with the image in at least one axis.
+        if (
+            cor_ijk[0] + 2 < 0 || cor_ijk[0] - 1 >= img->imgDims[0] ||
+            cor_ijk[1] + 2 < 0 || cor_ijk[1] - 1 >= img->imgDims[1] ||
+            cor_ijk[2] + 2 < 0 || cor_ijk[2] - 1 >= img->imgDims[2]
+        )
+            return INTERP_OUTSIDE;
+
+        return INTERP_BOUNDARY;
+    }
+
+
+    template<typename OUT_T, typename INP_T>
+    OUT_T Interpolator<OUT_T,INP_T>::interp_cubic_3D(NIBR::Image<INP_T>* img, OUT_T* p)
+    {
+        OUT_T   cfs[12];
+        int64_t cor_ijk[3];
+
+        switch (init_interp_cubic(img, p, cfs, cor_ijk)) {
+
+            case INTERP_INSIDE: {
+                OUT_T out = 0;
+
+                for (int64_t kk = 0; kk < 4; kk++) {
+                    int64_t z = cor_ijk[2] + kk - 1;
+                    OUT_T wz = cfs[8 + kk];
+
+                    for (int64_t jj = 0; jj < 4; jj++) {
+                        int64_t y = cor_ijk[1] + jj - 1;
+                        OUT_T wyz = cfs[4 + jj] * wz;
+
+                        for (int64_t ii = 0; ii < 4; ii++) {
+                            int64_t x = cor_ijk[0] + ii - 1;
+                            OUT_T w = cfs[ii] * wyz;
+
+                            out += w * OUT_T(img->data[img->sub2ind(x, y, z)]);
+                        }
+                    }
+                }
+
+                return out;
+            }
+
+            case INTERP_BOUNDARY: {
+                OUT_T out = 0;
+
+                for (int64_t kk = 0; kk < 4; kk++) {
+                    int64_t z = cor_ijk[2] + kk - 1;
+                    OUT_T wz = cfs[8 + kk];
+
+                    for (int64_t jj = 0; jj < 4; jj++) {
+                        int64_t y = cor_ijk[1] + jj - 1;
+                        OUT_T wyz = cfs[4 + jj] * wz;
+
+                        for (int64_t ii = 0; ii < 4; ii++) {
+                            int64_t x = cor_ijk[0] + ii - 1;
+                            OUT_T w = cfs[ii] * wyz;
+
+                            out += w * (
+                                img->isInside(x, y, z)
+                                ? OUT_T(img->data[img->sub2ind(x, y, z)])
+                                : OUT_T(img->outsideVal)
+                            );
+                        }
+                    }
+                }
+
+                return out;
+            }
+
+            case INTERP_OUTSIDE:
+                return OUT_T(img->outsideVal);
+
+            default:
+                return OUT_T(img->outsideVal);
+        }
+    }
+
+
+    template<typename OUT_T, typename INP_T>
+    OUT_T Interpolator<OUT_T,INP_T>::interp_cubic_4D_att(NIBR::Image<INP_T>* img, OUT_T* p, int64_t t)
+    {
+        OUT_T   cfs[12];
+        int64_t cor_ijk[3];
+
+        switch (init_interp_cubic(img, p, cfs, cor_ijk)) {
+
+            case INTERP_INSIDE: {
+                OUT_T out = 0;
+
+                for (int64_t kk = 0; kk < 4; kk++) {
+                    int64_t z = cor_ijk[2] + kk - 1;
+                    OUT_T wz = cfs[8 + kk];
+
+                    for (int64_t jj = 0; jj < 4; jj++) {
+                        int64_t y = cor_ijk[1] + jj - 1;
+                        OUT_T wyz = cfs[4 + jj] * wz;
+
+                        for (int64_t ii = 0; ii < 4; ii++) {
+                            int64_t x = cor_ijk[0] + ii - 1;
+                            OUT_T w = cfs[ii] * wyz;
+
+                            out += w * OUT_T(img->data[img->sub2ind(x, y, z, t)]);
+                        }
+                    }
+                }
+
+                return out;
+            }
+
+            case INTERP_BOUNDARY: {
+                OUT_T out = 0;
+
+                for (int64_t kk = 0; kk < 4; kk++) {
+                    int64_t z = cor_ijk[2] + kk - 1;
+                    OUT_T wz = cfs[8 + kk];
+
+                    for (int64_t jj = 0; jj < 4; jj++) {
+                        int64_t y = cor_ijk[1] + jj - 1;
+                        OUT_T wyz = cfs[4 + jj] * wz;
+
+                        for (int64_t ii = 0; ii < 4; ii++) {
+                            int64_t x = cor_ijk[0] + ii - 1;
+                            OUT_T w = cfs[ii] * wyz;
+
+                            out += w * (
+                                img->isInside(x, y, z)
+                                ? OUT_T(img->data[img->sub2ind(x, y, z, t)])
+                                : OUT_T(img->outsideVal)
+                            );
+                        }
+                    }
+                }
+
+                return out;
+            }
+
+            case INTERP_OUTSIDE:
+                return OUT_T(img->outsideVal);
+
+            default:
+                return OUT_T(img->outsideVal);
+        }
+    }
+
+
+    template<typename OUT_T, typename INP_T>
+    void Interpolator<OUT_T,INP_T>::interp_cubic_4D_all(NIBR::Image<INP_T>* img, OUT_T* p, OUT_T* out)
+    {
+        OUT_T   cfs[12];
+        int64_t cor_ijk[3];
+
+        switch (init_interp_cubic(img, p, cfs, cor_ijk)) {
+
+            case INTERP_INSIDE: {
+
+                for (int64_t c = 0; c < img->valCnt; c++) {
+                    out[c] = 0;
+                }
+
+                for (int64_t kk = 0; kk < 4; kk++) {
+                    int64_t z = cor_ijk[2] + kk - 1;
+                    OUT_T wz = cfs[8 + kk];
+
+                    for (int64_t jj = 0; jj < 4; jj++) {
+                        int64_t y = cor_ijk[1] + jj - 1;
+                        OUT_T wyz = cfs[4 + jj] * wz;
+
+                        for (int64_t ii = 0; ii < 4; ii++) {
+                            int64_t x = cor_ijk[0] + ii - 1;
+                            OUT_T w = cfs[ii] * wyz;
+
+                            for (int64_t c = 0; c < img->valCnt; c++) {
+                                out[c] += w * OUT_T(img->data[img->sub2ind(x, y, z, c)]);
+                            }
+                        }
+                    }
+                }
+                break;
+            }
+
+            case INTERP_BOUNDARY: {
+
+                for (int64_t c = 0; c < img->valCnt; c++) {
+                    out[c] = 0;
+                }
+
+                for (int64_t kk = 0; kk < 4; kk++) {
+                    int64_t z = cor_ijk[2] + kk - 1;
+                    OUT_T wz = cfs[8 + kk];
+
+                    for (int64_t jj = 0; jj < 4; jj++) {
+                        int64_t y = cor_ijk[1] + jj - 1;
+                        OUT_T wyz = cfs[4 + jj] * wz;
+
+                        for (int64_t ii = 0; ii < 4; ii++) {
+                            int64_t x = cor_ijk[0] + ii - 1;
+                            OUT_T w = cfs[ii] * wyz;
+
+                            // Evaluate spatial boundary ONCE per voxel
+                            if (img->isInside(x, y, z)) {
+                                for (int64_t c = 0; c < img->valCnt; c++) {
+                                    out[c] += w * OUT_T(img->data[img->sub2ind(x, y, z, c)]);
+                                }
+                            } else {
+                                // Precalculate the weighted outside value
+                                OUT_T weighted_outside = w * OUT_T(img->outsideVal);
+                                for (int64_t c = 0; c < img->valCnt; c++) {
+                                    out[c] += weighted_outside;
+                                }
+                            }
+                        }
+                    }
+                }
+                break;
+            }
+
+            case INTERP_OUTSIDE: {
+                for (int64_t c = 0; c < img->valCnt; c++)
+                    out[c] = OUT_T(img->outsideVal);
+
+                break;
+            }
+
+            default: {
+                for (int64_t c = 0; c < img->valCnt; c++)
+                    out[c] = OUT_T(img->outsideVal);
+
+                break;
+            }
+        }
+
+        return;
+    }
+
 
 }

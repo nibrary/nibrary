@@ -254,4 +254,50 @@ namespace NIBR
         return imgConnectedComponents(inp, CONN6);
     }
 
+
+    template<typename T>
+    std::vector<std::vector<int64_t>> imgBoundaryVoxels(NIBR::Image<T>* img, CONN3D conn) {
+
+        std::vector<std::vector<int64_t>> subs;
+        subs.reserve(img->voxCnt);
+        const auto& data = img->data;
+
+        if (img->numberOfDimensions != 3) {
+            disp(MSG_ERROR,"Input has to be 3-dimensional");
+            return subs;
+        }
+
+        auto N = get3DNeighbors(conn);
+
+        // Iterate through each voxel and check if it's a boundary voxel
+        for (int64_t k = 0; k < img->imgDims[2]; ++k) {
+            for (int64_t j = 0; j < img->imgDims[1]; ++j) {
+                for (int64_t i = 0; i < img->imgDims[0]; ++i) {
+
+                    // Skip background voxels
+                    int64_t idx = img->sub2ind(i, j, k);
+                    if (data[idx] == 0) continue;
+
+                    // A foreground voxel is a boundary voxel if any neighbor
+                    // is outside the image or has a zero value.
+                    for (const auto& n : N) {
+                        int64_t ii = i + n[0];
+                        int64_t jj = j + n[1];
+                        int64_t kk = k + n[2];
+
+                        if (!img->isInside(ii, jj, kk) || (*img)(ii, jj, kk) == 0) {
+                            subs.push_back({i, j, k});
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        // disp(MSG_DETAIL,"Number of boundary voxels: %d", subs.size());
+        return subs;
+    }
+
+
+
 }

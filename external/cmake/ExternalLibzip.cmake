@@ -89,6 +89,7 @@ if(BUILDING_LIBZIP_FROM_SOURCE)
                     -DCMAKE_POLICY_DEFAULT_CMP0091=NEW
                     -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded$<$<CONFIG:Debug>:Debug>
                     -DCMAKE_INSTALL_PREFIX=${NIBRARY_EXTERNAL_CMAKE_INSTALL_PREFIX}
+                    -DCMAKE_INSTALL_LIBDIR=lib
                     -DZLIB_INCLUDE_DIR:PATH=${ZLIB_INCLUDE_DIRS}
                     -DZLIB_LIBRARY:PATH=${ZLIB_LIBRARIES}
                     -DCMAKE_CXX_FLAGS=${LIBZIP_FLAGS}
@@ -127,6 +128,7 @@ if(BUILDING_LIBZIP_FROM_SOURCE)
                     -DCMAKE_POLICY_DEFAULT_CMP0091=NEW
                     -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded$<$<CONFIG:Debug>:Debug>
                     -DCMAKE_INSTALL_PREFIX=${NIBRARY_EXTERNAL_CMAKE_INSTALL_PREFIX}
+                    -DCMAKE_INSTALL_LIBDIR=lib
                     -DCMAKE_CXX_FLAGS=${LIBZIP_FLAGS}
                     -DCMAKE_C_FLAGS=${LIBZIP_FLAGS}
                     -DBUILD_EXAMPLES=OFF
